@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: codeduo-mysql
+    environment:
+      MYSQL_DATABASE: codeduo
+      MYSQL_USER: codeduo
+      MYSQL_PASSWORD: codeduo
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - codeduo-mysql:/var/lib/mysql
+
+  spring-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codeduo-backend
+    depends_on:
+      - mysql
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/codeduo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      DB_USERNAME: codeduo
+      DB_PASSWORD: codeduo
+      DB_DRIVER: com.mysql.cj.jdbc.Driver
+      JWT_SECRET: codeduo-docker-secret-key-change-before-production-please-123456
+      JUDGE0_BASE_URL: http://judge0:2358
+      JUDGE0_MOCK: "true"
+    ports:
+      - "8080:8080"
+
+  # judge0:
+  #   image: judge0/judge0:latest
+  #   ports:
+  #     - "2358:2358"
+
+volumes:
+  codeduo-mysql:

@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+._*
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# Java / Gradle
+.gradle/
+build/
+out/
+target/
+backend/build/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/src/main/resources/application-local.yml
+
+# Docker / local runtime
+*.pid
+*.seed
