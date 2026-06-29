@@ -22,7 +22,7 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home
 Swagger:
 
 ```text
-http://localhost:8082/swagger-ui/index.html
+http://localhost:8080/swagger-ui/index.html
 ```
 
 Demo accounts:
@@ -34,12 +34,10 @@ premium@codeduo.dev / password
 
 Local profile uses H2 by default. Docker compose uses MySQL.
 
-Local IntelliJ run configuration uses port `8082` to avoid conflicts with other Spring Boot projects.
-
 CLI run:
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home ./gradlew :backend:bootRun --args='--server.port=8082'
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home ./gradlew :backend:bootRun
 ```
 
 If you use another backend port, update `frontend/vite.config.ts` proxy target too.

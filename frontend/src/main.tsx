@@ -46,16 +46,27 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("codeduo_token");
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {})
-    }
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers ?? {})
+      }
+    });
+  } catch {
+    throw new Error("백엔드 서버에 연결할 수 없습니다. 백엔드가 8080 포트로 실행 중인지 확인하세요.");
+  }
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(`API 응답 형식이 올바르지 않습니다. 상태 코드: ${res.status}`);
+  }
+
   const body = await res.json();
-  if (!res.ok || !body.success) throw new Error(body.message ?? "요청 실패");
+  if (!res.ok || !body.success) throw new Error(body.message ?? `요청 실패 (${res.status})`);
   return body.data;
 }
 
