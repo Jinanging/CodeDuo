@@ -10,4 +10,6 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
     List<Problem> findByLessonIdOrderByOrderIndex(Long lessonId);
 
     List<Problem> findByLanguageAndDifficultyOrderByOrderIndex(Language language, int difficulty);
+
+    List<Problem> findByLanguageOrderByOrderIndex(Language language);
 }
