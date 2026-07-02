@@ -6,14 +6,22 @@ let token = "";
 try { token = localStorage.getItem("codeduo_token") ?? ""; } catch { /* ignore */ }
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(opts.headers ?? {}),
+      },
+    });
+  } catch {
+    // 서버에 아예 연결 실패(백엔드 꺼짐 등) → 네트워크 에러로 표시
+    const e = new Error("서버에 연결할 수 없습니다.") as Error & { isNetwork?: boolean };
+    e.isNetwork = true;
+    throw e;
+  }
   const body = await res.json();
   if (!res.ok || body.success === false) throw new Error(body.message ?? `요청 실패 (${res.status})`);
   return body.data as T; // ApiResponse { success, message, data } 래퍼 해제
@@ -35,4 +43,18 @@ export async function signup(email: string, password: string, nickname: string):
 /** 답안 채점. problemId 는 백엔드 문제 id (시드 순서상 프론트 question.id 와 1~36 동일). */
 export async function submitAnswer(problemId: number, answer: string): Promise<BackendGrade> {
   return req<BackendGrade>("/api/submissions", { method: "POST", body: JSON.stringify({ problemId, answer }) });
+}
+
+/** 현재 로그인한 유저 정보 조회 (JWT 토큰 기반). 세션 복원/새로고침 시 사용. */
+export async function getMe(): Promise<BackendUser> {
+  return req<BackendUser>("/api/users/me");
+}
+/** 저장된 로그인 토큰이 있는지. */
+export function hasToken(): boolean {
+  return !!token;
+}
+/** 로그아웃: 토큰 제거. */
+export function clearToken(): void {
+  token = "";
+  try { localStorage.removeItem("codeduo_token"); } catch { /* ignore */ }
 }

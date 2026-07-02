@@ -10,7 +10,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
-import { login as apiLogin, signup as apiSignup, submitAnswer } from "./api";
+import { login as apiLogin, signup as apiSignup, submitAnswer, getMe, clearToken, hasToken } from "./api";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -819,6 +819,7 @@ function AuthScreen({
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {mode === "register" && <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>비밀번호는 6자 이상이어야 합니다.</p>}
             </div>
 
             {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
@@ -2055,6 +2056,13 @@ export default function App() {
   const [xpEarned, setXpEarned] = useState(0);
   const [sessionWrongs, setSessionWrongs] = useState<WrongAnswer[]>([]);
 
+  // 백엔드 유저 → 프론트 UserProfile 변환 (로그인/세션복원 공용)
+  const profileFromBackend = (u: { id: number; nickname: string; email: string; tier: string; xp: number; streak: number; hearts: number; avatar: string }): UserProfile => {
+    const langXp = Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
+    const tier: Tier = String(u.tier).toLowerCase().includes("premium") ? "premium" : "free";
+    return { id: String(u.id), username: u.nickname, email: u.email, tier, xp: u.xp, streak: u.streak, hearts: u.hearts, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase() };
+  };
+
   const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
     const params = new URLSearchParams();
     const learningScreen = ["home", "lessonSelect", "lesson", "result"].includes(next);
@@ -2095,20 +2103,22 @@ export default function App() {
     if (window.location.pathname === "/") navigate("login", true);
   }, []);
 
+  // 앱 시작 시 토큰 있으면 /api/users/me 로 세션 복원(자동 로그인)
+  useEffect(() => {
+    if (!hasToken()) return;
+    getMe()
+      .then((u) => {
+        setUser(profileFromBackend(u));
+        const p = window.location.pathname;
+        if (p === "/" || p === "/login" || p === "/register") navigate("home", true);
+      })
+      .catch(() => clearToken());
+  }, []);
+
   const handleLogin = async (email: string, password: string, mode: "login" | "register", username: string) => {
-    const langXp = Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
-    let profile: UserProfile;
-    try {
-      // 실제 백엔드 로그인/회원가입 (JWT)
-      const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
-      const tier: Tier = String(u.tier).toLowerCase().includes("premium") ? "premium" : "free";
-      profile = { id: String(u.id), username: u.nickname, email: u.email, tier, xp: u.xp, streak: u.streak, hearts: u.hearts, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase() };
-    } catch {
-      // 백엔드 미연결 → 로컬 목업 로그인(데모 유지). premium 포함 시 프리미엄.
-      const tier: Tier = email.includes("premium") ? "premium" : "free";
-      profile = { id: "me", username, email, tier, xp: 240, streak: 7, hearts: 5, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: username.slice(0, 2).toUpperCase() };
-    }
-    setUser(profile);
+    // 실제 백엔드 로그인/회원가입만 허용(DB에 있는 계정만). 에러는 AuthScreen이 표시.
+    const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
+    setUser(profileFromBackend(u));
     navigate("home");
   };
 
@@ -2123,9 +2133,11 @@ export default function App() {
     } : u);
     setLessonResult({ correct, total, wrongs });
     navigate("result");
+    // 백엔드에 저장된 최신 XP/스트릭으로 동기화
+    getMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
   };
 
-  const handleLogout = () => { setUser(null); navigate("login"); };
+  const handleLogout = () => { clearToken(); setUser(null); navigate("login"); };
   const handleUpgrade = () => {
     if (user) setUser(u => u ? { ...u, tier: "premium" } : u);
     navigate("profile");

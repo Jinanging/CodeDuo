@@ -49,6 +49,14 @@ public class DataInitializer {
     CommandLineRunner initData() {
         return args -> {
             ObjectMapper mapper = new ObjectMapper();
+
+            // 프리미엄 계정(premium@test.com) - DB가 이미 채워져 있어도 없으면 추가
+            if (!userRepository.existsByEmail("premium@test.com")) {
+                userRepository.save(User.builder()
+                        .email("premium@test.com").password(passwordEncoder.encode("password"))
+                        .nickname("admin").avatar("AD").xp(0).streakCount(0).hearts(5).premium(true).build());
+            }
+
             if (courseRepository.count() > 0) {
                 return;
             }
