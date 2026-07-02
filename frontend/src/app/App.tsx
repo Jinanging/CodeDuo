@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Flame, Heart, Zap, Trophy, Code2, BookOpen, CheckCircle2, XCircle,
-  ChevronRight, RotateCcw, Terminal, Lightbulb, Play, Star, ArrowLeft,
+  ChevronRight, ChevronLeft, RotateCcw, Terminal, Lightbulb, Play, Star, ArrowLeft,
   Users, BarChart2, Lock, Crown, LogOut, UserPlus, Search, X, Check,
   AlertTriangle, Sparkles, MessageSquare, User, Home, NotebookPen,
   TrendingUp, Eye, EyeOff, Bell, ChevronDown,
@@ -10,14 +10,15 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
-import { login as apiLogin, signup as apiSignup, submitAnswer, getMe, clearToken, hasToken } from "./api";
+import { login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile, getMe, hasToken, clearToken, fetchAnalytics, type BackendAnalytics, type BackendUser } from "./api";
+import interviewerMascot from "../assets/interviewer-mascot.png";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
 type QuestionType = "mcq" | "fill-blank" | "short-answer" | "code";
 type Language = "python" | "java" | "c" | "cpp";
 type Difficulty = "beginner" | "intermediate" | "advanced";
-type Screen = "login" | "register" | "home" | "lessonSelect" | "lesson" | "result" | "analytics" | "errors" | "friends" | "profile" | "upgrade";
+type Screen = "login" | "register" | "home" | "lessonSelect" | "lesson" | "result" | "analytics" | "errors" | "wrongReview" | "friends" | "profile" | "upgrade";
 type Tier = "free" | "premium";
 
 const SCREEN_PATHS: Record<Screen, string> = {
@@ -29,6 +30,7 @@ const SCREEN_PATHS: Record<Screen, string> = {
   result: "/result",
   analytics: "/analytics",
   errors: "/wrong-answers",
+  wrongReview: "/wrong-answers/review",
   friends: "/friends",
   profile: "/profile",
   upgrade: "/upgrade",
@@ -43,6 +45,14 @@ const isLanguage = (value: string | null): value is Language =>
 
 const isDifficulty = (value: string | null): value is Difficulty =>
   value === "beginner" || value === "intermediate" || value === "advanced";
+
+const languageFromSubject = (subject: string): Language => {
+  const normalized = subject.toLowerCase();
+  if (normalized.includes("c++") || normalized.includes("cpp")) return "cpp";
+  if (normalized === "c" || normalized.includes("c ")) return "c";
+  if (normalized.includes("java")) return "java";
+  return "python";
+};
 
 const parseRouteQuery = () => {
   const params = new URLSearchParams(window.location.search);
@@ -117,6 +127,7 @@ interface WrongAnswer {
 
 interface MockUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; }
 interface MockGroup { id: string; name: string; memberCount: number; language: Language; avatar: string; joined: boolean; }
+interface MockGroupMember { id: string; username: string; avatar: string; xp: number; streak: number; weeklySolved: number; progress: number; online: boolean; }
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -462,6 +473,41 @@ const MOCK_GROUPS: MockGroup[] = [
   { id: "g3", name: "Java 백엔드 팀 ☕", memberCount: 5, language: "java", avatar: "JB", joined: false },
   { id: "g4", name: "C 시스템 마스터 ⚙️", memberCount: 7, language: "c", avatar: "CS", joined: true },
 ];
+
+const MOCK_GROUP_DETAILS: Record<string, { weeklyGoal: number; solved: number; members: MockGroupMember[] }> = {
+  g1: {
+    weeklyGoal: 90, solved: 64,
+    members: [
+      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 18, progress: 82, online: true },
+      { id: "u4", username: "py_snake", avatar: "PS", xp: 2900, streak: 6, weeklySolved: 12, progress: 64, online: true },
+      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 22, progress: 91, online: false },
+    ],
+  },
+  g2: {
+    weeklyGoal: 72, solved: 38,
+    members: [
+      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 15, progress: 78, online: false },
+      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 11, progress: 56, online: true },
+      { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, streak: 3, weeklySolved: 7, progress: 35, online: false },
+    ],
+  },
+  g3: {
+    weeklyGoal: 45, solved: 29,
+    members: [
+      { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, streak: 9, weeklySolved: 13, progress: 69, online: true },
+      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 9, progress: 52, online: false },
+      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 7, progress: 44, online: true },
+    ],
+  },
+  g4: {
+    weeklyGoal: 56, solved: 41,
+    members: [
+      { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, streak: 3, weeklySolved: 10, progress: 58, online: false },
+      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 16, progress: 86, online: true },
+      { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, streak: 9, weeklySolved: 8, progress: 49, online: true },
+    ],
+  },
+};
 
 const MOCK_WRONG_ANSWERS: WrongAnswer[] = [
   { qId: 1, question: "Python에서 변수 x에 정수 5를 할당하는 올바른 방법은?", type: "mcq", language: "python", userAnswer: "int x = 5;", correctAnswer: "x = 5", solvedAt: "2026-06-27" },
@@ -1651,6 +1697,42 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
 
 function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () => void }) {
   const isPremium = user.tier === "premium";
+  const fallbackAnalytics: BackendAnalytics = {
+    weakness: WEAKNESS_DATA,
+    activity: ACTIVITY_DATA,
+    summary: { totalSolved: user.completedLessons, weeklySolved: 0, streak: user.streak, accuracy: 0 },
+  };
+  const [analytics, setAnalytics] = useState<BackendAnalytics>(fallbackAnalytics);
+  const [analyticsStatus, setAnalyticsStatus] = useState<"idle" | "loading" | "error">("idle");
+
+  useEffect(() => {
+    if (!isPremium) return;
+
+    let alive = true;
+    setAnalyticsStatus("loading");
+    fetchAnalytics()
+      .then(data => {
+        if (!alive) return;
+        setAnalytics({
+          weakness: data.weakness.length > 0 ? data.weakness : fallbackAnalytics.weakness,
+          activity: data.activity.length > 0 ? data.activity : fallbackAnalytics.activity,
+          summary: data.summary,
+        });
+        setAnalyticsStatus("idle");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setAnalytics(fallbackAnalytics);
+        setAnalyticsStatus("error");
+      });
+
+    return () => { alive = false; };
+  }, [isPremium, user.completedLessons, user.streak]);
+
+  const recommendedAreas = [...analytics.weakness]
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
+
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -1665,13 +1747,33 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
         {!isPremium && <LockOverlay onUpgrade={onUpgrade} />}
 
         <div className={isPremium ? "" : "opacity-30 pointer-events-none"}>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {[
+              { label: "총 풀이", value: analytics.summary.totalSolved },
+              { label: "이번 주", value: analytics.summary.weeklySolved },
+              { label: "정확도", value: `${analytics.summary.accuracy}%` },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-white rounded-2xl border border-border p-4">
+                <p className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</p>
+                <p className="font-extrabold text-lg" style={{ color: "var(--foreground)" }}>{value}</p>
+              </div>
+            ))}
+          </div>
+
+          {analyticsStatus === "error" && (
+            <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm" style={{ color: "#92400E" }}>
+              분석 데이터를 불러오지 못해 예시 데이터를 표시합니다.
+            </div>
+          )}
+
           {/* Radar chart */}
           <div className="bg-white rounded-2xl border border-border p-5 mb-4">
             <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
               <TrendingUp size={16} style={{ color: "var(--primary)" }} />취약 영역 분석
+              {analyticsStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>불러오는 중</span>}
             </h3>
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={WEAKNESS_DATA}>
+              <RadarChart data={analytics.weakness}>
                 <PolarGrid stroke="var(--border)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "Outfit" }} />
                 <Radar name="점수" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} strokeWidth={2} />
@@ -1685,12 +1787,12 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
               <BarChart2 size={16} style={{ color: "#10B981" }} />이번 주 학습량
             </h3>
             <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={ACTIVITY_DATA}>
+              <BarChart data={analytics.activity}>
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: "var(--muted-foreground)", fontFamily: "Outfit" }} axisLine={false} tickLine={false} />
                 <YAxis hide />
                 <Tooltip contentStyle={{ fontFamily: "Outfit", border: "1px solid var(--border)", borderRadius: 12 }} />
                 <Bar dataKey="solved" radius={[6, 6, 0, 0]}>
-                  {ACTIVITY_DATA.map((_, i) => <Cell key={i} fill={i === 5 ? "var(--primary)" : "#C4B5FD"} />)}
+                  {analytics.activity.map((_, i) => <Cell key={i} fill={i === 5 ? "var(--primary)" : "#C4B5FD"} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -1702,11 +1804,12 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
               <Sparkles size={16} style={{ color: "#F59E0B" }} />추천 문제
             </h3>
             <div className="space-y-2.5">
-              {[
-                { title: "C 포인터 기초", lang: "c", type: "mcq" as QuestionType, reason: "포인터 영역 정확도 35%" },
-                { title: "Java 상속과 다형성", lang: "java", type: "code" as QuestionType, reason: "OOP 영역 정확도 48%" },
-                { title: "Python 리스트 컴프리헨션", lang: "python", type: "fill-blank" as QuestionType, reason: "연속 학습 보상" },
-              ].map(({ title, lang, type, reason }) => (
+              {(recommendedAreas.length > 0 ? recommendedAreas : fallbackAnalytics.weakness.slice(0, 3)).map((area, index) => {
+                const lang = languageFromSubject(area.subject);
+                const type = (index === 0 ? "mcq" : index === 1 ? "code" : "fill-blank") as QuestionType;
+                const title = `${area.subject} 복습`;
+                const reason = `${area.subject} 영역 정확도 ${area.score}%`;
+                return (
                 <div key={title} className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/40 transition-colors cursor-pointer">
                   <div className="text-xl">{LANG_META[lang as Language].icon}</div>
                   <div className="flex-1 min-w-0">
@@ -1715,7 +1818,7 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
                   </div>
                   <Badge type={type} />
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>
@@ -1726,11 +1829,19 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
 
 // ─── ERROR NOTEBOOK (PREMIUM) ────────────────────────────────────────────────
 
-function ErrorNotebookPage({ user, sessionWrongs, onUpgrade }: { user: UserProfile; sessionWrongs: WrongAnswer[]; onUpgrade: () => void }) {
+function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgrade }: {
+  user: UserProfile;
+  sessionWrongs: WrongAnswer[];
+  resolvedIds: number[];
+  onReview: () => void;
+  onUpgrade: () => void;
+}) {
   const isPremium = user.tier === "premium";
   const allWrongs = [...MOCK_WRONG_ANSWERS, ...sessionWrongs];
   const [filterLang, setFilterLang] = useState<Language | "all">("all");
   const filtered = filterLang === "all" ? allWrongs : allWrongs.filter(w => w.language === filterLang);
+  const reviewWrongs = filtered.filter(w => !resolvedIds.includes(w.qId));
+  const solvedWrongs = filtered.filter(w => resolvedIds.includes(w.qId));
 
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
@@ -1756,6 +1867,43 @@ function ErrorNotebookPage({ user, sessionWrongs, onUpgrade }: { user: UserProfi
             ))}
           </div>
 
+          {filtered.length > 0 && (
+            <div className="bg-white rounded-2xl border border-border p-5 mb-4 flex flex-col gap-4 md:flex-row md:items-center">
+              <div className="w-20 h-20 rounded-2xl overflow-hidden border border-border shrink-0" style={{ background: "var(--input-background)" }}>
+                <img src={interviewerMascot} alt="복습 면접관" className="w-full h-full object-cover object-top" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>틀린 문제 복습하기</h3>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--primary)" }}>{reviewWrongs.length}개 남음</span>
+                </div>
+                <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                  면접관 캐릭터가 틀린 문제를 다시 질문합니다. 맞춘 문제는 아래 목록으로 이동합니다.
+                </p>
+              </div>
+              <button onClick={onReview} disabled={reviewWrongs.length === 0} className="px-5 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-50 shrink-0" style={{ background: "var(--primary)" }}>
+                복습 시작
+              </button>
+            </div>
+          )}
+
+          {solvedWrongs.length > 0 && (
+            <div className="bg-white rounded-2xl border border-border p-5 mb-4">
+              <h3 className="font-extrabold text-base mb-3" style={{ color: "var(--foreground)" }}>다시 풀어서 맞은 문제</h3>
+              <div className="space-y-2">
+                {solvedWrongs.map(w => (
+                  <div key={w.qId} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "#ECFDF5" }}>
+                    <CheckCircle2 size={16} className="shrink-0" style={{ color: "#10B981" }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "#065F46" }}>{w.question}</p>
+                    </div>
+                    <Badge type={w.type} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {filtered.length === 0 ? (
             <div className="text-center py-16 px-4">
               <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "#FEF3C7" }}>
@@ -1768,9 +1916,11 @@ function ErrorNotebookPage({ user, sessionWrongs, onUpgrade }: { user: UserProfi
                 {filterLang === "all" ? "레슨을 완료하면 오답이 여기에 기록됩니다." : "다른 언어를 확인하거나 레슨을 더 풀어보세요."}
               </p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map((w, i) => {
+          ) : reviewWrongs.length > 0 ? (
+            <div>
+              <h3 className="font-extrabold text-base mb-3" style={{ color: "var(--foreground)" }}>아직 틀린 문제</h3>
+              <div className="space-y-3">
+              {reviewWrongs.map((w, i) => {
                 const q = QUESTIONS.find(q => q.id === w.qId);
                 return (
                   <div key={i} className="bg-white rounded-2xl border border-border p-5">
@@ -1800,10 +1950,139 @@ function ErrorNotebookPage({ user, sessionWrongs, onUpgrade }: { user: UserProfi
                   </div>
                 );
               })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 px-4 rounded-2xl" style={{ background: "#ECFDF5" }}>
+              <CheckCircle2 size={28} className="mx-auto mb-2" style={{ color: "#10B981" }} />
+              <p className="font-bold" style={{ color: "#065F46" }}>선택한 범위의 오답을 모두 다시 맞혔어요.</p>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, onBack }: {
+  user: UserProfile;
+  sessionWrongs: WrongAnswer[];
+  resolvedIds: number[];
+  onResolve: (qId: number) => void;
+  onBack: () => void;
+}) {
+  const allWrongs = [...MOCK_WRONG_ANSWERS, ...sessionWrongs];
+  const reviewWrongs = allWrongs.filter(w => !resolvedIds.includes(w.qId));
+  const [activeId, setActiveId] = useState(reviewWrongs[0]?.qId ?? null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const active = reviewWrongs.find(w => w.qId === activeId) ?? reviewWrongs[0] ?? null;
+  const question = active ? QUESTIONS.find(q => q.id === active.qId) : undefined;
+  const answer = active ? answers[active.qId] ?? "" : "";
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, "");
+
+  const setAnswer = (value: string) => {
+    if (!active) return;
+    setAnswers(prev => ({ ...prev, [active.qId]: value }));
+    setFeedback(null);
+  };
+
+  const submit = () => {
+    if (!active) return;
+    const expected = String(question?.answer ?? active.correctAnswer);
+    const correct = question?.type === "mcq" ? Number(answer) === Number(question.answer) : normalize(answer) === normalize(expected);
+    if (!correct) { setFeedback("wrong"); return; }
+    onResolve(active.qId);
+    setFeedback("correct");
+    const next = reviewWrongs.find(w => w.qId !== active.qId);
+    setActiveId(next?.qId ?? null);
+  };
+
+  const renderInput = () => {
+    if (!active) return null;
+    if (question?.type === "mcq" && question.options) {
+      return (
+        <div className="grid gap-2">
+          {question.options.map((option, index) => {
+            const selected = answer === String(index);
+            return (
+              <button key={option} onClick={() => setAnswer(String(index))} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
+                style={{ borderColor: selected ? "var(--primary)" : "var(--border)", background: selected ? "var(--secondary)" : "#fff", color: selected ? "var(--primary)" : "var(--foreground)" }}>
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+    if (question?.type === "code") {
+      return (
+        <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={8} spellCheck={false}
+          className="w-full px-4 py-3 rounded-xl border-2 text-sm font-mono focus:outline-none resize-none"
+          style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+          placeholder="정답 코드를 다시 작성해보세요." />
+      );
+    }
+    return (
+      <input value={answer} onChange={e => setAnswer(e.target.value)}
+        className="w-full px-4 py-3 rounded-xl border-2 text-sm focus:outline-none"
+        style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+        placeholder="답을 입력하세요." />
+    );
+  };
+
+  return (
+    <div className="px-6 py-8 max-w-4xl mx-auto">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold mb-5" style={{ color: "var(--muted-foreground)" }}>
+        <ArrowLeft size={16} />오답노트로
+      </button>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-xl font-extrabold" style={{ color: "var(--foreground)" }}>틀린 문제 복습하기</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>면접관 질문에 답하고 복습 목록을 줄여보세요.</p>
+        </div>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--primary)" }}>{reviewWrongs.length}개 남음</span>
+      </div>
+
+      {active ? (
+        <div className="grid gap-5 md:grid-cols-[230px_1fr]">
+          <div className="bg-white rounded-2xl border border-border p-4 self-start">
+            <img src={interviewerMascot} alt="복습 면접관" className="w-full rounded-xl aspect-square object-cover object-top" />
+          </div>
+          <div className="bg-white rounded-2xl border border-border p-5">
+            <div className="relative rounded-2xl p-4 mb-5" style={{ background: "var(--secondary)" }}>
+              <div className="hidden md:block absolute left-[-8px] top-8 w-4 h-4 rotate-45" style={{ background: "var(--secondary)" }} />
+              <p className="text-sm font-bold mb-1" style={{ color: "var(--primary)" }}>면접관</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>
+                {user.username}님, 이 문제를 다시 물어볼게요. 왜 이 답이 맞는지 생각하면서 풀어보세요.
+              </p>
+              <p className="text-base font-extrabold mt-3 leading-relaxed" style={{ color: "var(--foreground)" }}>{active.question}</p>
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge type={active.type} />
+              <span className="text-xs font-bold" style={{ color: LANG_META[active.language].color }}>{LANG_META[active.language].icon} {LANG_META[active.language].label}</span>
+            </div>
+            {renderInput()}
+            {feedback === "wrong" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>아직 아니에요. 정답 방향을 다시 떠올려보세요.</div>}
+            {feedback === "correct" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#ECFDF5", color: "#065F46" }}>좋아요. 해결한 문제로 이동했습니다.</div>}
+            <div className="flex flex-wrap gap-2 mt-5">
+              <button onClick={submit} disabled={!answer.trim()} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>답변 제출</button>
+              {reviewWrongs.map(w => (
+                <button key={w.qId} onClick={() => { setActiveId(w.qId); setFeedback(null); }} className="px-3 py-2 rounded-xl text-xs font-bold border-2"
+                  style={{ borderColor: active.qId === w.qId ? "var(--primary)" : "var(--border)", color: active.qId === w.qId ? "var(--primary)" : "var(--muted-foreground)", background: active.qId === w.qId ? "var(--secondary)" : "#fff" }}>
+                  #{w.qId}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-border p-12 text-center">
+          <CheckCircle2 size={38} className="mx-auto mb-3" style={{ color: "#10B981" }} />
+          <p className="font-extrabold text-lg" style={{ color: "var(--foreground)" }}>복습할 문제를 모두 해결했어요.</p>
+          <button onClick={onBack} className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: "var(--primary)" }}>오답노트로 돌아가기</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1815,9 +2094,16 @@ function FriendsPage({ user }: { user: UserProfile }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState(MOCK_USERS);
   const [groups, setGroups] = useState(MOCK_GROUPS);
+  const [selectedGroupId, setSelectedGroupId] = useState(MOCK_GROUPS.find(g => g.joined)?.id ?? MOCK_GROUPS[0].id);
 
   const friends = users.filter(u => u.isFriend);
   const searchResults = users.filter(u => !u.isFriend && u.username.toLowerCase().includes(searchQuery.toLowerCase()));
+  const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? groups[0];
+  const selectedGroupDetail = MOCK_GROUP_DETAILS[selectedGroup.id];
+  const selectedGroupMembers: MockGroupMember[] = [
+    { id: user.id, username: user.username, avatar: user.avatar, xp: user.xp, streak: user.streak, weeklySolved: Math.max(6, Math.round(user.completedLessons / 2)), progress: Math.min(100, Math.round((user.langXp[selectedGroup.language] / LANG_META[selectedGroup.language].maxXp) * 100)), online: true },
+    ...selectedGroupDetail.members,
+  ].sort((a, b) => b.weeklySolved - a.weeklySolved);
 
   const toggleFriend = (id: string) => setUsers(prev => prev.map(u => u.id === id ? { ...u, isFriend: !u.isFriend } : u));
   const toggleGroup = (id: string) => setGroups(prev => prev.map(g => g.id === id ? { ...g, joined: !g.joined } : g));
@@ -1875,20 +2161,83 @@ function FriendsPage({ user }: { user: UserProfile }) {
       )}
 
       {tab === "groups" && (
-        <div className="space-y-2">
-          {groups.map(g => (
-            <div key={g.id} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg" style={{ background: LANG_META[g.language].color }}>{LANG_META[g.language].icon}</div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{g.name}</div>
-                <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>멤버 {g.memberCount}명 · {LANG_META[g.language].label}</div>
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            {groups.map(g => {
+              const selected = selectedGroup.id === g.id;
+              return (
+                <button key={g.id} onClick={() => setSelectedGroupId(g.id)} className="bg-white rounded-2xl border p-4 flex items-center gap-3 text-left transition-all"
+                  style={{ borderColor: selected ? LANG_META[g.language].color : "var(--border)", boxShadow: selected ? `0 6px 18px ${LANG_META[g.language].color}18` : "none" }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg" style={{ background: LANG_META[g.language].color }}>{LANG_META[g.language].icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="font-bold text-sm truncate" style={{ color: "var(--foreground)" }}>{g.name}</div>
+                      {g.joined && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: LANG_META[g.language].light, color: LANG_META[g.language].color }}>참여중</span>}
+                    </div>
+                    <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>멤버 {g.memberCount}명 · {LANG_META[g.language].label}</div>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); toggleGroup(g.id); }} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all"
+                    style={{ borderColor: g.joined ? "#EF4444" : "var(--primary)", background: g.joined ? "#FEF2F2" : "var(--secondary)", color: g.joined ? "#EF4444" : "var(--primary)" }}>
+                    {g.joined ? "탈퇴" : "참여"}
+                  </button>
+                </button>
+              );
+            })}
+          </div>
+
+          <section className="bg-white rounded-2xl border border-border p-5">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{selectedGroup.name}</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>그룹원 진행 상황과 주간 학습량</p>
               </div>
-              <button onClick={() => toggleGroup(g.id)} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all"
-                style={{ borderColor: g.joined ? "#EF4444" : "var(--primary)", background: g.joined ? "#FEF2F2" : "var(--secondary)", color: g.joined ? "#EF4444" : "var(--primary)" }}>
-                {g.joined ? "탈퇴" : "참여"}
-              </button>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: LANG_META[selectedGroup.language].light, color: LANG_META[selectedGroup.language].color }}>
+                {LANG_META[selectedGroup.language].label}
+              </span>
             </div>
-          ))}
+
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              {[
+                { label: "주간 풀이", value: `${selectedGroupDetail.solved}/${selectedGroupDetail.weeklyGoal}`, icon: <CheckCircle2 size={16} />, color: "#10B981" },
+                { label: "평균 연속", value: `${Math.round(selectedGroupMembers.reduce((sum, m) => sum + m.streak, 0) / selectedGroupMembers.length)}일`, icon: <Flame size={16} />, color: "#EF4444" },
+                { label: "온라인", value: `${selectedGroupMembers.filter(m => m.online).length}명`, icon: <Users size={16} />, color: "var(--primary)" },
+              ].map(item => (
+                <div key={item.label} className="rounded-xl p-3" style={{ background: "var(--secondary)" }}>
+                  <div className="flex items-center gap-1.5 text-xs font-bold mb-1" style={{ color: item.color }}>{item.icon}{item.label}</div>
+                  <div className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="h-2.5 rounded-full overflow-hidden mb-5" style={{ background: "var(--muted)" }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (selectedGroupDetail.solved / selectedGroupDetail.weeklyGoal) * 100)}%`, background: LANG_META[selectedGroup.language].color }} />
+            </div>
+
+            <div className="space-y-3">
+              {selectedGroupMembers.map((member, index) => (
+                <div key={member.id} className="flex items-center gap-3">
+                  <div className="w-6 text-center text-xs font-extrabold" style={{ color: index === 0 ? "#F59E0B" : "var(--muted-foreground)" }}>{index + 1}</div>
+                  <div className="relative">
+                    <Avatar initials={member.avatar} size="sm" color={member.id === user.id ? "var(--primary)" : undefined} />
+                    {member.online && <span className="absolute -right-0.5 -bottom-0.5 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ background: "#10B981" }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold truncate" style={{ color: "var(--foreground)" }}>{member.username}{member.id === user.id ? " (나)" : ""}</span>
+                      <span className="text-xs font-bold shrink-0" style={{ color: LANG_META[selectedGroup.language].color }}>{member.weeklySolved}문제</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs flex items-center gap-1" style={{ color: "#EF4444" }}><Flame size={12} />{member.streak}일</span>
+                      <span className="text-xs flex items-center gap-1" style={{ color: "var(--primary)" }}><Zap size={12} />{member.xp.toLocaleString()} XP</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: "var(--muted)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${member.progress}%`, background: LANG_META[selectedGroup.language].color }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
@@ -1923,19 +2272,125 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
 // ─── PROFILE ─────────────────────────────────────────────────────────────────
 
-function ProfilePage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () => void }) {
+function ProfilePage({ user, onUpgrade, onSave }: {
+  user: UserProfile;
+  onUpgrade: () => void;
+  onSave: (patch: Pick<UserProfile, "username" | "email" | "avatar">) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [username, setUsername] = useState(user.username);
+  const [email, setEmail] = useState(user.email);
+  const [avatar, setAvatar] = useState(user.avatar || user.username.slice(0, 2).toUpperCase());
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [activityPage, setActivityPage] = useState(0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const monthWindowEnd = new Date(today.getFullYear(), today.getMonth() - activityPage * 3, 0);
+  const monthWindowStart = new Date(monthWindowEnd.getFullYear(), monthWindowEnd.getMonth() - 2, 1);
+  const startOffset = (monthWindowStart.getDay() + 6) % 7;
+  const activityStart = new Date(today);
+  activityStart.setFullYear(monthWindowStart.getFullYear(), monthWindowStart.getMonth(), monthWindowStart.getDate() - startOffset);
+  const endOffset = 6 - ((monthWindowEnd.getDay() + 6) % 7);
+  const activityEnd = new Date(monthWindowEnd);
+  activityEnd.setDate(monthWindowEnd.getDate() + endOffset);
+  const activityWeeks = Math.round((activityEnd.getTime() - activityStart.getTime()) / 604800000) + 1;
+  const formatActivityDate = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
+  const monthLabels = Array.from({ length: 3 }, (_, i) => `${new Date(monthWindowStart.getFullYear(), monthWindowStart.getMonth() + i, 1).getMonth() + 1}월`);
+  const activityDays = Array.from({ length: activityWeeks * 7 }, (_, i) => {
+    const date = new Date(activityStart);
+    date.setDate(activityStart.getDate() + i);
+    const daysAgo = Math.floor((today.getTime() - date.getTime()) / 86400000);
+    const outOfRange = date < monthWindowStart || date > monthWindowEnd;
+    const inStreak = !outOfRange && daysAgo >= 0 && daysAgo < user.streak;
+    const count = outOfRange ? 0 : inStreak ? 1 + ((i + user.completedLessons) % 4) : ((i * 7 + user.xp) % 11 === 0 ? 1 : (i * 5 + user.completedLessons) % 17 === 0 ? 2 : 0);
+    return { index: i, count, dateLabel: formatActivityDate(date), outOfRange };
+  });
+  const activityColors = ["#E5E1F8", "#C4B5FD", "#A78BFA", "#7C3AED", "#4C1D95"];
+  const dayLabels = ["월", "화", "수", "목", "금", "토", "일"];
+
+  const resetForm = () => {
+    setUsername(user.username);
+    setEmail(user.email);
+    setAvatar(user.avatar || user.username.slice(0, 2).toUpperCase());
+    setEditing(false);
+    setSaved(false);
+  };
+
+  const saveProfile = async () => {
+    const cleanUsername = username.trim() || user.username;
+    const cleanEmail = email.trim() || user.email;
+    const cleanAvatar = (avatar.trim() || cleanUsername.slice(0, 2)).slice(0, 2).toUpperCase();
+    setSaving(true);
+    setError("");
+    try {
+      await onSave({ username: cleanUsername, email: cleanEmail, avatar: cleanAvatar });
+      setUsername(cleanUsername);
+      setEmail(cleanEmail);
+      setAvatar(cleanAvatar);
+      setEditing(false);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "프로필 저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
       <div className="bg-white rounded-3xl border border-border p-6 mb-5">
-        <div className="flex items-center gap-4 mb-5">
-          <Avatar initials={user.username.slice(0, 2).toUpperCase()} size="lg" />
-          <div>
-            <div className="font-extrabold text-lg" style={{ color: "var(--foreground)" }}>{user.username}</div>
-            <div className="flex items-center gap-2 mt-1">
-              {user.tier === "premium" ? <PremiumBadge /> : <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium" style={{ color: "var(--muted-foreground)" }}>FREE 플랜</span>}
+        <div className="flex items-start gap-4 mb-5">
+          <Avatar initials={user.avatar || user.username.slice(0, 2).toUpperCase()} size="lg" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-extrabold text-lg truncate" style={{ color: "var(--foreground)" }}>{user.username}</div>
+                <div className="text-sm truncate" style={{ color: "var(--muted-foreground)" }}>{user.email}</div>
+                <div className="flex items-center gap-2 mt-2">
+                  {user.tier === "premium" ? <PremiumBadge /> : <span className="text-xs px-2 py-0.5 rounded-full bg-muted font-medium" style={{ color: "var(--muted-foreground)" }}>FREE 플랜</span>}
+                  {saved && <span className="text-xs font-bold" style={{ color: "#10B981" }}>저장됨</span>}
+                </div>
+              </div>
+              {!editing && (
+                <button onClick={() => setEditing(true)} className="px-4 py-2 rounded-xl text-xs font-bold border-2 shrink-0" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
+                  프로필 수정
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {editing && (
+          <div className="rounded-2xl border border-border p-4 mb-5" style={{ background: "var(--input-background)" }}>
+            <div className="grid gap-3 md:grid-cols-[0.7fr_1.3fr]">
+              <div>
+                <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>아바타 이니셜</label>
+                <input value={avatar} onChange={e => setAvatar(e.target.value.slice(0, 2).toUpperCase())} maxLength={2} className="w-full px-3 py-2.5 rounded-xl border-2 text-sm font-bold uppercase focus:outline-none" style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>닉네임</label>
+                <input value={username} onChange={e => setUsername(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none" style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>이메일</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none" style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }} />
+              </div>
+            </div>
+            {error && <p className="text-sm font-semibold mt-3" style={{ color: "#EF4444" }}>{error}</p>}
+            <div className="flex gap-2 mt-4">
+              <button onClick={saveProfile} disabled={saving} className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-60" style={{ background: "var(--primary)" }}>
+                <Check size={15} />{saving ? "저장 중" : "저장"}
+              </button>
+              <button onClick={resetForm} className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold border-2" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>
+                <X size={15} />취소
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-3">
           {[{ label: "총 XP", value: user.xp.toLocaleString(), color: "var(--primary)" }, { label: "연속 학습", value: `${user.streak}일`, color: "#F59E0B" }, { label: "완료 레슨", value: `${user.completedLessons}`, color: "#10B981" }].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl p-3 text-center" style={{ background: "var(--secondary)" }}>
@@ -1959,6 +2414,57 @@ function ProfilePage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () => 
               <XpBar current={user.langXp[lang]} max={meta.maxXp} color={meta.color} />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Learning activity */}
+      <div className="bg-white rounded-2xl border border-border p-5 mb-5">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-bold" style={{ color: "var(--foreground)" }}>학습 잔디</h3>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>완료된 최근 3개월 학습 기록</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setActivityPage(p => p + 1)} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center" style={{ color: "var(--muted-foreground)", background: "#fff" }} aria-label="이전 3개월">
+              <ChevronLeft size={16} />
+            </button>
+            <button onClick={() => setActivityPage(p => Math.max(0, p - 1))} disabled={activityPage === 0} className="w-8 h-8 rounded-lg border border-border flex items-center justify-center disabled:opacity-35" style={{ color: "var(--muted-foreground)", background: "#fff" }} aria-label="다음 3개월">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+        <div className="rounded-2xl p-4 overflow-visible" style={{ background: "var(--input-background)" }}>
+          <div className="ml-8 grid grid-cols-3 text-xs font-bold mb-2" style={{ color: "var(--muted-foreground)" }}>
+            {monthLabels.map(label => <span key={label}>{label}</span>)}
+          </div>
+          <div className="grid grid-cols-[24px_1fr] gap-2 items-start">
+            <div className="grid gap-1.5 h-full" style={{ gridTemplateRows: "repeat(7, minmax(0, 1fr))" }}>
+              {dayLabels.map((label, i) => (
+                <span key={`${label}-${i}`} className="flex items-center justify-end text-[10px] leading-none" style={{ color: "var(--muted-foreground)" }}>{label}</span>
+              ))}
+            </div>
+            <div className="grid grid-flow-col gap-1.5 w-full" style={{ gridTemplateColumns: `repeat(${activityWeeks}, minmax(0, 1fr))`, gridTemplateRows: "repeat(7, minmax(0, 1fr))" }}>
+              {activityDays.map(day => (
+                <div
+                  key={day.index}
+                  className="group relative aspect-square min-w-0 rounded-[4px] border border-white/70 cursor-default"
+                  style={{ background: activityColors[Math.min(day.count, activityColors.length - 1)], opacity: day.outOfRange ? 0.55 : 1 }}
+                >
+                  <div className="pointer-events-none absolute left-1/2 bottom-full z-20 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-bold text-white shadow-lg group-hover:block" style={{ background: "var(--foreground)" }}>
+                    {day.dateLabel} · {day.count}개 풀이
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 mt-4">
+            <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>총 {activityDays.reduce((sum, day) => sum + (day.outOfRange ? 0 : day.count), 0)}개 학습 · {user.streak}일 연속</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>적음</span>
+              {activityColors.map(color => <span key={color} className="w-3 h-3 rounded-[3px]" style={{ background: color }} />)}
+              <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>많음</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2048,6 +2554,7 @@ export default function App() {
   const initialQuery = parseRouteQuery();
   const initialScreen = PATH_SCREENS[window.location.pathname] ?? "login";
   const [screen, setScreen] = useState<Screen>(initialScreen);
+  const [authLoading, setAuthLoading] = useState(true);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedLang, setSelectedLang] = useState<Language>(initialQuery.lang ?? "python");
@@ -2055,13 +2562,41 @@ export default function App() {
   const [lessonResult, setLessonResult] = useState<{ correct: number; total: number; wrongs: WrongAnswer[] } | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
   const [sessionWrongs, setSessionWrongs] = useState<WrongAnswer[]>([]);
+  const [resolvedWrongIds, setResolvedWrongIds] = useState<number[]>([]);
 
-  // 백엔드 유저 → 프론트 UserProfile 변환 (로그인/세션복원 공용)
-  const profileFromBackend = (u: { id: number; nickname: string; email: string; tier: string; xp: number; streak: number; hearts: number; avatar: string }): UserProfile => {
-    const langXp = Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
+  const makeLangXp = () => Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
+
+  const profileFromBackend = (u: BackendUser): UserProfile => {
     const tier: Tier = String(u.tier).toLowerCase().includes("premium") ? "premium" : "free";
-    return { id: String(u.id), username: u.nickname, email: u.email, tier, xp: u.xp, streak: u.streak, hearts: u.hearts, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase() };
+    return {
+      id: String(u.id),
+      username: u.nickname,
+      email: u.email,
+      tier,
+      xp: u.xp,
+      streak: u.streak,
+      hearts: u.hearts,
+      completedLessons: 24,
+      langXp: makeLangXp(),
+      friendIds: [],
+      groupIds: [],
+      avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase(),
+    };
   };
+
+  const saveCachedProfile = (profile: UserProfile) => {
+    try { localStorage.setItem("codeduo_profile", JSON.stringify(profile)); } catch { /* ignore */ }
+  };
+
+  const readCachedProfile = (): UserProfile | null => {
+    try {
+      const raw = localStorage.getItem("codeduo_profile");
+      return raw ? JSON.parse(raw) as UserProfile : null;
+    } catch {
+      return null;
+    }
+  };
+  const [upgradeReturnScreen, setUpgradeReturnScreen] = useState<Screen>("profile");
 
   const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
     const params = new URLSearchParams();
@@ -2088,6 +2623,11 @@ export default function App() {
     navigate(screen, true, { lang });
   };
 
+  const openUpgrade = (from: Screen) => {
+    setUpgradeReturnScreen(from);
+    navigate("upgrade");
+  };
+
   useEffect(() => {
     const onPopState = () => {
       const query = parseRouteQuery();
@@ -2103,22 +2643,40 @@ export default function App() {
     if (window.location.pathname === "/") navigate("login", true);
   }, []);
 
-  // 앱 시작 시 토큰 있으면 /api/users/me 로 세션 복원(자동 로그인)
   useEffect(() => {
-    if (!hasToken()) return;
-    getMe()
-      .then((u) => {
-        setUser(profileFromBackend(u));
-        const p = window.location.pathname;
-        if (p === "/" || p === "/login" || p === "/register") navigate("home", true);
-      })
-      .catch(() => clearToken());
+    let cancelled = false;
+    const restoreSession = async () => {
+      let restored: UserProfile | null = null;
+      if (hasToken()) {
+        try {
+          restored = profileFromBackend(await getMe());
+        } catch {
+          clearToken();
+        }
+      }
+      restored = restored ?? readCachedProfile();
+      if (cancelled) return;
+
+      if (restored) {
+        setUser(restored);
+        saveCachedProfile(restored);
+        if (screen === "login" || screen === "register") navigate("home", true);
+      } else if (screen !== "login" && screen !== "register") {
+        navigate("login", true);
+      }
+      setAuthLoading(false);
+    };
+
+    restoreSession();
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogin = async (email: string, password: string, mode: "login" | "register", username: string) => {
     // 실제 백엔드 로그인/회원가입만 허용(DB에 있는 계정만). 에러는 AuthScreen이 표시.
     const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
-    setUser(profileFromBackend(u));
+    const profile = profileFromBackend(u);
+    setUser(profile);
+    saveCachedProfile(profile);
     navigate("home");
   };
 
@@ -2137,11 +2695,45 @@ export default function App() {
     getMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
   };
 
-  const handleLogout = () => { clearToken(); setUser(null); navigate("login"); };
+  const handleLogout = () => {
+    setUser(null);
+    clearToken();
+    try { localStorage.removeItem("codeduo_profile"); } catch { /* ignore */ }
+    navigate("login");
+  };
   const handleUpgrade = () => {
     if (user) setUser(u => u ? { ...u, tier: "premium" } : u);
-    navigate("profile");
+    navigate(upgradeReturnScreen);
   };
+  const handleProfileSave = async (patch: Pick<UserProfile, "username" | "email" | "avatar">) => {
+    try {
+      const updated = await apiUpdateProfile({ nickname: patch.username, email: patch.email, avatar: patch.avatar });
+      setUser(u => {
+        if (!u) return u;
+        const next = { ...u, username: updated.nickname, email: updated.email, avatar: updated.avatar };
+        saveCachedProfile(next);
+        return next;
+      });
+    } catch (e) {
+      if (!user?.id || user.id === "me") {
+        setUser(u => {
+          if (!u) return u;
+          const next = { ...u, ...patch };
+          saveCachedProfile(next);
+          return next;
+        });
+        return;
+      }
+      throw e;
+    }
+  };
+  const handleResolveWrong = (qId: number) => {
+    setResolvedWrongIds(prev => prev.includes(qId) ? prev : [...prev, qId]);
+  };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm font-semibold" style={{ color: "var(--muted-foreground)", background: "var(--background)" }}>불러오는 중...</div>;
+  }
 
   if (screen === "login" || screen === "register" || !user) {
     return <AuthScreen mode={authMode} onSwitch={() => setAuthMode(m => m === "login" ? "register" : "login")} onLogin={handleLogin} />;
@@ -2152,12 +2744,13 @@ export default function App() {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
       case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} onStart={(d) => { setSelectedDifficulty(d); navigate("lesson", false, { difficulty: d }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
-      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? QUESTIONS.length} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => navigate("upgrade")} />;
-      case "analytics":return <AnalyticsPage user={user} onUpgrade={() => navigate("upgrade")} />;
-      case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} onUpgrade={() => navigate("upgrade")} />;
+      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? QUESTIONS.length} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
+      case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;
+      case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onReview={() => navigate("wrongReview")} onUpgrade={() => openUpgrade("errors")} />;
+      case "wrongReview": return <WrongAnswerReviewPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onResolve={handleResolveWrong} onBack={() => navigate("errors")} />;
       case "friends":  return <FriendsPage user={user} />;
-      case "profile":  return <ProfilePage user={user} onUpgrade={() => navigate("upgrade")} />;
-      case "upgrade":  return <UpgradePage onBack={() => navigate("profile")} onUpgrade={handleUpgrade} />;
+      case "profile":  return <ProfilePage user={user} onUpgrade={() => openUpgrade("profile")} onSave={handleProfileSave} />;
+      case "upgrade":  return <UpgradePage onBack={() => navigate(upgradeReturnScreen)} onUpgrade={handleUpgrade} />;
       default:         return null;
     }
   };
