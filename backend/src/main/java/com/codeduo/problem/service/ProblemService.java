@@ -3,6 +3,7 @@ package com.codeduo.problem.service;
 import com.codeduo.global.exception.BusinessException;
 import com.codeduo.problem.dto.ProblemResponse;
 import com.codeduo.problem.repository.ProblemRepository;
+import com.codeduo.problem.type.Language;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,12 @@ public class ProblemService {
 
     public List<ProblemResponse> getProblems(Long lessonId) {
         return problemRepository.findByLessonIdOrderByOrderIndex(lessonId).stream().map(ProblemResponse::from).toList();
+    }
+
+    public List<ProblemResponse> getProblems(String language, int difficulty) {
+        Language lang = Language.valueOf(language.toUpperCase());
+        return problemRepository.findByLanguageAndDifficultyOrderByOrderIndex(lang, difficulty)
+                .stream().map(ProblemResponse::from).toList();
     }
 
     public ProblemResponse getProblem(Long id) {

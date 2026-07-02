@@ -42,6 +42,12 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 export interface BackendUser { id: number; email: string; nickname: string; tier: string; xp: number; streak: number; hearts: number; avatar: string; }
 export interface BackendGrade { correct: boolean; score: number; resultMessage?: string; aiReview?: string; testResultsJson?: string; }
+/** 백엔드 문제(정답 answer 는 보안상 미포함 → 채점은 서버가 담당). */
+export interface BackendProblem {
+  id: number; lessonId: number; type: string; language: string; title: string; description: string;
+  difficulty: number; codeTemplate?: string; testInput?: string; expectedOutput?: string;
+  optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string; testCasesJson?: string; orderIndex: number;
+}
 export interface BackendWeakness { subject: string; score: number; }
 export interface BackendActivity { day: string; solved: number; }
 export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
@@ -61,6 +67,11 @@ export async function signup(email: string, password: string, nickname: string):
 /** 답안 채점. problemId 는 백엔드 문제 id (시드 순서상 프론트 question.id 와 1~36 동일). */
 export async function submitAnswer(problemId: number, answer: string): Promise<BackendGrade> {
   return req<BackendGrade>("/api/submissions", { method: "POST", body: JSON.stringify({ problemId, answer }) });
+}
+
+/** 언어(python/java/c/cpp) + 난이도(1=초급,2=중급,3=고급)로 문제 목록 조회. */
+export async function getProblems(language: string, difficulty: number): Promise<BackendProblem[]> {
+  return req<BackendProblem[]>(`/api/problems?language=${encodeURIComponent(language)}&difficulty=${difficulty}`);
 }
 
 export async function updateProfile(profile: { nickname: string; email: string; avatar: string }): Promise<BackendUser> {

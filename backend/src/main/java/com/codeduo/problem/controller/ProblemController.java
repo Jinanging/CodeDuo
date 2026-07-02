@@ -20,6 +20,12 @@ public class ProblemController {
         return ApiResponse.ok("문제 목록을 조회했습니다.", problemService.getProblems(lessonId));
     }
 
+    // 언어(python/java/c/cpp) + 난이도(1~3)로 문제 조회
+    @GetMapping("/api/problems")
+    public ApiResponse<List<ProblemResponse>> problemsByLangDiff(@RequestParam String language, @RequestParam int difficulty) {
+        return ApiResponse.ok("문제 목록을 조회했습니다.", problemService.getProblems(language, difficulty));
+    }
+
     @GetMapping("/api/problems/{problemId}")
     public ApiResponse<ProblemResponse> problem(@PathVariable Long problemId) {
         return ApiResponse.ok("문제를 조회했습니다.", problemService.getProblem(problemId));
