@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Flame, Heart, Zap, Trophy, Code2, BookOpen, CheckCircle2, XCircle,
   ChevronRight, RotateCcw, Terminal, Lightbulb, Play, Star, ArrowLeft,
@@ -19,6 +19,38 @@ type Language = "python" | "java" | "c" | "cpp";
 type Difficulty = "beginner" | "intermediate" | "advanced";
 type Screen = "login" | "register" | "home" | "lessonSelect" | "lesson" | "result" | "analytics" | "errors" | "friends" | "profile" | "upgrade";
 type Tier = "free" | "premium";
+
+const SCREEN_PATHS: Record<Screen, string> = {
+  login: "/login",
+  register: "/register",
+  home: "/home",
+  lessonSelect: "/lessons",
+  lesson: "/lesson",
+  result: "/result",
+  analytics: "/analytics",
+  errors: "/wrong-answers",
+  friends: "/friends",
+  profile: "/profile",
+  upgrade: "/upgrade",
+};
+
+const PATH_SCREENS: Record<string, Screen> = Object.fromEntries(
+  Object.entries(SCREEN_PATHS).map(([screen, path]) => [path, screen])
+) as Record<string, Screen>;
+
+const isLanguage = (value: string | null): value is Language =>
+  value === "python" || value === "java" || value === "c" || value === "cpp";
+
+const isDifficulty = (value: string | null): value is Difficulty =>
+  value === "beginner" || value === "intermediate" || value === "advanced";
+
+const parseRouteQuery = () => {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    lang: isLanguage(params.get("lang")) ? params.get("lang") as Language : null,
+    difficulty: isDifficulty(params.get("difficulty")) ? params.get("difficulty") as Difficulty : null,
+  };
+};
 
 interface UserProfile {
   id: string;
@@ -893,10 +925,37 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
   user: UserProfile; onStartLesson: () => void;
   selectedLang: Language; setSelectedLang: (l: Language) => void; onNav: (s: Screen) => void;
 }) {
+  const langMeta = LANG_META[selectedLang];
+  const selectedQuestions = QUESTIONS.filter(q => q.language === selectedLang);
+  const recommended = selectedQuestions.slice(0, 3);
+  const codeCount = selectedQuestions.filter(q => q.type === "code").length;
+  const todayMissions = [
+    { label: `${langMeta.label} 문제 3개 풀기`, done: Math.min(user.completedLessons, 3), total: 3, icon: <BookOpen size={16} />, color: langMeta.color },
+    { label: "코딩 문제 1개 통과", done: codeCount > 0 && user.completedLessons > 0 ? 1 : 0, total: 1, icon: <Terminal size={16} />, color: "#10B981" },
+    { label: "연속 학습 유지", done: user.streak > 0 ? 1 : 0, total: 1, icon: <Flame size={16} />, color: "#EF4444" },
+  ];
+  const weekActivity = [
+    { day: "월", xp: 20, active: true },
+    { day: "화", xp: 35, active: true },
+    { day: "수", xp: 0, active: false },
+    { day: "목", xp: 45, active: true },
+    { day: "금", xp: 30, active: true },
+    { day: "토", xp: 0, active: false },
+    { day: "일", xp: 15, active: user.streak > 0 },
+  ];
+  const weakest = selectedQuestions.find(q => q.difficulty === "intermediate") ?? selectedQuestions[0];
+
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>안녕하세요, {user.username}님! 👋</h1>
-      <p className="text-sm mb-6" style={{ color: "var(--muted-foreground)" }}>오늘도 꾸준히 코딩을 연습해봐요.</p>
+    <div className="px-5 py-6 md:px-8 max-w-5xl mx-auto">
+      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>안녕하세요, {user.username}님! 👋</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>오늘 할 학습과 복습할 내용을 한 번에 확인하세요.</p>
+        </div>
+        <button onClick={() => onNav("lessonSelect")} className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white self-start md:self-auto" style={{ background: "var(--foreground)" }}>
+          <BookOpen size={16} />레슨 고르기
+        </button>
+      </div>
 
       {/* Language grid */}
       <div className="grid grid-cols-2 gap-3 mb-5 md:grid-cols-4">
@@ -914,34 +973,146 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
         })}
       </div>
 
-      {/* Start lesson */}
-      <div className="rounded-3xl p-7 relative overflow-hidden mb-5" style={{ background: "var(--primary)" }}>
-        <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
-        <div className="relative">
-          <p className="text-xs font-semibold text-white/60 mb-1">오늘의 레슨</p>
-          <h2 className="text-xl font-extrabold text-white mb-1">{LANG_META[selectedLang].icon} {LANG_META[selectedLang].label} 기초 다지기</h2>
-          <p className="text-sm text-white/60 mb-5">초급·중급·고급 · 객관식 · 주관식 · 코딩</p>
-          <button onClick={onStartLesson} className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "#fff", color: "var(--primary)" }}>
-            <Play size={16} />레슨 시작
-          </button>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "완료 레슨", value: `${user.completedLessons}`, icon: <Trophy size={18} />, color: "#F59E0B" },
-          { label: "연속 학습", value: `${user.streak}일`, icon: <Flame size={18} />, color: "#EF4444" },
-          { label: "총 XP", value: `${user.xp}`, icon: <Zap size={18} />, color: "var(--primary)" },
-        ].map(({ label, value, icon, color }) => (
-          <div key={label} className="bg-white rounded-2xl p-4 flex items-center gap-3 border border-border">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}15`, color }}>{icon}</div>
-            <div>
-              <div className="font-extrabold text-base leading-none" style={{ color: "var(--foreground)" }}>{value}</div>
-              <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{label}</div>
+      <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-5">
+          {/* Start lesson */}
+          <div className="rounded-3xl p-7 relative overflow-hidden" style={{ background: "var(--primary)" }}>
+            <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
+            <div className="relative">
+              <p className="text-xs font-semibold text-white/60 mb-1">오늘의 레슨</p>
+              <h2 className="text-xl font-extrabold text-white mb-1">{langMeta.icon} {langMeta.label} 기초 다지기</h2>
+              <p className="text-sm text-white/60 mb-5">초급·중급·고급 · 객관식 · 주관식 · 코딩</p>
+              <button onClick={onStartLesson} className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "#fff", color: "var(--primary)" }}>
+                <Play size={16} />레슨 시작
+              </button>
             </div>
           </div>
-        ))}
+
+          {/* Today's missions */}
+          <section className="bg-white rounded-2xl p-5 border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>오늘의 미션</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>짧게 끝낼 수 있는 학습 목표</p>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: langMeta.light, color: langMeta.color }}>
+                {todayMissions.filter(m => m.done >= m.total).length}/{todayMissions.length} 완료
+              </span>
+            </div>
+            <div className="space-y-3">
+              {todayMissions.map(mission => {
+                const complete = mission.done >= mission.total;
+                const progress = Math.min(100, (mission.done / mission.total) * 100);
+                return (
+                  <div key={mission.label} className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${mission.color}15`, color: mission.color }}>
+                      {complete ? <CheckCircle2 size={17} /> : mission.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="text-sm font-bold truncate" style={{ color: "var(--foreground)" }}>{mission.label}</span>
+                        <span className="text-xs font-semibold shrink-0" style={{ color: "var(--muted-foreground)" }}>{mission.done}/{mission.total}</span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+                        <div className="h-full rounded-full" style={{ width: `${progress}%`, background: mission.color }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Recommended problems */}
+          <section className="bg-white rounded-2xl p-5 border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>추천 문제</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{langMeta.label} 실력을 올리기 좋은 문제</p>
+              </div>
+              <button onClick={() => onNav("lessonSelect")} className="text-xs font-bold flex items-center gap-1" style={{ color: "var(--primary)" }}>
+                전체 보기 <ChevronRight size={14} />
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {recommended.map(question => {
+                const typeMeta = TYPE_META[question.type];
+                const diffMeta = DIFFICULTY_META[question.difficulty];
+                return (
+                  <button key={question.id} onClick={onStartLesson} className="w-full text-left p-3 rounded-xl border border-border flex items-center gap-3 hover:bg-muted/40 transition-colors">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: diffMeta.light }}>
+                      {question.type === "code" ? <Code2 size={18} style={{ color: typeMeta.color }} /> : <BookOpen size={18} style={{ color: typeMeta.color }} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm truncate" style={{ color: "var(--foreground)" }}>{question.title}</div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${typeMeta.color}14`, color: typeMeta.color }}>{typeMeta.label}</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: diffMeta.light, color: diffMeta.color }}>{diffMeta.label}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-5">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
+            {[
+              { label: "완료 레슨", value: `${user.completedLessons}`, icon: <Trophy size={18} />, color: "#F59E0B" },
+              { label: "연속 학습", value: `${user.streak}일`, icon: <Flame size={18} />, color: "#EF4444" },
+              { label: "총 XP", value: `${user.xp}`, icon: <Zap size={18} />, color: "var(--primary)" },
+            ].map(({ label, value, icon, color }) => (
+              <div key={label} className="bg-white rounded-2xl p-4 flex items-center gap-3 border border-border">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15`, color }}>{icon}</div>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-base leading-none" style={{ color: "var(--foreground)" }}>{value}</div>
+                  <div className="text-xs mt-0.5 whitespace-nowrap" style={{ color: "var(--muted-foreground)" }}>{label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Weekly activity */}
+          <section className="bg-white rounded-2xl p-5 border border-border">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>주간 학습</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>이번 주 XP 흐름</p>
+              </div>
+              <TrendingUp size={18} style={{ color: "var(--accent)" }} />
+            </div>
+            <div className="grid grid-cols-7 gap-2 items-end h-28">
+              {weekActivity.map(item => (
+                <div key={item.day} className="flex flex-col items-center gap-2 h-full justify-end">
+                  <div className="w-full rounded-t-lg min-h-[10px]" style={{ height: `${Math.max(12, item.xp * 1.7)}px`, background: item.active ? langMeta.color : "var(--muted)" }} />
+                  <span className="text-xs font-semibold" style={{ color: item.active ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.day}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Review card */}
+          <section className="bg-white rounded-2xl p-5 border border-border">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "var(--secondary)", color: "var(--primary)" }}>
+                <NotebookPen size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>복습 추천</h2>
+                <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
+                  {weakest ? `${weakest.title} 문제로 ${langMeta.label} 약한 개념을 다시 확인해보세요.` : `${langMeta.label} 문제를 먼저 풀어보세요.`}
+                </p>
+                <button onClick={() => user.tier === "premium" ? onNav("errors") : onNav("upgrade")} className="mt-4 w-full py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: user.tier === "premium" ? "var(--primary)" : "var(--foreground)" }}>
+                  {user.tier === "premium" ? "오답노트 열기" : "오답노트 잠금 해제"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -1873,14 +2044,56 @@ function UpgradePage({ onBack, onUpgrade }: { onBack: () => void; onUpgrade: () 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("login");
+  const initialQuery = parseRouteQuery();
+  const initialScreen = PATH_SCREENS[window.location.pathname] ?? "login";
+  const [screen, setScreen] = useState<Screen>(initialScreen);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [selectedLang, setSelectedLang] = useState<Language>("python");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>("beginner");
+  const [selectedLang, setSelectedLang] = useState<Language>(initialQuery.lang ?? "python");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(initialQuery.difficulty ?? "beginner");
   const [lessonResult, setLessonResult] = useState<{ correct: number; total: number; wrongs: WrongAnswer[] } | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
   const [sessionWrongs, setSessionWrongs] = useState<WrongAnswer[]>([]);
+
+  const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
+    const params = new URLSearchParams();
+    const learningScreen = ["home", "lessonSelect", "lesson", "result"].includes(next);
+    if (learningScreen) params.set("lang", query.lang ?? selectedLang);
+    if (next === "lesson") params.set("difficulty", query.difficulty ?? selectedDifficulty);
+    const queryString = params.toString();
+    return `${SCREEN_PATHS[next]}${queryString ? `?${queryString}` : ""}`;
+  };
+
+  const navigate = (next: Screen, replace = false, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
+    setScreen(next);
+    const path = buildRoute(next, query);
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== path) {
+      const state = { screen: next };
+      if (replace) window.history.replaceState(state, "", path);
+      else window.history.pushState(state, "", path);
+    }
+  };
+
+  const handleLangChange = (lang: Language) => {
+    setSelectedLang(lang);
+    navigate(screen, true, { lang });
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      const query = parseRouteQuery();
+      setScreen(PATH_SCREENS[window.location.pathname] ?? "login");
+      if (query.lang) setSelectedLang(query.lang);
+      if (query.difficulty) setSelectedDifficulty(query.difficulty);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (window.location.pathname === "/") navigate("login", true);
+  }, []);
 
   const handleLogin = async (email: string, password: string, mode: "login" | "register", username: string) => {
     const langXp = Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
@@ -1896,7 +2109,7 @@ export default function App() {
       profile = { id: "me", username, email, tier, xp: 240, streak: 7, hearts: 5, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: username.slice(0, 2).toUpperCase() };
     }
     setUser(profile);
-    setScreen("home");
+    navigate("home");
   };
 
   const handleComplete = (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => {
@@ -1909,13 +2122,13 @@ export default function App() {
       langXp: { ...u.langXp, [selectedLang]: u.langXp[selectedLang] + earned },
     } : u);
     setLessonResult({ correct, total, wrongs });
-    setScreen("result");
+    navigate("result");
   };
 
-  const handleLogout = () => { setUser(null); setScreen("login"); };
+  const handleLogout = () => { setUser(null); navigate("login"); };
   const handleUpgrade = () => {
     if (user) setUser(u => u ? { ...u, tier: "premium" } : u);
-    setScreen("profile");
+    navigate("profile");
   };
 
   if (screen === "login" || screen === "register" || !user) {
@@ -1924,15 +2137,15 @@ export default function App() {
 
   const renderContent = () => {
     switch (screen) {
-      case "home":     return <HomePage user={user} onStartLesson={() => setScreen("lessonSelect")} selectedLang={selectedLang} setSelectedLang={setSelectedLang} onNav={setScreen} />;
-      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={setSelectedLang} onStart={(d) => { setSelectedDifficulty(d); setScreen("lesson"); }} onBack={() => setScreen("home")} />;
-      case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} onComplete={handleComplete} onBack={() => setScreen("lessonSelect")} />;
-      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? QUESTIONS.length} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => setScreen("home")} onRetry={() => setScreen("lesson")} onUpgrade={() => setScreen("upgrade")} />;
-      case "analytics":return <AnalyticsPage user={user} onUpgrade={() => setScreen("upgrade")} />;
-      case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} onUpgrade={() => setScreen("upgrade")} />;
+      case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
+      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} onStart={(d) => { setSelectedDifficulty(d); navigate("lesson", false, { difficulty: d }); }} onBack={() => navigate("home")} />;
+      case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
+      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? QUESTIONS.length} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => navigate("upgrade")} />;
+      case "analytics":return <AnalyticsPage user={user} onUpgrade={() => navigate("upgrade")} />;
+      case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} onUpgrade={() => navigate("upgrade")} />;
       case "friends":  return <FriendsPage user={user} />;
-      case "profile":  return <ProfilePage user={user} onUpgrade={() => setScreen("upgrade")} />;
-      case "upgrade":  return <UpgradePage onBack={() => setScreen("profile")} onUpgrade={handleUpgrade} />;
+      case "profile":  return <ProfilePage user={user} onUpgrade={() => navigate("upgrade")} />;
+      case "upgrade":  return <UpgradePage onBack={() => navigate("profile")} onUpgrade={handleUpgrade} />;
       default:         return null;
     }
   };
@@ -1942,7 +2155,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen" style={{ fontFamily: "Outfit, sans-serif", background: "var(--background)" }}>
       {/* Desktop sidebar */}
-      {showNav && <Sidebar screen={screen} onNav={setScreen} user={user} onLogout={handleLogout} />}
+      {showNav && <Sidebar screen={screen} onNav={navigate} user={user} onLogout={handleLogout} />}
 
       {/* Main content — add bottom padding on mobile so tab bar doesn't overlap */}
       <main className={`flex-1 overflow-y-auto ${showNav ? "pb-20 md:pb-0" : ""}`}>
@@ -1965,7 +2178,7 @@ export default function App() {
             return (
               <button
                 key={id}
-                onClick={() => setScreen(id as Screen)}
+                onClick={() => navigate(id as Screen)}
                 className="flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 transition-colors"
                 style={{ color: active ? "var(--primary)" : "var(--muted-foreground)" }}
               >
