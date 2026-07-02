@@ -21,17 +21,17 @@ public class Submission {
     private User user;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Problem problem;
-    @Column(length = 8000)
+    @Column(columnDefinition = "TEXT")
     private String submittedAnswer;
     private boolean correct;
     private int score;
     private Long runtimeMs;
     private Long memoryKb;
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String aiReview;
     @Column(length = 1000)
     private String resultMessage;
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String testResultsJson;
     @CreationTimestamp private LocalDateTime createdAt;
 }
