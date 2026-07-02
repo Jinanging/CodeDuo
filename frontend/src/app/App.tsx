@@ -10,7 +10,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
-import { login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile, fetchMe, hasAuthToken, clearAuthToken, fetchAnalytics, type BackendAnalytics, type BackendUser } from "./api";
+import { login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile, getMe, hasToken, clearToken, fetchAnalytics, type BackendAnalytics, type BackendUser } from "./api";
 import interviewerMascot from "../assets/interviewer-mascot.png";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -2647,11 +2647,11 @@ export default function App() {
     let cancelled = false;
     const restoreSession = async () => {
       let restored: UserProfile | null = null;
-      if (hasAuthToken()) {
+      if (hasToken()) {
         try {
-          restored = profileFromBackend(await fetchMe());
+          restored = profileFromBackend(await getMe());
         } catch {
-          clearAuthToken();
+          clearToken();
         }
       }
       restored = restored ?? readCachedProfile();
@@ -2672,17 +2672,9 @@ export default function App() {
   }, []);
 
   const handleLogin = async (email: string, password: string, mode: "login" | "register", username: string) => {
-    let profile: UserProfile;
-    try {
-      // 실제 백엔드 로그인/회원가입 (JWT)
-      const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
-      profile = profileFromBackend(u);
-    } catch {
-      // 백엔드 미연결 → 로컬 목업 로그인(데모 유지). premium 포함 시 프리미엄.
-      const tier: Tier = email.includes("premium") ? "premium" : "free";
-      const langXp = makeLangXp();
-      profile = { id: "me", username, email, tier, xp: 240, streak: 7, hearts: 5, completedLessons: 24, langXp, friendIds: [], groupIds: [], avatar: username.slice(0, 2).toUpperCase() };
-    }
+    // 실제 백엔드 로그인/회원가입만 허용(DB에 있는 계정만). 에러는 AuthScreen이 표시.
+    const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
+    const profile = profileFromBackend(u);
     setUser(profile);
     saveCachedProfile(profile);
     navigate("home");
@@ -2700,12 +2692,12 @@ export default function App() {
     setLessonResult({ correct, total, wrongs });
     navigate("result");
     // 백엔드에 저장된 최신 XP/스트릭으로 동기화
-    fetchMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
+    getMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
   };
 
   const handleLogout = () => {
     setUser(null);
-    clearAuthToken();
+    clearToken();
     try { localStorage.removeItem("codeduo_profile"); } catch { /* ignore */ }
     navigate("login");
   };

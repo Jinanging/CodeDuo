@@ -31,39 +31,39 @@ public class Problem {
 
     private String title;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private int difficulty;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String answer;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String codeTemplate;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String testInput;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String expectedOutput;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String rubric;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String optionsJson;
 
     @Column(length = 1000)
     private String hint;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String explanation;
 
     @Column(length = 1000)
     private String tagsJson;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String testCasesJson;
 
     private int orderIndex;
