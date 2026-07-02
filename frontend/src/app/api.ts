@@ -70,8 +70,23 @@ export async function submitAnswer(problemId: number, answer: string): Promise<B
 }
 
 /** 언어(python/java/c/cpp) + 난이도(1=초급,2=중급,3=고급)로 문제 목록 조회. */
-export async function getProblems(language: string, difficulty: number): Promise<BackendProblem[]> {
-  return req<BackendProblem[]>(`/api/problems?language=${encodeURIComponent(language)}&difficulty=${difficulty}`);
+export async function getProblems(language: string, difficulty?: number): Promise<BackendProblem[]> {
+  const base = `/api/problems?language=${encodeURIComponent(language)}`;
+  return req<BackendProblem[]>(difficulty === undefined ? base : `${base}&difficulty=${difficulty}`);
+}
+
+/** 언어별 XP 조회 (정답 제출 기반, 백엔드 계산). { python, java, c, cpp } */
+export async function getLanguageXp(): Promise<Record<string, number>> {
+  return req<Record<string, number>>("/api/users/me/language-xp");
+}
+
+/** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
+export interface BackendWrongAnswer {
+  id: number; problemId: number; question: string; type: string; language: string;
+  lastAnswer?: string; correctAnswer?: string; reasonSummary?: string; explanation?: string; updatedAt?: string;
+}
+export async function getWrongAnswers(): Promise<BackendWrongAnswer[]> {
+  return req<BackendWrongAnswer[]>("/api/wrong-answers");
 }
 
 export async function updateProfile(profile: { nickname: string; email: string; avatar: string }): Promise<BackendUser> {

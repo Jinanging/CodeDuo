@@ -10,7 +10,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
-import { login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile, getMe, hasToken, clearToken, fetchAnalytics, type BackendAnalytics, type BackendUser } from "./api";
+import { login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile, getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers, type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendUser } from "./api";
 import interviewerMascot from "../assets/interviewer-mascot.png";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
@@ -509,11 +509,6 @@ const MOCK_GROUP_DETAILS: Record<string, { weeklyGoal: number; solved: number; m
   },
 };
 
-const MOCK_WRONG_ANSWERS: WrongAnswer[] = [
-  { qId: 1, question: "Python에서 변수 x에 정수 5를 할당하는 올바른 방법은?", type: "mcq", language: "python", userAnswer: "int x = 5;", correctAnswer: "x = 5", solvedAt: "2026-06-27" },
-  { qId: 19, question: "C언어에서 printf()를 사용하려면 어떤 헤더 파일을 포함해야 하나요?", type: "short-answer", language: "c", userAnswer: "iostream", correctAnswer: "stdio.h", solvedAt: "2026-06-26" },
-  { qId: 10, question: "Java 프로그램의 시작점이 되는 올바른 main 메서드 선언은?", type: "mcq", language: "java", userAnswer: "public void main()", correctAnswer: "public static void main(String[] args)", solvedAt: "2026-06-25" },
-];
 
 const WEAKNESS_DATA = [
   { subject: "Python 기초", score: 82 },
@@ -972,8 +967,14 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
   user: UserProfile; onStartLesson: () => void;
   selectedLang: Language; setSelectedLang: (l: Language) => void; onNav: (s: Screen) => void;
 }) {
+  const [langProblems, setLangProblems] = useState<Question[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getProblems(selectedLang).then((l) => { if (!cancelled) setLangProblems(l.map(mapProblem)); }).catch(() => { if (!cancelled) setLangProblems([]); });
+    return () => { cancelled = true; };
+  }, [selectedLang]);
   const langMeta = LANG_META[selectedLang];
-  const selectedQuestions = QUESTIONS.filter(q => q.language === selectedLang);
+  const selectedQuestions = langProblems;
   const recommended = selectedQuestions.slice(0, 3);
   const codeCount = selectedQuestions.filter(q => q.type === "code").length;
   const todayMissions = [
@@ -1172,6 +1173,17 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
   setSelectedLang: (l: Language) => void;
   onStart: (d: Difficulty) => void; onBack: () => void;
 }) {
+  const [counts, setCounts] = useState<Record<Difficulty, number>>({ beginner: 0, intermediate: 0, advanced: 0 });
+  useEffect(() => {
+    let cancelled = false;
+    getProblems(selectedLang).then((list) => {
+      if (cancelled) return;
+      const c: Record<Difficulty, number> = { beginner: 0, intermediate: 0, advanced: 0 };
+      for (const p of list) { const d = NUM_DIFF[p.difficulty]; if (d) c[d]++; }
+      setCounts(c);
+    }).catch(() => { if (!cancelled) setCounts({ beginner: 0, intermediate: 0, advanced: 0 }); });
+    return () => { cancelled = true; };
+  }, [selectedLang]);
   const langMeta = LANG_META[selectedLang];
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
@@ -1199,7 +1211,7 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
       {/* Difficulty cards */}
       <div className="space-y-3">
         {(Object.entries(DIFFICULTY_META) as [Difficulty, typeof DIFFICULTY_META[Difficulty]][]).map(([diff, meta]) => {
-          const count = QUESTIONS.filter(q => q.language === selectedLang && q.difficulty === diff).length;
+          const count = counts[diff];
           return (
             <button key={diff} onClick={() => count > 0 && onStart(diff)} disabled={count === 0}
               className="w-full text-left rounded-2xl border-2 p-5 flex items-center gap-4 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1230,13 +1242,58 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
 
 // ─── LESSON ───────────────────────────────────────────────────────────────────
 
+// ── 백엔드 오답(BackendWrongAnswer) → 프론트 WrongAnswer 매핑 ──
+function mapWrongAnswer(w: BackendWrongAnswer): WrongAnswer {
+  return {
+    qId: w.problemId,
+    question: w.question,
+    type: PROBLEM_TYPE_MAP[w.type] ?? "short-answer",
+    language: w.language as Language,
+    userAnswer: w.lastAnswer ?? "",
+    correctAnswer: w.correctAnswer ?? "",
+    solvedAt: (w.updatedAt ?? "").slice(0, 10),
+  };
+}
+function dedupWrongs(list: WrongAnswer[]): WrongAnswer[] {
+  const map = new Map<number, WrongAnswer>();
+  for (const w of list) if (!map.has(w.qId)) map.set(w.qId, w);
+  return [...map.values()];
+}
+
+// ── 백엔드 문제(BackendProblem) → 프론트 Question 매핑 ──
+const PROBLEM_TYPE_MAP: Record<string, QuestionType> = {
+  MULTIPLE_CHOICE: "mcq", SHORT_ANSWER: "short-answer", FILL_BLANK: "fill-blank", CODE: "code", ESSAY: "short-answer",
+};
+const DIFF_NUM: Record<Difficulty, number> = { beginner: 1, intermediate: 2, advanced: 3 };
+const NUM_DIFF: Record<number, Difficulty> = { 1: "beginner", 2: "intermediate", 3: "advanced" };
+function mapProblem(p: BackendProblem): Question {
+  const parse = <T,>(str: string | undefined, fb: T): T => { try { return str ? (JSON.parse(str) as T) : fb; } catch { return fb; } };
+  return {
+    id: p.id,
+    type: PROBLEM_TYPE_MAP[p.type] ?? "short-answer",
+    language: p.language as Language,
+    difficulty: NUM_DIFF[p.difficulty] ?? "beginner",
+    title: p.title,
+    question: p.description,
+    options: parse<string[] | undefined>(p.optionsJson, undefined),
+    answer: "?", // 정답은 백엔드가 숨김 → 채점은 서버(submitAnswer)가 담당
+    hint: p.hint,
+    template: p.codeTemplate,
+    explanation: p.explanation ?? "",
+    tags: parse<string[]>(p.tagsJson, []),
+    testcases: parse<TestCase[] | undefined>(p.testCasesJson, undefined),
+  };
+}
+
 function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   user: UserProfile; selectedLang: Language; difficulty: Difficulty;
   onComplete: (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => void;
   onBack: () => void;
 }) {
-  // Only show questions for the selected language AND difficulty
-  const lessonQuestions = QUESTIONS.filter(q => q.language === selectedLang && q.difficulty === difficulty);
+  // 백엔드에서 언어+난이도로 문제 로딩 (하드코딩 QUESTIONS 대신)
+  const [lessonQuestions, setLessonQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [currentQ, setCurrentQ] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
@@ -1244,15 +1301,41 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
-  const [codeValue, setCodeValue] = useState(lessonQuestions[0]?.template ?? "");
+  const [codeValue, setCodeValue] = useState("");
   const [wrongs, setWrongs] = useState<WrongAnswer[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState<MockResult[] | null>(null);
   const [earnedXp, setEarnedXp] = useState(0);
 
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true); setLoadError(false);
+    getProblems(selectedLang, DIFF_NUM[difficulty])
+      .then((list) => {
+        if (cancelled) return;
+        const mapped = list.map(mapProblem);
+        setLessonQuestions(mapped);
+        setCurrentQ(0);
+        setCodeValue(mapped[0]?.template ?? "");
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) { setLoadError(true); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [selectedLang, difficulty]);
+
   const question = lessonQuestions[currentQ];
+
+  if (loading) return (
+    <div className="flex items-center justify-center" style={{ minHeight: "100dvh", color: "var(--muted-foreground)" }}>문제 불러오는 중…</div>
+  );
+  if (loadError || !question) return (
+    <div className="flex flex-col items-center justify-center gap-4" style={{ minHeight: "100dvh" }}>
+      <p style={{ color: "var(--muted-foreground)" }}>{loadError ? "문제를 불러오지 못했습니다. 백엔드 연결을 확인하세요." : "이 난이도에 등록된 문제가 없습니다."}</p>
+      <button onClick={onBack} className="px-4 py-2 rounded-xl font-bold text-white" style={{ background: "var(--primary)" }}>돌아가기</button>
+    </div>
+  );
+
   const progress = (currentQ / lessonQuestions.length) * 100;
-  // Bug fix: use the question's own language, not the dashboard selection
   const langMeta = LANG_META[question.language];
 
   const resetQ = (idx: number) => {
@@ -1262,15 +1345,14 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   };
 
   const runCode = async () => {
-    if (!question.mockResults) return;
     setIsRunning(true);
     setTestResults(null);
-    // 백엔드 채점 시도 (실패 시 로컬 mockResults 폴백)
+    // 백엔드 채점 (실패 시 테스트케이스 기반 표시)
     let backend: Awaited<ReturnType<typeof submitAnswer>> | null = null;
     try { backend = await submitAnswer(question.id, codeValue); } catch { backend = null; }
     let parsed: MockResult[] | null = null;
     if (backend?.testResultsJson) { try { parsed = JSON.parse(backend.testResultsJson); } catch { parsed = null; } }
-    const results = parsed ?? question.mockResults!;
+    const results = parsed ?? question.mockResults ?? (question.testcases?.map((t) => ({ input: t.input, expected: t.expected, actual: "", pass: false })) ?? []);
     setTestResults(results);
     setIsRunning(false);
     const allPassed = backend ? backend.correct : results.every(r => r.pass);
@@ -1837,7 +1919,9 @@ function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgra
   onUpgrade: () => void;
 }) {
   const isPremium = user.tier === "premium";
-  const allWrongs = [...MOCK_WRONG_ANSWERS, ...sessionWrongs];
+  const [backendWrongs, setBackendWrongs] = useState<WrongAnswer[]>([]);
+  useEffect(() => { getWrongAnswers().then((list) => setBackendWrongs(list.map(mapWrongAnswer))).catch(() => {}); }, []);
+  const allWrongs = dedupWrongs([...backendWrongs, ...sessionWrongs]);
   const [filterLang, setFilterLang] = useState<Language | "all">("all");
   const filtered = filterLang === "all" ? allWrongs : allWrongs.filter(w => w.language === filterLang);
   const reviewWrongs = filtered.filter(w => !resolvedIds.includes(w.qId));
@@ -1971,9 +2055,11 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
   onResolve: (qId: number) => void;
   onBack: () => void;
 }) {
-  const allWrongs = [...MOCK_WRONG_ANSWERS, ...sessionWrongs];
+  const [backendWrongs, setBackendWrongs] = useState<WrongAnswer[]>([]);
+  useEffect(() => { getWrongAnswers().then((list) => setBackendWrongs(list.map(mapWrongAnswer))).catch(() => {}); }, []);
+  const allWrongs = dedupWrongs([...backendWrongs, ...sessionWrongs]);
   const reviewWrongs = allWrongs.filter(w => !resolvedIds.includes(w.qId));
-  const [activeId, setActiveId] = useState(reviewWrongs[0]?.qId ?? null);
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const active = reviewWrongs.find(w => w.qId === activeId) ?? reviewWrongs[0] ?? null;
@@ -2564,7 +2650,7 @@ export default function App() {
   const [sessionWrongs, setSessionWrongs] = useState<WrongAnswer[]>([]);
   const [resolvedWrongIds, setResolvedWrongIds] = useState<number[]>([]);
 
-  const makeLangXp = () => Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, LANG_META[l].xp])) as Record<Language, number>;
+  const makeLangXp = () => Object.fromEntries((Object.keys(LANG_META) as Language[]).map(l => [l, 0])) as Record<Language, number>;
 
   const profileFromBackend = (u: BackendUser): UserProfile => {
     const tier: Tier = String(u.tier).toLowerCase().includes("premium") ? "premium" : "free";
@@ -2582,6 +2668,14 @@ export default function App() {
       groupIds: [],
       avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase(),
     };
+  };
+
+  // 백엔드가 계산한 언어별 XP로 갱신 (정답 제출 기반)
+  const refreshLangXp = async () => {
+    try {
+      const langXp = await getLanguageXp();
+      setUser((p) => (p ? { ...p, langXp: { ...p.langXp, ...(langXp as Record<Language, number>) } } : p));
+    } catch { /* 백엔드 미연결 시 무시 */ }
   };
 
   const saveCachedProfile = (profile: UserProfile) => {
@@ -2660,6 +2754,7 @@ export default function App() {
       if (restored) {
         setUser(restored);
         saveCachedProfile(restored);
+        refreshLangXp();
         if (screen === "login" || screen === "register") navigate("home", true);
       } else if (screen !== "login" && screen !== "register") {
         navigate("login", true);
@@ -2678,6 +2773,7 @@ export default function App() {
     setUser(profile);
     saveCachedProfile(profile);
     navigate("home");
+    refreshLangXp();
   };
 
   const handleComplete = (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => {
@@ -2693,6 +2789,7 @@ export default function App() {
     navigate("result");
     // 백엔드에 저장된 최신 XP/스트릭으로 동기화
     getMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
+    refreshLangXp();
   };
 
   const handleLogout = () => {

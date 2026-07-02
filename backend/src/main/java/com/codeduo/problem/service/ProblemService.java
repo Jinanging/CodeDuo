@@ -27,6 +27,12 @@ public class ProblemService {
                 .stream().map(ProblemResponse::from).toList();
     }
 
+    public List<ProblemResponse> getProblems(String language) {
+        Language lang = Language.valueOf(language.toUpperCase());
+        return problemRepository.findByLanguageOrderByOrderIndex(lang)
+                .stream().map(ProblemResponse::from).toList();
+    }
+
     public ProblemResponse getProblem(Long id) {
         return problemRepository.findById(id).map(ProblemResponse::from)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "문제를 찾을 수 없습니다."));

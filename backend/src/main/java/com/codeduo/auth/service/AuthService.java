@@ -31,8 +31,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
                 .avatar(request.nickname().length() >= 2 ? request.nickname().substring(0, 2).toUpperCase() : request.nickname().toUpperCase())
-                .xp(120)
-                .streakCount(1)
+                .xp(0)
+                .streakCount(0)
                 .hearts(5)
                 .build());
         return token(user);

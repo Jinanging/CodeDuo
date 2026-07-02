@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @Tag(name = "User")
 @RestController
 @RequiredArgsConstructor
@@ -31,5 +33,10 @@ public class UserController {
     public ApiResponse<UserResponse> updateMe(@CurrentUser User user, @Valid @RequestBody UpdateProfileRequest request) {
         User updated = userService.updateProfile(user, request);
         return ApiResponse.ok("프로필을 수정했습니다.", UserResponse.from(updated));
+    }
+
+    @GetMapping("/me/language-xp")
+    public ApiResponse<Map<String, Integer>> languageXp(@CurrentUser User user) {
+        return ApiResponse.ok("언어별 XP를 조회했습니다.", userService.getLanguageXp(user.getId()));
     }
 }
