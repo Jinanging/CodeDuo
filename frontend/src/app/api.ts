@@ -1,6 +1,12 @@
 // CodeDuo(Spring) 백엔드 API 클라이언트.
 // 배포 시 VITE_API_BASE 로 실제 도메인 지정. 로컬은 8080 직접 호출(백엔드 CORS가 5173 허용).
-const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "http://localhost:8080";
+type ViteImportMeta = ImportMeta & {
+  env?: {
+    VITE_API_BASE?: string;
+  };
+};
+
+const API_BASE = (import.meta as ViteImportMeta).env?.VITE_API_BASE ?? "http://localhost:8080";
 
 let token = "";
 try { token = localStorage.getItem("codeduo_token") ?? ""; } catch { /* ignore */ }
@@ -17,18 +23,29 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
       },
     });
   } catch {
-    // 서버에 아예 연결 실패(백엔드 꺼짐 등) → 네트워크 에러로 표시
-    const e = new Error("서버에 연결할 수 없습니다.") as Error & { isNetwork?: boolean };
-    e.isNetwork = true;
-    throw e;
+    const error = new Error("백엔드 서버에 연결할 수 없습니다.") as Error & { isNetwork?: boolean };
+    error.isNetwork = true;
+    throw error;
   }
-  const body = await res.json();
+
+  const text = await res.text();
+  let body: { success?: boolean; message?: string; data?: unknown } = {};
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(`요청 실패 (${res.status})`);
+  }
+
   if (!res.ok || body.success === false) throw new Error(body.message ?? `요청 실패 (${res.status})`);
   return body.data as T; // ApiResponse { success, message, data } 래퍼 해제
 }
 
 export interface BackendUser { id: number; email: string; nickname: string; tier: string; xp: number; streak: number; hearts: number; avatar: string; }
 export interface BackendGrade { correct: boolean; score: number; resultMessage?: string; aiReview?: string; testResultsJson?: string; }
+export interface BackendWeakness { subject: string; score: number; }
+export interface BackendActivity { day: string; solved: number; }
+export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
+export interface BackendAnalytics { weakness: BackendWeakness[]; activity: BackendActivity[]; summary: BackendAnalyticsSummary; }
 
 export async function login(email: string, password: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
@@ -40,21 +57,29 @@ export async function signup(email: string, password: string, nickname: string):
   token = d.accessToken; try { localStorage.setItem("codeduo_token", token); } catch { /* ignore */ }
   return d.user;
 }
+
+export async function fetchMe(): Promise<BackendUser> {
+  return req<BackendUser>("/api/users/me");
+}
+
+export function hasAuthToken(): boolean {
+  try { return Boolean(localStorage.getItem("codeduo_token")); } catch { return false; }
+}
+
+export function clearAuthToken(): void {
+  token = "";
+  try { localStorage.removeItem("codeduo_token"); } catch { /* ignore */ }
+}
+
 /** 답안 채점. problemId 는 백엔드 문제 id (시드 순서상 프론트 question.id 와 1~36 동일). */
 export async function submitAnswer(problemId: number, answer: string): Promise<BackendGrade> {
   return req<BackendGrade>("/api/submissions", { method: "POST", body: JSON.stringify({ problemId, answer }) });
 }
 
-/** 현재 로그인한 유저 정보 조회 (JWT 토큰 기반). 세션 복원/새로고침 시 사용. */
-export async function getMe(): Promise<BackendUser> {
-  return req<BackendUser>("/api/users/me");
+export async function updateProfile(profile: { nickname: string; email: string; avatar: string }): Promise<BackendUser> {
+  return req<BackendUser>("/api/users/me", { method: "PATCH", body: JSON.stringify(profile) });
 }
-/** 저장된 로그인 토큰이 있는지. */
-export function hasToken(): boolean {
-  return !!token;
-}
-/** 로그아웃: 토큰 제거. */
-export function clearToken(): void {
-  token = "";
-  try { localStorage.removeItem("codeduo_token"); } catch { /* ignore */ }
+
+export async function fetchAnalytics(): Promise<BackendAnalytics> {
+  return req<BackendAnalytics>("/api/analytics");
 }
