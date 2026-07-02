@@ -8,6 +8,7 @@ import com.codeduo.judge.dto.JudgeResponse;
 import com.codeduo.judge.service.Judge0Client;
 import com.codeduo.problem.entity.Problem;
 import com.codeduo.problem.repository.ProblemRepository;
+import com.codeduo.problem.type.Language;
 import com.codeduo.problem.type.ProblemType;
 import com.codeduo.progress.service.ProgressService;
 import com.codeduo.submission.dto.SubmissionRequest;
@@ -93,7 +94,7 @@ public class SubmissionService {
             case MULTIPLE_CHOICE -> simple(problem, answer);
             case SHORT_ANSWER -> new Grade(normalize(problem.getAnswer()).equals(normalize(answer)), normalize(problem.getAnswer()).equals(normalize(answer)) ? 100 : 0,
                     normalize(problem.getAnswer()).equals(normalize(answer)) ? "정답입니다!" : "정답과 일치하지 않습니다.", null, null, null);
-            case FILL_BLANK -> judge(problem, problem.getCodeTemplate().replace("{{BLANK}}", answer));
+            case FILL_BLANK -> simple(problem, answer);
             case CODE -> judge(problem, answer);
             case ESSAY -> essay(problem, answer);
         };
@@ -105,7 +106,7 @@ public class SubmissionService {
     }
 
     private Grade judge(Problem problem, String sourceCode) {
-        JudgeResponse response = judge0Client.execute(new JudgeRequest(sourceCode, pythonLanguageId, problem.getTestInput()), problem.getExpectedOutput());
+        JudgeResponse response = judge0Client.execute(new JudgeRequest(sourceCode, languageId(problem.getLanguage()), problem.getTestInput()), problem.getExpectedOutput());
         boolean correct = response.accepted(problem.getExpectedOutput());
         String testResults = "[{\"input\":\"%s\",\"expected\":\"%s\",\"actual\":\"%s\",\"pass\":%s}]"
                 .formatted(escape(problem.getTestInput()), escape(problem.getExpectedOutput()), escape(response.stdout()), correct);
@@ -123,6 +124,16 @@ public class SubmissionService {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+
+    private int languageId(Language language) {
+        return switch (language) {
+            case PYTHON -> 71; // Python 3
+            case JAVA -> 62;   // OpenJDK
+            case C -> 50;      // C (GCC)
+            case CPP -> 54;    // C++ (GCC)
+        };
     }
 
     private record Grade(boolean correct, int score, String message, Long runtimeMs, Long memoryKb, String testResultsJson) {
