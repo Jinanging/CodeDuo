@@ -103,7 +103,7 @@ public class SubmissionService {
     }
 
     private Grade simple(Problem problem, String answer) {
-        requireConfigured(problem.getAnswer(), "정답");
+        requireConfigured(problem.getAnswer());
         boolean correct = normalize(problem.getAnswer()).equals(normalize(answer));
         String wrongMessage = problem.getType() == ProblemType.SHORT_ANSWER
                 ? "정답과 일치하지 않습니다."
@@ -128,6 +128,7 @@ public class SubmissionService {
                     new JudgeRequest(sourceCode, languageId(problem.getLanguage()), testCase.input())
             );
             boolean pass = response.accepted(testCase.expected());
+            // 응답에는 통과 여부와 오류 유형만 담고 숨김 입력·기대 출력·실제 출력은 노출하지 않습니다.
             results.add(new JudgeTestResult(
                     index + 1,
                     pass,
@@ -161,7 +162,7 @@ public class SubmissionService {
     }
 
     private Grade essay(Problem problem, String answer) {
-        requireConfigured(problem.getRubric(), "서술형 채점 기준");
+        requireConfigured(problem.getRubric());
         EssayGradeResult result = aiClient.gradeEssay(problem.getRubric(), answer);
         return new Grade(result.correct(), result.score(), result.feedback(), null, null, null);
     }
@@ -187,7 +188,7 @@ public class SubmissionService {
         return List.of();
     }
 
-    private void requireConfigured(String value, String settingName) {
+    private void requireConfigured(String value) {
         if (value == null || value.isBlank()) {
             throw new BusinessException(
                     HttpStatus.SERVICE_UNAVAILABLE,
@@ -230,7 +231,6 @@ public class SubmissionService {
         if (value == null || value.length() <= maxLength) return value;
         return value.substring(0, maxLength) + "…";
     }
-
 
     private int languageId(Language language) {
         return switch (language) {

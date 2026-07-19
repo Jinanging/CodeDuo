@@ -35,6 +35,7 @@ import java.util.UUID;
  *  - 코스 4개 = 언어 (Python / Java / C / C++)
  *  - 각 코스의 레슨 3개 = 난이도 (초급 / 중급 / 고급)
  *  - 문제 36개 = seed-problems.json (언어 x 난이도 당 3문제) 로드
+ *  - 정답과 숨김 테스트 = Git에서 제외된 외부 비밀 파일을 실행 시 덮어쓰기
  */
 @Configuration
 @RequiredArgsConstructor
@@ -140,7 +141,7 @@ public class DataInitializer {
         }
 
         for (Problem problem : problems) {
-            // 기존 DB에 공개 시드에서 들어간 값이 남아 있어도 먼저 제거합니다.
+            // 외부 비밀 파일이 없거나 불완전해도 기존 DB의 채점 정보가 우연히 남지 않게 먼저 제거합니다.
             problem.setAnswer(null);
             problem.setRubric(null);
             problem.setExplanation(null);

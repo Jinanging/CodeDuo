@@ -4,6 +4,7 @@ import com.codeduo.submission.entity.Submission;
 
 import java.time.LocalDateTime;
 
+/** 제출이 끝난 뒤 학습자 본인에게 돌려주는 채점 결과와 해설입니다. */
 public record SubmissionResponse(
         Long id,
         Long problemId,

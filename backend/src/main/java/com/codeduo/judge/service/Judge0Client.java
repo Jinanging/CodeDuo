@@ -5,14 +5,15 @@ import com.codeduo.judge.dto.JudgeResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
-import java.time.Duration;
 
 /**
  * Judge0(코드 실행 엔진) 클라이언트.
@@ -43,7 +44,6 @@ public class Judge0Client {
         this.rest = RestClient.builder().requestFactory(requestFactory).build();
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public JudgeResponse execute(JudgeRequest request) {
         if (mock || baseUrl == null || baseUrl.isBlank()) {
             return executeMock(request);
@@ -55,6 +55,7 @@ public class Judge0Client {
                 "stdin", request.stdin() == null ? "" : request.stdin());
 
         try {
+            // 명시적 직렬화로 Judge0가 요구하는 source_code, language_id, stdin 필드를 그대로 보장합니다.
             String jsonBody = objectMapper.writeValueAsString(body);
             RestClient.RequestBodySpec spec = rest.post()
                     .uri(baseUrl.replaceAll("/+$", "") + "/submissions?base64_encoded=false&wait=true")
@@ -62,7 +63,9 @@ public class Judge0Client {
             if (rapidApiKey != null && !rapidApiKey.isBlank()) {
                 spec = spec.header("X-RapidAPI-Key", rapidApiKey).header("X-RapidAPI-Host", rapidApiHost);
             }
-            Map resp = spec.body(jsonBody).retrieve().body(Map.class);
+            Map<String, Object> resp = spec.body(jsonBody)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {});
             if (resp == null) return new JudgeResponse("", "Judge0 응답이 비어 있습니다.", null, "Judge0 Error", null, null);
 
             String stdout = str(resp.get("stdout")).strip();
