@@ -11,13 +11,11 @@ public record ProblemResponse(
         String description,
         int difficulty,
         String codeTemplate,
-        String testInput,
-        String expectedOutput,
+        String sampleInput,
+        String sampleOutput,
         String optionsJson,
         String hint,
-        String explanation,
         String tagsJson,
-        String testCasesJson,
         int orderIndex
 ) {
     public static ProblemResponse from(Problem p) {
@@ -34,9 +32,7 @@ public record ProblemResponse(
                 p.getExpectedOutput(),
                 p.getOptionsJson(),
                 p.getHint(),
-                p.getExplanation(),
                 p.getTagsJson(),
-                p.getTestCasesJson(),
                 p.getOrderIndex()
         );
     }

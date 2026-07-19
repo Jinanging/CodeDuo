@@ -85,10 +85,12 @@ interface TestCase {
 }
 
 interface MockResult {
-  input: string;
-  expected: string;
-  actual: string;
+  caseNumber: number;
   pass: boolean;
+  status?: string;
+  error?: string;
+  runtimeMs?: number;
+  memoryKb?: number;
 }
 
 interface Question {
@@ -99,10 +101,8 @@ interface Question {
   title: string;
   question: string;
   options?: string[];
-  answer: string | number;
   hint?: string;
   template?: string;
-  explanation: string;
   codeReview?: string;
   tags: string[];
   testcases?: TestCase[];
@@ -121,7 +121,9 @@ interface WrongAnswer {
   type: QuestionType;
   language: Language;
   userAnswer: string;
-  correctAnswer: string;
+  explanation?: string;
+  options?: string[];
+  codeTemplate?: string;
   solvedAt: string;
 }
 
@@ -155,309 +157,6 @@ const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light:
   intermediate: { label: "중급", color: "#F59E0B", light: "#FFFBEB", icon: "🔥", desc: "코드 작성과 응용 연습" },
   advanced:     { label: "고급", color: "#EF4444", light: "#FEF2F2", icon: "🚀", desc: "심화 개념 도전" },
 };
-
-const QUESTIONS: Question[] = [
-  {
-    id: 1, type: "mcq", language: "python", difficulty: "beginner", title: "변수 할당", tags: [],
-    question: "Python에서 변수 x에 정수 5를 할당하는 올바른 방법은?",
-    options: ["int x = 5;", "x = 5", "var x = 5", "x := 5"], answer: 1,
-    hint: "Python은 타입을 명시하지 않아도 됩니다.",
-    explanation: "동적 타입 언어라 x = 5처럼 할당합니다.",
-  },
-  {
-    id: 2, type: "short-answer", language: "python", difficulty: "beginner", title: "길이 함수", tags: [],
-    question: "Python에서 리스트나 문자열의 길이를 구하는 내장 함수는?\n(예: xxx)",
-    answer: "len",
-    hint: "length의 약자.",
-    explanation: "len(obj)는 항목 개수를 반환합니다.",
-  },
-  {
-    id: 3, type: "code", language: "python", difficulty: "beginner", title: "합 구하기", tags: [],
-    question: "두 정수를 공백으로 입력받아 합을 출력하세요.",
-    answer: "a, b = map(int, input().split())\nprint(a + b)",
-    hint: "print(a + b) 를 추가하세요.",
-    explanation: "input()으로 읽고 print()로 출력합니다.",
-    template: "a, b = map(int, input().split())\n# 두 수의 합을 출력하세요\n",
-    codeReview: "map(int, ...)로 한 번에 정수 변환하면 깔끔합니다.",
-    testcases: [{"input": "2 3", "expected": "5"}, {"input": "10 20", "expected": "30"}, {"input": "-1 1", "expected": "0"}],
-    mockResults: [{"input": "2 3", "expected": "5", "actual": "5", "pass": true}, {"input": "10 20", "expected": "30", "actual": "30", "pass": true}, {"input": "-1 1", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 4, type: "mcq", language: "python", difficulty: "intermediate", title: "반복문", tags: [],
-    question: "Python에서 0부터 4까지(총 5번) 반복하는 올바른 코드는?",
-    options: ["for i in range(5):", "for (i=0; i<5; i++):", "for i to 5:", "loop i in 5:"], answer: 0,
-    hint: "range(n)은 0~n-1.",
-    explanation: "range(5)는 0..4를 생성합니다.",
-  },
-  {
-    id: 5, type: "short-answer", language: "python", difficulty: "intermediate", title: "문자열 메서드", tags: [],
-    question: "Python에서 문자열을 모두 대문자로 바꾸는 메서드는?\n(예: xxx)",
-    answer: "upper",
-    hint: "대문자=uppercase.",
-    explanation: "s.upper()는 대문자로 변환합니다.",
-  },
-  {
-    id: 6, type: "code", language: "python", difficulty: "intermediate", title: "짝수 판별", tags: [],
-    question: "정수 n을 입력받아 짝수면 even, 홀수면 odd 를 출력하세요.",
-    answer: "n = int(input())\nprint('even' if n % 2 == 0 else 'odd')",
-    hint: "n % 2 == 0 이면 짝수.",
-    explanation: "삼항 표현식으로 한 줄에 처리할 수 있습니다.",
-    template: "n = int(input())\n# 짝수면 even, 홀수면 odd 를 출력하세요\n",
-    codeReview: "조건을 변수로 빼면 가독성↑.",
-    testcases: [{"input": "4", "expected": "even"}, {"input": "7", "expected": "odd"}, {"input": "0", "expected": "even"}],
-    mockResults: [{"input": "4", "expected": "even", "actual": "even", "pass": true}, {"input": "7", "expected": "odd", "actual": "odd", "pass": true}, {"input": "0", "expected": "even", "actual": "even", "pass": true}],
-  },
-  {
-    id: 7, type: "mcq", language: "python", difficulty: "advanced", title: "리스트 컴프리헨션", tags: [],
-    question: "[x * x for x in range(3)] 의 결과는?",
-    options: ["[0, 1, 4]", "[1, 2, 3]", "[0, 1, 2]", "[1, 4, 9]"], answer: 0,
-    hint: "range(3)=0,1,2.",
-    explanation: "0,1,2의 제곱 → [0, 1, 4].",
-  },
-  {
-    id: 8, type: "short-answer", language: "python", difficulty: "advanced", title: "딕셔너리 메서드", tags: [],
-    question: "딕셔너리에서 모든 키 목록을 반환하는 메서드는?\n(예: xxx)",
-    answer: "keys",
-    hint: "값은 values().",
-    explanation: "dict.keys()는 키 뷰를 반환합니다.",
-  },
-  {
-    id: 9, type: "code", language: "python", difficulty: "advanced", title: "최댓값", tags: [],
-    question: "정수들을 공백으로 입력받아 가장 큰 값을 출력하세요.",
-    answer: "nums = list(map(int, input().split()))\nprint(max(nums))",
-    hint: "max(nums)를 출력하세요.",
-    explanation: "리스트로 읽어 max()로 최댓값을 구합니다.",
-    template: "nums = list(map(int, input().split()))\n# 가장 큰 값을 출력하세요\n",
-    codeReview: "sorted()[-1] 보다 max()가 효율적입니다.",
-    testcases: [{"input": "3 1 4 1 5", "expected": "5"}, {"input": "9 2 6", "expected": "9"}, {"input": "-3 -1 -7", "expected": "-1"}],
-    mockResults: [{"input": "3 1 4 1 5", "expected": "5", "actual": "5", "pass": true}, {"input": "9 2 6", "expected": "9", "actual": "9", "pass": true}, {"input": "-3 -1 -7", "expected": "-1", "actual": "-1", "pass": true}],
-  },
-  {
-    id: 10, type: "mcq", language: "java", difficulty: "beginner", title: "메인 메서드", tags: [],
-    question: "Java 프로그램의 시작점이 되는 올바른 main 메서드 선언은?",
-    options: ["public void main()", "public static void main(String[] args)", "static main(String args)", "void main(String[] args)"], answer: 1,
-    hint: "JVM이 인스턴스 없이 호출.",
-    explanation: "public static void main(String[] args) 형태여야 합니다.",
-  },
-  {
-    id: 11, type: "short-answer", language: "java", difficulty: "beginner", title: "원시 자료형", tags: [],
-    question: "Java에서 32비트 정수를 저장하는 기본 원시 자료형은?\n(예: xxx)",
-    answer: "int",
-    hint: "C와 같은 이름.",
-    explanation: "int는 32비트 정수형.",
-  },
-  {
-    id: 12, type: "code", language: "java", difficulty: "beginner", title: "합 구하기", tags: [],
-    question: "두 정수를 입력받아 합을 출력하세요.",
-    answer: "System.out.println(a + b);",
-    hint: "System.out.println(a + b);",
-    explanation: "Scanner로 읽어 합을 출력합니다.",
-    template: "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 합을 출력하세요\n    }\n}",
-    codeReview: "큰 합은 long 사용을 고려하세요.",
-    testcases: [{"input": "2 3", "expected": "5"}, {"input": "10 20", "expected": "30"}, {"input": "-1 1", "expected": "0"}],
-    mockResults: [{"input": "2 3", "expected": "5", "actual": "5", "pass": true}, {"input": "10 20", "expected": "30", "actual": "30", "pass": true}, {"input": "-1 1", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 13, type: "mcq", language: "java", difficulty: "intermediate", title: "문자열 비교", tags: [],
-    question: "Java에서 두 문자열의 내용이 같은지 비교하는 올바른 방법은?",
-    options: ["s1 == s2", "s1.equals(s2)", "s1 = s2", "compare(s1, s2)"], answer: 1,
-    hint: "==는 참조 비교.",
-    explanation: "내용 비교는 .equals().",
-  },
-  {
-    id: 14, type: "short-answer", language: "java", difficulty: "intermediate", title: "출력 메서드", tags: [],
-    question: "Java에서 콘솔에 한 줄 출력하는 메서드는? System.out.___\n(예: xxx)",
-    answer: "println",
-    hint: "print + line.",
-    explanation: "println()은 출력 후 줄바꿈.",
-  },
-  {
-    id: 15, type: "code", language: "java", difficulty: "intermediate", title: "최댓값", tags: [],
-    question: "두 정수를 입력받아 더 큰 값을 출력하세요.",
-    answer: "System.out.println(Math.max(a, b));",
-    hint: "Math.max(a, b).",
-    explanation: "Math.max로 더 큰 값을 구합니다.",
-    template: "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 더 큰 값을 출력하세요\n    }\n}",
-    codeReview: "삼항 a>b?a:b 도 됩니다.",
-    testcases: [{"input": "3 5", "expected": "5"}, {"input": "9 2", "expected": "9"}, {"input": "4 4", "expected": "4"}],
-    mockResults: [{"input": "3 5", "expected": "5", "actual": "5", "pass": true}, {"input": "9 2", "expected": "9", "actual": "9", "pass": true}, {"input": "4 4", "expected": "4", "actual": "4", "pass": true}],
-  },
-  {
-    id: 16, type: "mcq", language: "java", difficulty: "advanced", title: "다형성", tags: [],
-    question: "부모 메서드를 자식이 같은 시그니처로 재정의하는 것은?",
-    options: ["오버로딩(Overloading)", "오버라이딩(Overriding)", "캡슐화", "추상화"], answer: 1,
-    hint: "이름만 같고 매개변수 다르면 오버로딩.",
-    explanation: "오버라이딩=상속 메서드 재정의.",
-  },
-  {
-    id: 17, type: "short-answer", language: "java", difficulty: "advanced", title: "생성자", tags: [],
-    question: "객체 생성 시 호출되며 클래스명과 같은 메서드를 영어로?\n(예: xxx)",
-    answer: "constructor",
-    hint: "construct.",
-    explanation: "생성자는 객체 초기화를 담당.",
-  },
-  {
-    id: 18, type: "code", language: "java", difficulty: "advanced", title: "최솟값", tags: [],
-    question: "두 정수를 입력받아 더 작은 값을 출력하세요.",
-    answer: "System.out.println(Math.min(a, b));",
-    hint: "Math.min(a, b).",
-    explanation: "Math.min으로 더 작은 값을 구합니다.",
-    template: "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 더 작은 값을 출력하세요\n    }\n}",
-    codeReview: "삼항 a<b?a:b 도 됩니다.",
-    testcases: [{"input": "3 5", "expected": "3"}, {"input": "9 2", "expected": "2"}, {"input": "4 4", "expected": "4"}],
-    mockResults: [{"input": "3 5", "expected": "3", "actual": "3", "pass": true}, {"input": "9 2", "expected": "2", "actual": "2", "pass": true}, {"input": "4 4", "expected": "4", "actual": "4", "pass": true}],
-  },
-  {
-    id: 19, type: "mcq", language: "c", difficulty: "beginner", title: "출력 함수", tags: [],
-    question: "C언어에서 표준 출력으로 문자열을 출력하는 함수는?",
-    options: ["printf()", "cout", "print()", "System.out.println()"], answer: 0,
-    hint: "format+print.",
-    explanation: "printf()가 C의 표준 출력.",
-  },
-  {
-    id: 20, type: "short-answer", language: "c", difficulty: "beginner", title: "헤더 파일", tags: [],
-    question: "C에서 printf()를 쓰려면 포함하는 헤더는?\n(꺽쇠 제외, 예: xxx.h)",
-    answer: "stdio.h",
-    hint: "standard input/output.",
-    explanation: "#include <stdio.h>.",
-  },
-  {
-    id: 21, type: "code", language: "c", difficulty: "beginner", title: "합 구하기", tags: [],
-    question: "두 정수를 입력받아 합을 출력하세요.",
-    answer: "printf(\"%d\", a + b);",
-    hint: "printf(\"%d\", a + b);",
-    explanation: "scanf로 읽고 printf로 출력합니다.",
-    template: "#include <stdio.h>\nint main() {\n    int a, b;\n    scanf(\"%d %d\", &a, &b);\n    // 합을 출력하세요\n    return 0;\n}",
-    codeReview: "큰 합은 long long 고려.",
-    testcases: [{"input": "2 3", "expected": "5"}, {"input": "10 20", "expected": "30"}, {"input": "-1 1", "expected": "0"}],
-    mockResults: [{"input": "2 3", "expected": "5", "actual": "5", "pass": true}, {"input": "10 20", "expected": "30", "actual": "30", "pass": true}, {"input": "-1 1", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 22, type: "mcq", language: "c", difficulty: "intermediate", title: "변수 선언", tags: [],
-    question: "C에서 정수형 변수 x를 선언·초기화하는 올바른 방법은?",
-    options: ["int x = 5;", "x = 5", "var x = 5;", "let x: int = 5"], answer: 0,
-    hint: "자료형 명시.",
-    explanation: "int x = 5;.",
-  },
-  {
-    id: 23, type: "short-answer", language: "c", difficulty: "intermediate", title: "형식 지정자", tags: [],
-    question: "C에서 정수 출력 형식 지정자 문자는? printf(\"%_\", n)\n(예: x)",
-    answer: "d",
-    hint: "decimal.",
-    explanation: "%d는 10진 정수 지정자.",
-  },
-  {
-    id: 24, type: "code", language: "c", difficulty: "intermediate", title: "절댓값", tags: [],
-    question: "정수 n을 입력받아 절댓값을 출력하세요.",
-    answer: "printf(\"%d\", n < 0 ? -n : n);",
-    hint: "n<0 이면 -n.",
-    explanation: "삼항으로 절댓값을 출력합니다.",
-    template: "#include <stdio.h>\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    // 절댓값을 출력하세요\n    return 0;\n}",
-    codeReview: "stdlib.h의 abs(n)도 가능.",
-    testcases: [{"input": "-5", "expected": "5"}, {"input": "3", "expected": "3"}, {"input": "0", "expected": "0"}],
-    mockResults: [{"input": "-5", "expected": "5", "actual": "5", "pass": true}, {"input": "3", "expected": "3", "actual": "3", "pass": true}, {"input": "0", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 25, type: "mcq", language: "c", difficulty: "advanced", title: "주소 연산자", tags: [],
-    question: "C에서 변수의 메모리 주소를 얻는 연산자는?",
-    options: ["&", "*", "%", "#"], answer: 0,
-    hint: "scanf의 &.",
-    explanation: "&는 주소 연산자.",
-  },
-  {
-    id: 26, type: "short-answer", language: "c", difficulty: "advanced", title: "동적 메모리", tags: [],
-    question: "C에서 힙에 동적 메모리를 할당하는 표준 함수는?\n(예: xxx)",
-    answer: "malloc",
-    hint: "memory allocation.",
-    explanation: "malloc로 할당, free로 해제.",
-  },
-  {
-    id: 27, type: "code", language: "c", difficulty: "advanced", title: "최댓값", tags: [],
-    question: "두 정수를 입력받아 더 큰 값을 출력하세요.",
-    answer: "printf(\"%d\", a > b ? a : b);",
-    hint: "a>b?a:b.",
-    explanation: "삼항으로 더 큰 값을 출력합니다.",
-    template: "#include <stdio.h>\nint main() {\n    int a, b;\n    scanf(\"%d %d\", &a, &b);\n    // 더 큰 값을 출력하세요\n    return 0;\n}",
-    codeReview: "매크로보다 함수가 안전.",
-    testcases: [{"input": "3 5", "expected": "5"}, {"input": "9 2", "expected": "9"}, {"input": "4 4", "expected": "4"}],
-    mockResults: [{"input": "3 5", "expected": "5", "actual": "5", "pass": true}, {"input": "9 2", "expected": "9", "actual": "9", "pass": true}, {"input": "4 4", "expected": "4", "actual": "4", "pass": true}],
-  },
-  {
-    id: 28, type: "mcq", language: "cpp", difficulty: "beginner", title: "출력 스트림", tags: [],
-    question: "C++에서 표준 출력으로 값을 내보내는 객체는?",
-    options: ["cout", "printf", "System.out", "print"], answer: 0,
-    hint: "console out.",
-    explanation: "cout과 <<로 출력.",
-  },
-  {
-    id: 29, type: "short-answer", language: "cpp", difficulty: "beginner", title: "입출력 헤더", tags: [],
-    question: "C++에서 cout, cin을 쓰려면 포함하는 헤더는?\n(꺽쇠 제외, 예: xxx)",
-    answer: "iostream",
-    hint: "i/o stream.",
-    explanation: "#include <iostream>.",
-  },
-  {
-    id: 30, type: "code", language: "cpp", difficulty: "beginner", title: "합 구하기", tags: [],
-    question: "두 정수를 입력받아 합을 출력하세요.",
-    answer: "cout << a + b;",
-    hint: "cout << a + b;",
-    explanation: "cin으로 읽고 cout으로 출력합니다.",
-    template: "#include <iostream>\nusing namespace std;\nint main() {\n    int a, b;\n    cin >> a >> b;\n    // 합을 출력하세요\n    return 0;\n}",
-    codeReview: "값이 크면 long long 고려.",
-    testcases: [{"input": "2 3", "expected": "5"}, {"input": "10 20", "expected": "30"}, {"input": "-1 1", "expected": "0"}],
-    mockResults: [{"input": "2 3", "expected": "5", "actual": "5", "pass": true}, {"input": "10 20", "expected": "30", "actual": "30", "pass": true}, {"input": "-1 1", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 31, type: "mcq", language: "cpp", difficulty: "intermediate", title: "표준 입력", tags: [],
-    question: "C++에서 표준 입력으로 변수 x에 값을 읽는 올바른 코드는?",
-    options: ["cin >> x;", "scanf(x);", "x = input();", "read(x);"], answer: 0,
-    hint: "cin과 >>.",
-    explanation: "cin >> x;.",
-  },
-  {
-    id: 32, type: "short-answer", language: "cpp", difficulty: "intermediate", title: "네임스페이스", tags: [],
-    question: "C++에서 std:: 없이 cout을 쓰려면 using namespace ___; 의 빈칸은?\n(예: xxx)",
-    answer: "std",
-    hint: "표준 네임스페이스.",
-    explanation: "using namespace std;.",
-  },
-  {
-    id: 33, type: "code", language: "cpp", difficulty: "intermediate", title: "제곱", tags: [],
-    question: "정수 n을 입력받아 제곱을 출력하세요.",
-    answer: "cout << n * n;",
-    hint: "cout << n * n;",
-    explanation: "n*n으로 제곱을 출력합니다.",
-    template: "#include <iostream>\nusing namespace std;\nint main() {\n    int n;\n    cin >> n;\n    // n의 제곱을 출력하세요\n    return 0;\n}",
-    codeReview: "pow()는 오차가 있어 정수엔 n*n.",
-    testcases: [{"input": "4", "expected": "16"}, {"input": "-3", "expected": "9"}, {"input": "0", "expected": "0"}],
-    mockResults: [{"input": "4", "expected": "16", "actual": "16", "pass": true}, {"input": "-3", "expected": "9", "actual": "9", "pass": true}, {"input": "0", "expected": "0", "actual": "0", "pass": true}],
-  },
-  {
-    id: 34, type: "mcq", language: "cpp", difficulty: "advanced", title: "동적 할당", tags: [],
-    question: "C++에서 동적으로 메모리를 할당하는 연산자는?",
-    options: ["new", "malloc", "alloc", "create"], answer: 0,
-    hint: "해제는 delete.",
-    explanation: "new로 할당, delete로 해제.",
-  },
-  {
-    id: 35, type: "short-answer", language: "cpp", difficulty: "advanced", title: "벡터", tags: [],
-    question: "std::vector에 원소를 맨 뒤에 추가하는 멤버 함수는?\n(예: xxx)",
-    answer: "push_back",
-    hint: "뒤로 밀어넣기.",
-    explanation: "push_back(value).",
-  },
-  {
-    id: 36, type: "code", language: "cpp", difficulty: "advanced", title: "절댓값", tags: [],
-    question: "정수 n을 입력받아 절댓값을 출력하세요.",
-    answer: "cout << (n < 0 ? -n : n);",
-    hint: "n<0 이면 -n.",
-    explanation: "삼항으로 절댓값을 출력합니다.",
-    template: "#include <iostream>\nusing namespace std;\nint main() {\n    int n;\n    cin >> n;\n    // 절댓값을 출력하세요\n    return 0;\n}",
-    codeReview: "std::abs(n)도 가능.",
-    testcases: [{"input": "-5", "expected": "5"}, {"input": "3", "expected": "3"}, {"input": "0", "expected": "0"}],
-    mockResults: [{"input": "-5", "expected": "5", "actual": "5", "pass": true}, {"input": "3", "expected": "3", "actual": "3", "pass": true}, {"input": "0", "expected": "0", "actual": "0", "pass": true}],
-  },
-];
 
 const MOCK_USERS: MockUser[] = [
   { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, level: 21, isFriend: true },
@@ -618,13 +317,15 @@ function TestResultPanel({
   results,
   isPremium,
   codeReview,
+  resultMessage,
 }: {
   results: MockResult[];
   isPremium: boolean;
   codeReview?: string;
+  resultMessage?: string;
 }) {
   const passCount = results.filter(r => r.pass).length;
-  const allPassed = passCount === results.length;
+  const allPassed = results.length > 0 && passCount === results.length;
 
   return (
     <div className="mt-4 space-y-3">
@@ -662,27 +363,25 @@ function TestResultPanel({
             {r.pass
               ? <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-emerald-500" />
               : <XCircle size={16} className="shrink-0 mt-0.5 text-red-500" />}
-            <div className="flex-1 grid grid-cols-3 gap-2 text-xs min-w-0">
-              <div>
-                <span className="font-semibold block mb-0.5" style={{ color: "var(--muted-foreground)" }}>입력</span>
-                <code className="font-mono font-bold" style={{ color: "var(--foreground)", fontFamily: "JetBrains Mono, monospace" }}>{r.input}</code>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 text-xs font-bold" style={{ color: r.pass ? "#065F46" : "#991B1B" }}>
+                <span>숨김 테스트 #{r.caseNumber}</span>
+                <span>·</span>
+                <span>{r.pass ? "통과" : "실패"}</span>
               </div>
-              <div>
-                <span className="font-semibold block mb-0.5" style={{ color: "var(--muted-foreground)" }}>기대값</span>
-                <code className="font-mono font-bold" style={{ color: "#065F46", fontFamily: "JetBrains Mono, monospace" }}>{r.expected}</code>
-              </div>
-              <div>
-                <span className="font-semibold block mb-0.5" style={{ color: "var(--muted-foreground)" }}>실제값</span>
-                <code
-                  className="font-mono font-bold"
-                  style={{
-                    color: r.pass ? "#065F46" : "#991B1B",
-                    fontFamily: "JetBrains Mono, monospace",
-                  }}
-                >
-                  {r.actual}
-                </code>
-              </div>
+              {(r.error || (!r.pass && r.status && r.status !== "Accepted")) && (
+                <div className="mt-2 rounded-lg px-3 py-2 text-xs whitespace-pre-wrap break-words" style={{ background: "#FEE2E2", color: "#991B1B" }}>
+                  <span className="font-bold">{r.status || "실행 오류"}</span>
+                  {r.error && <span>: {r.error}</span>}
+                </div>
+              )}
+              {(r.runtimeMs != null || r.memoryKb != null) && (
+                <div className="mt-1.5 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  {r.runtimeMs != null && <span>실행 {r.runtimeMs}ms</span>}
+                  {r.runtimeMs != null && r.memoryKb != null && <span> · </span>}
+                  {r.memoryKb != null && <span>메모리 {r.memoryKb}KB</span>}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -709,8 +408,8 @@ function TestResultPanel({
         <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: "#FEF2F2", borderLeft: "4px solid #EF4444" }}>
           <XCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-sm mb-0.5" style={{ color: "#991B1B" }}>일부 테스트케이스를 통과하지 못했어요.</p>
-            <p className="text-sm" style={{ color: "#B91C1C" }}>실패한 케이스의 입출력을 확인하고 코드를 수정해보세요.</p>
+            <p className="font-bold text-sm mb-0.5" style={{ color: "#991B1B" }}>{resultMessage || "일부 테스트케이스를 통과하지 못했어요."}</p>
+            <p className="text-sm" style={{ color: "#B91C1C" }}>공개 예시와 오류 유형을 참고해 코드를 수정해보세요.</p>
           </div>
         </div>
       )}
@@ -1244,13 +943,18 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
 
 // ── 백엔드 오답(BackendWrongAnswer) → 프론트 WrongAnswer 매핑 ──
 function mapWrongAnswer(w: BackendWrongAnswer): WrongAnswer {
+  const parseOptions = () => {
+    try { return w.optionsJson ? JSON.parse(w.optionsJson) as string[] : undefined; } catch { return undefined; }
+  };
   return {
     qId: w.problemId,
     question: w.question,
     type: PROBLEM_TYPE_MAP[w.type] ?? "short-answer",
     language: w.language as Language,
     userAnswer: w.lastAnswer ?? "",
-    correctAnswer: w.correctAnswer ?? "",
+    explanation: w.explanation,
+    options: parseOptions(),
+    codeTemplate: w.codeTemplate,
     solvedAt: (w.updatedAt ?? "").slice(0, 10),
   };
 }
@@ -1276,12 +980,12 @@ function mapProblem(p: BackendProblem): Question {
     title: p.title,
     question: p.description,
     options: parse<string[] | undefined>(p.optionsJson, undefined),
-    answer: "?", // 정답은 백엔드가 숨김 → 채점은 서버(submitAnswer)가 담당
     hint: p.hint,
     template: p.codeTemplate,
-    explanation: p.explanation ?? "",
     tags: parse<string[]>(p.tagsJson, []),
-    testcases: parse<TestCase[] | undefined>(p.testCasesJson, undefined),
+    testcases: p.sampleInput != null || p.sampleOutput != null
+      ? [{ input: p.sampleInput ?? "", expected: p.sampleOutput ?? "" }]
+      : undefined,
   };
 }
 
@@ -1305,6 +1009,10 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   const [wrongs, setWrongs] = useState<WrongAnswer[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState<MockResult[] | null>(null);
+  const [codeResultMessage, setCodeResultMessage] = useState("");
+  const [backendCodeReview, setBackendCodeReview] = useState<string | undefined>();
+  const [feedbackExplanation, setFeedbackExplanation] = useState("");
+  const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
 
   useEffect(() => {
@@ -1341,21 +1049,43 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   const resetQ = (idx: number) => {
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
-    setTestResults(null); setIsRunning(false);
+    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false);
   };
 
   const runCode = async () => {
     setIsRunning(true);
     setTestResults(null);
-    // 백엔드 채점 (실패 시 테스트케이스 기반 표시)
-    let backend: Awaited<ReturnType<typeof submitAnswer>> | null = null;
-    try { backend = await submitAnswer(question.id, codeValue); } catch { backend = null; }
+    let backend: Awaited<ReturnType<typeof submitAnswer>>;
+    try {
+      backend = await submitAnswer(question.id, codeValue);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "코드 실행 요청에 실패했습니다.";
+      setTestResults([{
+        caseNumber: 1,
+        pass: false,
+        status: "요청 실패",
+        error: message,
+      }]);
+      setCodeResultMessage(message);
+      setBackendCodeReview(undefined);
+      setFeedback("wrong");
+      setIsRunning(false);
+      return;
+    }
     let parsed: MockResult[] | null = null;
     if (backend?.testResultsJson) { try { parsed = JSON.parse(backend.testResultsJson); } catch { parsed = null; } }
-    const results = parsed ?? question.mockResults ?? (question.testcases?.map((t) => ({ input: t.input, expected: t.expected, actual: "", pass: false })) ?? []);
+    const results = parsed?.length ? parsed : [{
+      caseNumber: 1,
+      pass: false,
+      status: "결과 오류",
+      error: "백엔드가 테스트 결과를 반환하지 않았습니다.",
+    }];
     setTestResults(results);
+    setCodeResultMessage(backend.resultMessage ?? "");
+    setBackendCodeReview(backend.aiReview);
+    setFeedbackExplanation(backend.explanation ?? "");
     setIsRunning(false);
-    const allPassed = backend ? backend.correct : results.every(r => r.pass);
+    const allPassed = backend.correct;
     setFeedback(allPassed ? "correct" : "wrong");
     if (allPassed) {
       setCorrectCount(p => p + 1);
@@ -1365,7 +1095,6 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
         qId: question.id, question: question.question, type: question.type,
         language: question.language,
         userAnswer: codeValue.slice(0, 60),
-        correctAnswer: String(question.answer),
         solvedAt: new Date().toISOString().slice(0, 10),
       }]);
     }
@@ -1374,16 +1103,18 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
   const checkAnswer = async () => {
     if (question.type === "code") { runCode(); return; }
 
-    // 로컬 계산(폴백)
-    let localCorrect = false;
-    if (question.type === "mcq") localCorrect = selectedOption === question.answer;
-    else localCorrect = userAnswer.trim().toLowerCase() === String(question.answer).toLowerCase();
-
-    // 백엔드 채점 (mcq는 선택 인덱스 문자열 전송). 실패 시 로컬.
+    // 정답은 브라우저에 두지 않고 백엔드에서만 채점합니다.
     const submitted = question.type === "mcq" ? String(selectedOption ?? "") : userAnswer;
-    let backend: Awaited<ReturnType<typeof submitAnswer>> | null = null;
-    try { backend = await submitAnswer(question.id, submitted); } catch { backend = null; }
-    const correct = backend ? backend.correct : localCorrect;
+    setSubmissionError("");
+    let backend: Awaited<ReturnType<typeof submitAnswer>>;
+    try {
+      backend = await submitAnswer(question.id, submitted);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "채점 요청에 실패했습니다.");
+      return;
+    }
+    const correct = backend.correct;
+    setFeedbackExplanation(backend.explanation ?? "");
 
     setFeedback(correct ? "correct" : "wrong");
     if (correct) { setCorrectCount(p => p + 1); setEarnedXp(p => p + TYPE_XP[question.type]); }
@@ -1392,7 +1123,6 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
         qId: question.id, question: question.question, type: question.type,
         language: question.language,
         userAnswer: question.type === "mcq" ? (question.options?.[selectedOption ?? 0] ?? "") : userAnswer,
-        correctAnswer: question.type === "mcq" ? (question.options?.[Number(question.answer)] ?? "") : String(question.answer),
         solvedAt: new Date().toISOString().slice(0, 10),
       }]);
     }
@@ -1504,7 +1234,6 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {question.options.map((opt, i) => {
                 const sel = selectedOption === i;
-                const correctOpt = !!feedback && i === question.answer;
                 const wrongOpt = feedback === "wrong" && sel;
                 return (
                   <button
@@ -1516,16 +1245,16 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
                       fontFamily: "JetBrains Mono, monospace",
                       fontSize: "1rem",
                       minHeight: 64,
-                      borderColor: correctOpt ? "#10B981" : wrongOpt ? "#EF4444" : sel ? "var(--primary)" : "var(--border)",
-                      background: correctOpt ? "#ECFDF5" : wrongOpt ? "#FEF2F2" : sel ? "var(--secondary)" : "#fff",
-                      color: correctOpt ? "#065F46" : wrongOpt ? "#991B1B" : "var(--foreground)",
+                      borderColor: wrongOpt ? "#EF4444" : feedback === "correct" && sel ? "#10B981" : sel ? "var(--primary)" : "var(--border)",
+                      background: wrongOpt ? "#FEF2F2" : feedback === "correct" && sel ? "#ECFDF5" : sel ? "var(--secondary)" : "#fff",
+                      color: wrongOpt ? "#991B1B" : feedback === "correct" && sel ? "#065F46" : "var(--foreground)",
                     }}
                   >
                     <span
                       className="inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0 text-sm font-extrabold"
                       style={{
-                        background: correctOpt ? "#10B981" : wrongOpt ? "#EF4444" : sel ? "var(--primary)" : "var(--muted)",
-                        color: sel || correctOpt || wrongOpt ? "#fff" : "var(--muted-foreground)",
+                        background: feedback === "correct" && sel ? "#10B981" : wrongOpt ? "#EF4444" : sel ? "var(--primary)" : "var(--muted)",
+                        color: sel || wrongOpt ? "#fff" : "var(--muted-foreground)",
                       }}
                     >
                       {String.fromCharCode(65 + i)}
@@ -1555,6 +1284,12 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
             />
           )}
 
+          {submissionError && (
+            <div className="mt-3 px-4 py-3 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>
+              {submissionError}
+            </div>
+          )}
+
           {/* ── Code editor ── */}
           {question.type === "code" && (
             <div>
@@ -1579,7 +1314,8 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
                 <TestResultPanel
                   results={testResults}
                   isPremium={user.tier === "premium"}
-                  codeReview={question.codeReview}
+                  codeReview={backendCodeReview}
+                  resultMessage={codeResultMessage}
                 />
               )}
             </div>
@@ -1602,7 +1338,7 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
                   {feedback === "correct" ? `정답! +${TYPE_XP[question.type]} XP 🎉` : "틀렸어요. 해설을 확인하세요."}
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: feedback === "correct" ? "#047857" : "#B91C1C" }}>
-                  {question.explanation}
+                  {feedbackExplanation || "채점이 완료되었습니다."}
                 </p>
               </div>
             </div>
@@ -1732,12 +1468,9 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
             <Sparkles size={16} style={{ color: "var(--primary)" }} />AI 코드 리뷰
             <PremiumBadge />
           </h3>
-          {QUESTIONS.filter(q => q.type === "code" && q.language === selectedLang).map(q => (
-            <div key={q.id} className="rounded-xl p-4 text-sm" style={{ background: "var(--secondary)" }}>
-              <p className="font-semibold mb-1.5" style={{ color: "var(--primary)" }}>💡 {q.title}</p>
-              <p style={{ color: "var(--foreground)" }}>{q.codeReview}</p>
-            </div>
-          ))}
+          <div className="rounded-xl p-4 text-sm" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>
+            AI 코드 리뷰는 각 코드 채점 결과에서 확인할 수 있습니다.
+          </div>
         </div>
       )}
 
@@ -1757,7 +1490,6 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
                 <p className="font-medium mb-1 text-xs" style={{ color: "#991B1B" }}>{w.question.slice(0, 60)}...</p>
                 <div className="flex gap-4 text-xs">
                   <span style={{ color: "#EF4444" }}>내 답: <strong>{w.userAnswer}</strong></span>
-                  <span style={{ color: "#10B981" }}>정답: <strong>{w.correctAnswer}</strong></span>
                 </div>
               </div>
             ))}
@@ -2004,9 +1736,7 @@ function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgra
             <div>
               <h3 className="font-extrabold text-base mb-3" style={{ color: "var(--foreground)" }}>아직 틀린 문제</h3>
               <div className="space-y-3">
-              {reviewWrongs.map((w, i) => {
-                const q = QUESTIONS.find(q => q.id === w.qId);
-                return (
+              {reviewWrongs.map((w, i) => (
                   <div key={i} className="bg-white rounded-2xl border border-border p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge type={w.type} />
@@ -2019,21 +1749,10 @@ function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgra
                         <XCircle size={14} className="text-red-400 shrink-0" />
                         <span style={{ color: "#991B1B" }}>내 답: <strong className="font-mono">{w.userAnswer}</strong></span>
                       </div>
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: "#ECFDF5" }}>
-                        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                        <span style={{ color: "#065F46" }}>정답: <strong className="font-mono">{w.correctAnswer}</strong></span>
-                      </div>
                     </div>
-                    {q && <div className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>📖 {q.explanation}</div>}
-                    {isPremium && q?.codeReview && (
-                      <div className="mt-2 px-3 py-2.5 rounded-xl text-sm flex items-start gap-2" style={{ background: "#F5F3FF" }}>
-                        <Sparkles size={14} className="shrink-0 mt-0.5" style={{ color: "var(--primary)" }} />
-                        <span style={{ color: "var(--primary)" }}>{q.codeReview}</span>
-                      </div>
-                    )}
+                    {w.explanation && <div className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "var(--secondary)", color: "var(--foreground)" }}>📖 {w.explanation}</div>}
                   </div>
-                );
-              })}
+              ))}
               </div>
             </div>
           ) : (
@@ -2062,10 +1781,9 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
   const [activeId, setActiveId] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const active = reviewWrongs.find(w => w.qId === activeId) ?? reviewWrongs[0] ?? null;
-  const question = active ? QUESTIONS.find(q => q.id === active.qId) : undefined;
   const answer = active ? answers[active.qId] ?? "" : "";
-  const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, "");
 
   const setAnswer = (value: string) => {
     if (!active) return;
@@ -2073,10 +1791,18 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
     setFeedback(null);
   };
 
-  const submit = () => {
+  const submit = async () => {
     if (!active) return;
-    const expected = String(question?.answer ?? active.correctAnswer);
-    const correct = question?.type === "mcq" ? Number(answer) === Number(question.answer) : normalize(answer) === normalize(expected);
+    setSubmitting(true);
+    let correct = false;
+    try {
+      correct = (await submitAnswer(active.qId, answer)).correct;
+    } catch {
+      setFeedback("wrong");
+      setSubmitting(false);
+      return;
+    }
+    setSubmitting(false);
     if (!correct) { setFeedback("wrong"); return; }
     onResolve(active.qId);
     setFeedback("correct");
@@ -2086,10 +1812,10 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
 
   const renderInput = () => {
     if (!active) return null;
-    if (question?.type === "mcq" && question.options) {
+    if (active.type === "mcq" && active.options) {
       return (
         <div className="grid gap-2">
-          {question.options.map((option, index) => {
+          {active.options.map((option, index) => {
             const selected = answer === String(index);
             return (
               <button key={option} onClick={() => setAnswer(String(index))} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
@@ -2101,7 +1827,7 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
         </div>
       );
     }
-    if (question?.type === "code") {
+    if (active.type === "code") {
       return (
         <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={8} spellCheck={false}
           className="w-full px-4 py-3 rounded-xl border-2 text-sm font-mono focus:outline-none resize-none"
@@ -2152,7 +1878,7 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
             {feedback === "wrong" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>아직 아니에요. 정답 방향을 다시 떠올려보세요.</div>}
             {feedback === "correct" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#ECFDF5", color: "#065F46" }}>좋아요. 해결한 문제로 이동했습니다.</div>}
             <div className="flex flex-wrap gap-2 mt-5">
-              <button onClick={submit} disabled={!answer.trim()} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>답변 제출</button>
+              <button onClick={submit} disabled={!answer.trim() || submitting} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>{submitting ? "채점 중..." : "답변 제출"}</button>
               {reviewWrongs.map(w => (
                 <button key={w.qId} onClick={() => { setActiveId(w.qId); setFeedback(null); }} className="px-3 py-2 rounded-xl text-xs font-bold border-2"
                   style={{ borderColor: active.qId === w.qId ? "var(--primary)" : "var(--border)", color: active.qId === w.qId ? "var(--primary)" : "var(--muted-foreground)", background: active.qId === w.qId ? "var(--secondary)" : "#fff" }}>
@@ -2678,18 +2404,6 @@ export default function App() {
     } catch { /* 백엔드 미연결 시 무시 */ }
   };
 
-  const saveCachedProfile = (profile: UserProfile) => {
-    try { localStorage.setItem("codeduo_profile", JSON.stringify(profile)); } catch { /* ignore */ }
-  };
-
-  const readCachedProfile = (): UserProfile | null => {
-    try {
-      const raw = localStorage.getItem("codeduo_profile");
-      return raw ? JSON.parse(raw) as UserProfile : null;
-    } catch {
-      return null;
-    }
-  };
   const [upgradeReturnScreen, setUpgradeReturnScreen] = useState<Screen>("profile");
 
   const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
@@ -2748,12 +2462,10 @@ export default function App() {
           clearToken();
         }
       }
-      restored = restored ?? readCachedProfile();
       if (cancelled) return;
 
       if (restored) {
         setUser(restored);
-        saveCachedProfile(restored);
         refreshLangXp();
         if (screen === "login" || screen === "register") navigate("home", true);
       } else if (screen !== "login" && screen !== "register") {
@@ -2771,7 +2483,6 @@ export default function App() {
     const u = mode === "register" ? await apiSignup(email, password, username) : await apiLogin(email, password);
     const profile = profileFromBackend(u);
     setUser(profile);
-    saveCachedProfile(profile);
     navigate("home");
     refreshLangXp();
   };
@@ -2795,7 +2506,6 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     clearToken();
-    try { localStorage.removeItem("codeduo_profile"); } catch { /* ignore */ }
     navigate("login");
   };
   const handleUpgrade = () => {
@@ -2807,17 +2517,13 @@ export default function App() {
       const updated = await apiUpdateProfile({ nickname: patch.username, email: patch.email, avatar: patch.avatar });
       setUser(u => {
         if (!u) return u;
-        const next = { ...u, username: updated.nickname, email: updated.email, avatar: updated.avatar };
-        saveCachedProfile(next);
-        return next;
+        return { ...u, username: updated.nickname, email: updated.email, avatar: updated.avatar };
       });
     } catch (e) {
       if (!user?.id || user.id === "me") {
         setUser(u => {
           if (!u) return u;
-          const next = { ...u, ...patch };
-          saveCachedProfile(next);
-          return next;
+          return { ...u, ...patch };
         });
         return;
       }
@@ -2841,7 +2547,7 @@ export default function App() {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
       case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} onStart={(d) => { setSelectedDifficulty(d); navigate("lesson", false, { difficulty: d }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
-      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? QUESTIONS.length} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
+      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
       case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;
       case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onReview={() => navigate("wrongReview")} onUpgrade={() => openUpgrade("errors")} />;
       case "wrongReview": return <WrongAnswerReviewPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onResolve={handleResolveWrong} onBack={() => navigate("errors")} />;

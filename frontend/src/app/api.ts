@@ -9,7 +9,6 @@ type ViteImportMeta = ImportMeta & {
 const API_BASE = (import.meta as ViteImportMeta).env?.VITE_API_BASE ?? "http://localhost:8080";
 
 let token = "";
-try { token = localStorage.getItem("codeduo_token") ?? ""; } catch { /* ignore */ }
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   let res: Response;
@@ -41,12 +40,21 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
 }
 
 export interface BackendUser { id: number; email: string; nickname: string; tier: string; xp: number; streak: number; hearts: number; avatar: string; }
-export interface BackendGrade { correct: boolean; score: number; resultMessage?: string; aiReview?: string; testResultsJson?: string; }
+export interface BackendGrade {
+  correct: boolean;
+  score: number;
+  resultMessage?: string;
+  explanation?: string;
+  aiReview?: string;
+  runtimeMs?: number;
+  memoryKb?: number;
+  testResultsJson?: string;
+}
 /** 백엔드 문제(정답 answer 는 보안상 미포함 → 채점은 서버가 담당). */
 export interface BackendProblem {
   id: number; lessonId: number; type: string; language: string; title: string; description: string;
-  difficulty: number; codeTemplate?: string; testInput?: string; expectedOutput?: string;
-  optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string; testCasesJson?: string; orderIndex: number;
+  difficulty: number; codeTemplate?: string; sampleInput?: string; sampleOutput?: string;
+  optionsJson?: string; hint?: string; tagsJson?: string; orderIndex: number;
 }
 export interface BackendWeakness { subject: string; score: number; }
 export interface BackendActivity { day: string; solved: number; }
@@ -55,12 +63,12 @@ export interface BackendAnalytics { weakness: BackendWeakness[]; activity: Backe
 
 export async function login(email: string, password: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
-  token = d.accessToken; try { localStorage.setItem("codeduo_token", token); } catch { /* ignore */ }
+  token = d.accessToken;
   return d.user;
 }
 export async function signup(email: string, password: string, nickname: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password, nickname }) });
-  token = d.accessToken; try { localStorage.setItem("codeduo_token", token); } catch { /* ignore */ }
+  token = d.accessToken;
   return d.user;
 }
 
@@ -83,7 +91,8 @@ export async function getLanguageXp(): Promise<Record<string, number>> {
 /** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
 export interface BackendWrongAnswer {
   id: number; problemId: number; question: string; type: string; language: string;
-  lastAnswer?: string; correctAnswer?: string; reasonSummary?: string; explanation?: string; updatedAt?: string;
+  optionsJson?: string; codeTemplate?: string; lastAnswer?: string;
+  reasonSummary?: string; explanation?: string; updatedAt?: string;
 }
 export async function getWrongAnswers(): Promise<BackendWrongAnswer[]> {
   return req<BackendWrongAnswer[]>("/api/wrong-answers");
@@ -110,5 +119,4 @@ export function hasToken(): boolean {
 /** 로그아웃: 토큰 제거. */
 export function clearToken(): void {
   token = "";
-  try { localStorage.removeItem("codeduo_token"); } catch { /* ignore */ }
 }

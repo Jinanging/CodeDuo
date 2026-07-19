@@ -10,8 +10,9 @@ public record WrongAnswerResponse(
         String question,
         String type,
         String language,
+        String optionsJson,
+        String codeTemplate,
         String lastAnswer,
-        String correctAnswer,
         String reasonSummary,
         String explanation,
         LocalDateTime updatedAt
@@ -23,8 +24,9 @@ public record WrongAnswerResponse(
                 w.getProblem().getDescription(),
                 w.getProblem().getType().name(),
                 w.getProblem().getLanguage().name().toLowerCase(),
+                w.getProblem().getOptionsJson(),
+                w.getProblem().getCodeTemplate(),
                 w.getLastAnswer(),
-                w.getProblem().getAnswer(),
                 w.getReasonSummary(),
                 w.getProblem().getExplanation(),
                 w.getUpdatedAt()

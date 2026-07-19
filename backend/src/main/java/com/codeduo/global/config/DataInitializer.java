@@ -8,22 +8,27 @@ import com.codeduo.problem.entity.Problem;
 import com.codeduo.problem.repository.ProblemRepository;
 import com.codeduo.problem.type.Language;
 import com.codeduo.problem.type.ProblemType;
-import com.codeduo.user.entity.User;
+import com.codeduo.judge.dto.JudgeTestCase;
 import com.codeduo.user.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 시드 데이터:
@@ -33,12 +38,19 @@ import java.util.Map;
  */
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class DataInitializer {
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${grading.secrets-path:}")
+    private String gradingSecretsPath;
+
+    @Value("${grading.require-secrets:false}")
+    private boolean requireGradingSecrets;
 
     private static final String[] DIFF_NAME = {"초급", "중급", "고급"};
     private static final String[] DIFF_DESC = {
@@ -49,79 +61,143 @@ public class DataInitializer {
     CommandLineRunner initData() {
         return args -> {
             ObjectMapper mapper = new ObjectMapper();
-
-            // 프리미엄 계정(premium@test.com) - DB가 이미 채워져 있어도 없으면 추가
-            if (!userRepository.existsByEmail("premium@test.com")) {
-                userRepository.save(User.builder()
-                        .email("premium@test.com").password(passwordEncoder.encode("password"))
-                        .nickname("admin").avatar("AD").xp(0).streakCount(0).hearts(5).premium(true).build());
-            }
-
-            if (courseRepository.count() > 0) {
-                return;
-            }
-
-            if (!userRepository.existsByEmail("demo@codeduo.dev")) {
-                userRepository.save(User.builder()
-                        .email("demo@codeduo.dev").password(passwordEncoder.encode("password"))
-                        .nickname("demo").avatar("DE").xp(240).streakCount(7).hearts(5).premium(false).build());
-            }
-            if (!userRepository.existsByEmail("premium@codeduo.dev")) {
-                userRepository.save(User.builder()
-                        .email("premium@codeduo.dev").password(passwordEncoder.encode("password"))
-                        .nickname("premium").avatar("PR").xp(920).streakCount(14).hearts(5).premium(true).build());
-            }
-
-            Map<Language, Course> courses = new EnumMap<>(Language.class);
-            courses.put(Language.PYTHON, courseRepository.save(course("Python", Language.PYTHON, "입문부터 심화까지 Python")));
-            courses.put(Language.JAVA, courseRepository.save(course("Java", Language.JAVA, "백엔드 입문을 위한 Java")));
-            courses.put(Language.C, courseRepository.save(course("C", Language.C, "시스템 프로그래밍 C 기본기")));
-            courses.put(Language.CPP, courseRepository.save(course("C++", Language.CPP, "알고리즘 학습을 위한 C++")));
-
-            Map<String, Lesson> lessons = new HashMap<>();
-            for (Language lang : Language.values()) {
-                for (int d = 1; d <= 3; d++) {
-                    Lesson saved = lessonRepository.save(
-                            lesson(courses.get(lang), DIFF_NAME[d - 1], DIFF_DESC[d - 1], d));
-                    lessons.put(lang.name() + "-" + d, saved);
-                }
-            }
-
-            List<Map<String, Object>> seed;
-            try (InputStream is = new ClassPathResource("seed-problems.json").getInputStream()) {
-                seed = mapper.readValue(is, new TypeReference<List<Map<String, Object>>>() {});
-            }
-
-            Map<String, Integer> order = new HashMap<>();
-            for (Map<String, Object> it : seed) {
-                Language lang = Language.valueOf((String) it.get("language"));
-                int diff = ((Number) it.get("difficulty")).intValue();
-                String key = lang.name() + "-" + diff;
-                Lesson lesson = lessons.get(key);
-                int ord = order.merge(key, 1, Integer::sum);
-
-                problemRepository.save(Problem.builder()
-                        .lesson(lesson)
-                        .type(ProblemType.valueOf((String) it.get("type")))
-                        .language(lang)
-                        .difficulty(diff)
-                        .title((String) it.get("title"))
-                        .description((String) it.get("description"))
-                        .answer((String) it.get("answer"))
-                        .optionsJson((String) it.get("optionsJson"))
-                        .hint((String) it.get("hint"))
-                        .explanation((String) it.get("explanation"))
-                        .codeTemplate((String) it.get("codeTemplate"))
-                        .testInput((String) it.get("testInput"))
-                        .expectedOutput((String) it.get("expectedOutput"))
-                        .testCasesJson((String) it.get("testCasesJson"))
-                        .rubric((String) it.getOrDefault("rubric", "핵심 개념을 자신의 말로 설명했는지 평가"))
-                        .tagsJson("[]")
-                        .orderIndex(ord)
-                        .build());
-            }
+            disableLegacyDemoPasswords();
+            seedPublicCatalogIfEmpty(mapper);
+            applyPrivateGradingData(mapper);
         };
     }
+
+    private void disableLegacyDemoPasswords() {
+        List.of("premium@test.com", "demo@codeduo.dev", "premium@codeduo.dev").forEach(email ->
+                userRepository.findByEmail(email).ifPresent(user -> {
+                    if (user.getPassword() != null && passwordEncoder.matches("password", user.getPassword())) {
+                        user.setPassword(passwordEncoder.encode(UUID.randomUUID() + "-disabled-legacy-account"));
+                        userRepository.save(user);
+                        log.warn("공개된 기본 비밀번호를 사용하던 레거시 데모 계정의 로그인을 비활성화했습니다: {}", email);
+                    }
+                })
+        );
+    }
+
+    private void seedPublicCatalogIfEmpty(ObjectMapper mapper) throws Exception {
+        if (courseRepository.count() > 0) return;
+
+        Map<Language, Course> courses = new EnumMap<>(Language.class);
+        courses.put(Language.PYTHON, courseRepository.save(course("Python", Language.PYTHON, "입문부터 심화까지 Python")));
+        courses.put(Language.JAVA, courseRepository.save(course("Java", Language.JAVA, "백엔드 입문을 위한 Java")));
+        courses.put(Language.C, courseRepository.save(course("C", Language.C, "시스템 프로그래밍 C 기본기")));
+        courses.put(Language.CPP, courseRepository.save(course("C++", Language.CPP, "알고리즘 학습을 위한 C++")));
+
+        Map<String, Lesson> lessons = new HashMap<>();
+        for (Language lang : Language.values()) {
+            for (int difficulty = 1; difficulty <= 3; difficulty++) {
+                Lesson saved = lessonRepository.save(
+                        lesson(courses.get(lang), DIFF_NAME[difficulty - 1], DIFF_DESC[difficulty - 1], difficulty));
+                lessons.put(lang.name() + "-" + difficulty, saved);
+            }
+        }
+
+        List<Map<String, Object>> seed;
+        try (InputStream input = new ClassPathResource("seed-problems.json").getInputStream()) {
+            seed = mapper.readValue(input, new TypeReference<>() {});
+        }
+
+        Map<String, Integer> order = new HashMap<>();
+        for (Map<String, Object> item : seed) {
+            Language language = Language.valueOf((String) item.get("language"));
+            int difficulty = ((Number) item.get("difficulty")).intValue();
+            String lessonKey = language.name() + "-" + difficulty;
+            int orderIndex = order.merge(lessonKey, 1, Integer::sum);
+
+            problemRepository.save(Problem.builder()
+                    .lesson(lessons.get(lessonKey))
+                    .type(ProblemType.valueOf((String) item.get("type")))
+                    .language(language)
+                    .difficulty(difficulty)
+                    .title((String) item.get("title"))
+                    .description((String) item.get("description"))
+                    .optionsJson((String) item.get("optionsJson"))
+                    .hint((String) item.get("hint"))
+                    .codeTemplate((String) item.get("codeTemplate"))
+                    .testInput((String) item.get("testInput"))
+                    .expectedOutput((String) item.get("expectedOutput"))
+                    .tagsJson("[]")
+                    .orderIndex(orderIndex)
+                    .build());
+        }
+    }
+
+    private void applyPrivateGradingData(ObjectMapper mapper) throws Exception {
+        Map<String, GradingSecret> secrets = loadGradingSecrets(mapper);
+        List<Problem> problems = problemRepository.findAll();
+
+        List<String> missingKeys = problems.stream()
+                .filter(problem -> !isComplete(problem, secrets.get(problemKey(problem))))
+                .map(this::problemKey)
+                .toList();
+        if (requireGradingSecrets && !missingKeys.isEmpty()) {
+            throw new IllegalStateException("필수 채점 비밀정보가 누락되었습니다: " + String.join(", ", missingKeys));
+        }
+
+        for (Problem problem : problems) {
+            // 기존 DB에 공개 시드에서 들어간 값이 남아 있어도 먼저 제거합니다.
+            problem.setAnswer(null);
+            problem.setRubric(null);
+            problem.setExplanation(null);
+            problem.setTestCasesJson(null);
+
+            GradingSecret secret = secrets.get(problemKey(problem));
+            if (secret == null) continue;
+            problem.setAnswer(secret.answer());
+            problem.setRubric(secret.rubric());
+            problem.setExplanation(secret.explanation());
+            if (secret.testCases() != null && !secret.testCases().isEmpty()) {
+                problem.setTestCasesJson(mapper.writeValueAsString(secret.testCases()));
+            }
+        }
+        problemRepository.saveAll(problems);
+
+        if (!missingKeys.isEmpty()) {
+            log.warn("채점 비밀정보가 없는 문제 {}개는 안전을 위해 채점이 비활성화됩니다.", missingKeys.size());
+        }
+    }
+
+    private Map<String, GradingSecret> loadGradingSecrets(ObjectMapper mapper) throws Exception {
+        if (gradingSecretsPath == null || gradingSecretsPath.isBlank()) {
+            if (requireGradingSecrets) throw new IllegalStateException("GRADING_SECRETS_PATH가 설정되지 않았습니다.");
+            return Map.of();
+        }
+
+        Path path = Path.of(gradingSecretsPath).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(path)) {
+            if (requireGradingSecrets) throw new IllegalStateException("채점 비밀 파일을 찾을 수 없습니다: " + path);
+            log.warn("채점 비밀 파일이 없어 채점을 비활성화합니다: {}", path);
+            return Map.of();
+        }
+        try (InputStream input = Files.newInputStream(path)) {
+            return mapper.readValue(input, new TypeReference<>() {});
+        }
+    }
+
+    private boolean isComplete(Problem problem, GradingSecret secret) {
+        if (secret == null) return false;
+        return switch (problem.getType()) {
+            case CODE -> secret.testCases() != null && !secret.testCases().isEmpty();
+            case ESSAY -> secret.rubric() != null && !secret.rubric().isBlank();
+            default -> secret.answer() != null && !secret.answer().isBlank();
+        };
+    }
+
+    private String problemKey(Problem problem) {
+        return problem.getLanguage().name() + "-" + problem.getDifficulty() + "-" + problem.getOrderIndex();
+    }
+
+    private record GradingSecret(
+            String answer,
+            String rubric,
+            String explanation,
+            List<JudgeTestCase> testCases
+    ) {}
 
     private Course course(String title, Language language, String description) {
         return Course.builder().title(title).language(language).description(description).level("MIXED").build();
