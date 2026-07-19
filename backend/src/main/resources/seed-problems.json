@@ -6,14 +6,10 @@
     "title": "변수 할당",
     "description": "Python에서 변수 x에 정수 5를 할당하는 올바른 방법은?",
     "hint": "Python은 타입을 명시하지 않아도 됩니다.",
-    "explanation": "동적 타입 언어라 x = 5처럼 할당합니다.",
     "optionsJson": "[\"int x = 5;\", \"x = 5\", \"var x = 5\", \"x := 5\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "1",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -22,14 +18,10 @@
     "title": "길이 함수",
     "description": "Python에서 리스트나 문자열의 길이를 구하는 내장 함수는?\n(예: xxx)",
     "hint": "length의 약자.",
-    "explanation": "len(obj)는 항목 개수를 반환합니다.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "len",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -38,14 +30,10 @@
     "title": "합 구하기",
     "description": "두 정수를 공백으로 입력받아 합을 출력하세요.",
     "hint": "print(a + b) 를 추가하세요.",
-    "explanation": "input()으로 읽고 print()로 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "a, b = map(int, input().split())\n# 두 수의 합을 출력하세요\n",
-    "rubric": null,
-    "answer": "a, b = map(int, input().split())\nprint(a + b)",
     "testInput": "2 3",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"2 3\", \"expected\": \"5\"}, {\"input\": \"10 20\", \"expected\": \"30\"}, {\"input\": \"-1 1\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -54,14 +42,10 @@
     "title": "반복문",
     "description": "Python에서 0부터 4까지(총 5번) 반복하는 올바른 코드는?",
     "hint": "range(n)은 0~n-1.",
-    "explanation": "range(5)는 0..4를 생성합니다.",
     "optionsJson": "[\"for i in range(5):\", \"for (i=0; i<5; i++):\", \"for i to 5:\", \"loop i in 5:\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -70,14 +54,10 @@
     "title": "문자열 메서드",
     "description": "Python에서 문자열을 모두 대문자로 바꾸는 메서드는?\n(예: xxx)",
     "hint": "대문자=uppercase.",
-    "explanation": "s.upper()는 대문자로 변환합니다.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "upper",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -86,14 +66,10 @@
     "title": "짝수 판별",
     "description": "정수 n을 입력받아 짝수면 even, 홀수면 odd 를 출력하세요.",
     "hint": "n % 2 == 0 이면 짝수.",
-    "explanation": "삼항 표현식으로 한 줄에 처리할 수 있습니다.",
     "optionsJson": null,
     "codeTemplate": "n = int(input())\n# 짝수면 even, 홀수면 odd 를 출력하세요\n",
-    "rubric": null,
-    "answer": "n = int(input())\nprint('even' if n % 2 == 0 else 'odd')",
     "testInput": "4",
-    "expectedOutput": "even",
-    "testCasesJson": "[{\"input\": \"4\", \"expected\": \"even\"}, {\"input\": \"7\", \"expected\": \"odd\"}, {\"input\": \"0\", \"expected\": \"even\"}]"
+    "expectedOutput": "even"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -102,14 +78,10 @@
     "title": "리스트 컴프리헨션",
     "description": "[x * x for x in range(3)] 의 결과는?",
     "hint": "range(3)=0,1,2.",
-    "explanation": "0,1,2의 제곱 → [0, 1, 4].",
     "optionsJson": "[\"[0, 1, 4]\", \"[1, 2, 3]\", \"[0, 1, 2]\", \"[1, 4, 9]\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -118,14 +90,10 @@
     "title": "딕셔너리 메서드",
     "description": "딕셔너리에서 모든 키 목록을 반환하는 메서드는?\n(예: xxx)",
     "hint": "값은 values().",
-    "explanation": "dict.keys()는 키 뷰를 반환합니다.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "keys",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -134,14 +102,10 @@
     "title": "최댓값",
     "description": "정수들을 공백으로 입력받아 가장 큰 값을 출력하세요.",
     "hint": "max(nums)를 출력하세요.",
-    "explanation": "리스트로 읽어 max()로 최댓값을 구합니다.",
     "optionsJson": null,
     "codeTemplate": "nums = list(map(int, input().split()))\n# 가장 큰 값을 출력하세요\n",
-    "rubric": null,
-    "answer": "nums = list(map(int, input().split()))\nprint(max(nums))",
     "testInput": "3 1 4 1 5",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"3 1 4 1 5\", \"expected\": \"5\"}, {\"input\": \"9 2 6\", \"expected\": \"9\"}, {\"input\": \"-3 -1 -7\", \"expected\": \"-1\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -150,14 +114,10 @@
     "title": "메인 메서드",
     "description": "Java 프로그램의 시작점이 되는 올바른 main 메서드 선언은?",
     "hint": "JVM이 인스턴스 없이 호출.",
-    "explanation": "public static void main(String[] args) 형태여야 합니다.",
     "optionsJson": "[\"public void main()\", \"public static void main(String[] args)\", \"static main(String args)\", \"void main(String[] args)\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "1",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -166,14 +126,10 @@
     "title": "원시 자료형",
     "description": "Java에서 32비트 정수를 저장하는 기본 원시 자료형은?\n(예: xxx)",
     "hint": "C와 같은 이름.",
-    "explanation": "int는 32비트 정수형.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "int",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -182,14 +138,10 @@
     "title": "합 구하기",
     "description": "두 정수를 입력받아 합을 출력하세요.",
     "hint": "System.out.println(a + b);",
-    "explanation": "Scanner로 읽어 합을 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 합을 출력하세요\n    }\n}",
-    "rubric": null,
-    "answer": "System.out.println(a + b);",
     "testInput": "2 3",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"2 3\", \"expected\": \"5\"}, {\"input\": \"10 20\", \"expected\": \"30\"}, {\"input\": \"-1 1\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -198,14 +150,10 @@
     "title": "문자열 비교",
     "description": "Java에서 두 문자열의 내용이 같은지 비교하는 올바른 방법은?",
     "hint": "==는 참조 비교.",
-    "explanation": "내용 비교는 .equals().",
     "optionsJson": "[\"s1 == s2\", \"s1.equals(s2)\", \"s1 = s2\", \"compare(s1, s2)\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "1",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -214,14 +162,10 @@
     "title": "출력 메서드",
     "description": "Java에서 콘솔에 한 줄 출력하는 메서드는? System.out.___\n(예: xxx)",
     "hint": "print + line.",
-    "explanation": "println()은 출력 후 줄바꿈.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "println",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -230,14 +174,10 @@
     "title": "최댓값",
     "description": "두 정수를 입력받아 더 큰 값을 출력하세요.",
     "hint": "Math.max(a, b).",
-    "explanation": "Math.max로 더 큰 값을 구합니다.",
     "optionsJson": null,
     "codeTemplate": "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 더 큰 값을 출력하세요\n    }\n}",
-    "rubric": null,
-    "answer": "System.out.println(Math.max(a, b));",
     "testInput": "3 5",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"3 5\", \"expected\": \"5\"}, {\"input\": \"9 2\", \"expected\": \"9\"}, {\"input\": \"4 4\", \"expected\": \"4\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -246,14 +186,10 @@
     "title": "다형성",
     "description": "부모 메서드를 자식이 같은 시그니처로 재정의하는 것은?",
     "hint": "이름만 같고 매개변수 다르면 오버로딩.",
-    "explanation": "오버라이딩=상속 메서드 재정의.",
     "optionsJson": "[\"오버로딩(Overloading)\", \"오버라이딩(Overriding)\", \"캡슐화\", \"추상화\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "1",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -262,14 +198,10 @@
     "title": "생성자",
     "description": "객체 생성 시 호출되며 클래스명과 같은 메서드를 영어로?\n(예: xxx)",
     "hint": "construct.",
-    "explanation": "생성자는 객체 초기화를 담당.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "constructor",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -278,14 +210,10 @@
     "title": "최솟값",
     "description": "두 정수를 입력받아 더 작은 값을 출력하세요.",
     "hint": "Math.min(a, b).",
-    "explanation": "Math.min으로 더 작은 값을 구합니다.",
     "optionsJson": null,
     "codeTemplate": "import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int a = sc.nextInt(), b = sc.nextInt();\n        // 더 작은 값을 출력하세요\n    }\n}",
-    "rubric": null,
-    "answer": "System.out.println(Math.min(a, b));",
     "testInput": "3 5",
-    "expectedOutput": "3",
-    "testCasesJson": "[{\"input\": \"3 5\", \"expected\": \"3\"}, {\"input\": \"9 2\", \"expected\": \"2\"}, {\"input\": \"4 4\", \"expected\": \"4\"}]"
+    "expectedOutput": "3"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -294,14 +222,10 @@
     "title": "출력 함수",
     "description": "C언어에서 표준 출력으로 문자열을 출력하는 함수는?",
     "hint": "format+print.",
-    "explanation": "printf()가 C의 표준 출력.",
     "optionsJson": "[\"printf()\", \"cout\", \"print()\", \"System.out.println()\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -310,14 +234,10 @@
     "title": "헤더 파일",
     "description": "C에서 printf()를 쓰려면 포함하는 헤더는?\n(꺽쇠 제외, 예: xxx.h)",
     "hint": "standard input/output.",
-    "explanation": "#include <stdio.h>.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "stdio.h",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -326,14 +246,10 @@
     "title": "합 구하기",
     "description": "두 정수를 입력받아 합을 출력하세요.",
     "hint": "printf(\"%d\", a + b);",
-    "explanation": "scanf로 읽고 printf로 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <stdio.h>\nint main() {\n    int a, b;\n    scanf(\"%d %d\", &a, &b);\n    // 합을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "printf(\"%d\", a + b);",
     "testInput": "2 3",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"2 3\", \"expected\": \"5\"}, {\"input\": \"10 20\", \"expected\": \"30\"}, {\"input\": \"-1 1\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -342,14 +258,10 @@
     "title": "변수 선언",
     "description": "C에서 정수형 변수 x를 선언·초기화하는 올바른 방법은?",
     "hint": "자료형 명시.",
-    "explanation": "int x = 5;.",
     "optionsJson": "[\"int x = 5;\", \"x = 5\", \"var x = 5;\", \"let x: int = 5\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -358,14 +270,10 @@
     "title": "형식 지정자",
     "description": "C에서 정수 출력 형식 지정자 문자는? printf(\"%_\", n)\n(예: x)",
     "hint": "decimal.",
-    "explanation": "%d는 10진 정수 지정자.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "d",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -374,14 +282,10 @@
     "title": "절댓값",
     "description": "정수 n을 입력받아 절댓값을 출력하세요.",
     "hint": "n<0 이면 -n.",
-    "explanation": "삼항으로 절댓값을 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <stdio.h>\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    // 절댓값을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "printf(\"%d\", n < 0 ? -n : n);",
     "testInput": "-5",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"-5\", \"expected\": \"5\"}, {\"input\": \"3\", \"expected\": \"3\"}, {\"input\": \"0\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -390,14 +294,10 @@
     "title": "주소 연산자",
     "description": "C에서 변수의 메모리 주소를 얻는 연산자는?",
     "hint": "scanf의 &.",
-    "explanation": "&는 주소 연산자.",
     "optionsJson": "[\"&\", \"*\", \"%\", \"#\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -406,14 +306,10 @@
     "title": "동적 메모리",
     "description": "C에서 힙에 동적 메모리를 할당하는 표준 함수는?\n(예: xxx)",
     "hint": "memory allocation.",
-    "explanation": "malloc로 할당, free로 해제.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "malloc",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -422,14 +318,10 @@
     "title": "최댓값",
     "description": "두 정수를 입력받아 더 큰 값을 출력하세요.",
     "hint": "a>b?a:b.",
-    "explanation": "삼항으로 더 큰 값을 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <stdio.h>\nint main() {\n    int a, b;\n    scanf(\"%d %d\", &a, &b);\n    // 더 큰 값을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "printf(\"%d\", a > b ? a : b);",
     "testInput": "3 5",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"3 5\", \"expected\": \"5\"}, {\"input\": \"9 2\", \"expected\": \"9\"}, {\"input\": \"4 4\", \"expected\": \"4\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -438,14 +330,10 @@
     "title": "출력 스트림",
     "description": "C++에서 표준 출력으로 값을 내보내는 객체는?",
     "hint": "console out.",
-    "explanation": "cout과 <<로 출력.",
     "optionsJson": "[\"cout\", \"printf\", \"System.out\", \"print\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -454,14 +342,10 @@
     "title": "입출력 헤더",
     "description": "C++에서 cout, cin을 쓰려면 포함하는 헤더는?\n(꺽쇠 제외, 예: xxx)",
     "hint": "i/o stream.",
-    "explanation": "#include <iostream>.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "iostream",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -470,14 +354,10 @@
     "title": "합 구하기",
     "description": "두 정수를 입력받아 합을 출력하세요.",
     "hint": "cout << a + b;",
-    "explanation": "cin으로 읽고 cout으로 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <iostream>\nusing namespace std;\nint main() {\n    int a, b;\n    cin >> a >> b;\n    // 합을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "cout << a + b;",
     "testInput": "2 3",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"2 3\", \"expected\": \"5\"}, {\"input\": \"10 20\", \"expected\": \"30\"}, {\"input\": \"-1 1\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -486,14 +366,10 @@
     "title": "표준 입력",
     "description": "C++에서 표준 입력으로 변수 x에 값을 읽는 올바른 코드는?",
     "hint": "cin과 >>.",
-    "explanation": "cin >> x;.",
     "optionsJson": "[\"cin >> x;\", \"scanf(x);\", \"x = input();\", \"read(x);\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -502,14 +378,10 @@
     "title": "네임스페이스",
     "description": "C++에서 std:: 없이 cout을 쓰려면 using namespace ___; 의 빈칸은?\n(예: xxx)",
     "hint": "표준 네임스페이스.",
-    "explanation": "using namespace std;.",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "std",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -518,14 +390,10 @@
     "title": "제곱",
     "description": "정수 n을 입력받아 제곱을 출력하세요.",
     "hint": "cout << n * n;",
-    "explanation": "n*n으로 제곱을 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <iostream>\nusing namespace std;\nint main() {\n    int n;\n    cin >> n;\n    // n의 제곱을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "cout << n * n;",
     "testInput": "4",
-    "expectedOutput": "16",
-    "testCasesJson": "[{\"input\": \"4\", \"expected\": \"16\"}, {\"input\": \"-3\", \"expected\": \"9\"}, {\"input\": \"0\", \"expected\": \"0\"}]"
+    "expectedOutput": "16"
   },
   {
     "type": "MULTIPLE_CHOICE",
@@ -534,14 +402,10 @@
     "title": "동적 할당",
     "description": "C++에서 동적으로 메모리를 할당하는 연산자는?",
     "hint": "해제는 delete.",
-    "explanation": "new로 할당, delete로 해제.",
     "optionsJson": "[\"new\", \"malloc\", \"alloc\", \"create\"]",
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "0",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "SHORT_ANSWER",
@@ -550,14 +414,10 @@
     "title": "벡터",
     "description": "std::vector에 원소를 맨 뒤에 추가하는 멤버 함수는?\n(예: xxx)",
     "hint": "뒤로 밀어넣기.",
-    "explanation": "push_back(value).",
     "optionsJson": null,
     "codeTemplate": null,
-    "rubric": null,
-    "answer": "push_back",
     "testInput": null,
-    "expectedOutput": null,
-    "testCasesJson": null
+    "expectedOutput": null
   },
   {
     "type": "CODE",
@@ -566,13 +426,9 @@
     "title": "절댓값",
     "description": "정수 n을 입력받아 절댓값을 출력하세요.",
     "hint": "n<0 이면 -n.",
-    "explanation": "삼항으로 절댓값을 출력합니다.",
     "optionsJson": null,
     "codeTemplate": "#include <iostream>\nusing namespace std;\nint main() {\n    int n;\n    cin >> n;\n    // 절댓값을 출력하세요\n    return 0;\n}",
-    "rubric": null,
-    "answer": "cout << (n < 0 ? -n : n);",
     "testInput": "-5",
-    "expectedOutput": "5",
-    "testCasesJson": "[{\"input\": \"-5\", \"expected\": \"5\"}, {\"input\": \"3\", \"expected\": \"3\"}, {\"input\": \"0\", \"expected\": \"0\"}]"
+    "expectedOutput": "5"
   }
 ]

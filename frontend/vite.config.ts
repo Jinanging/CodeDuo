@@ -31,6 +31,25 @@ export default defineConfig({
     },
   },
 
+  build: {
+    rollupOptions: {
+      output: {
+        // 차트와 아이콘 라이브러리를 별도 청크로 분리해 초기 앱 번들과 캐시를 독립시킵니다.
+        manualChunks(id) {
+          if (id.includes('node_modules/recharts')) {
+            return 'charts'
+          }
+          if (id.includes('node_modules/d3-')) {
+            return 'd3'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons'
+          }
+        },
+      },
+    },
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

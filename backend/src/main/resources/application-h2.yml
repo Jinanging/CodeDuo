@@ -10,4 +10,4 @@ spring:
     driver-class-name: org.h2.Driver
   h2:
     console:
-      enabled: true
+      enabled: ${H2_CONSOLE_ENABLED:false}

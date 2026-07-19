@@ -22,15 +22,30 @@ backend/build/
 frontend/node_modules/
 frontend/dist/
 frontend/tsconfig.tsbuildinfo
+frontend/src/assets/*-source.png
 
 # Environment / secrets
 .env
 .env.*
 !.env.example
+.npmrc
+!.npmrc.example
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
 backend/src/main/resources/application-local.yml
+config/grading-secrets.json
+config/*-secrets.json
+**/grading-secrets.json
+secrets/
+*.secret
 
 # Docker / local runtime
 *.pid
