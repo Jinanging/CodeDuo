@@ -53,6 +53,13 @@ const isLanguage = (value: string | null): value is Language =>
 const isDifficulty = (value: string | null): value is Difficulty =>
   value === "beginner" || value === "intermediate" || value === "advanced";
 
+const TOPICS_BY_LANGUAGE: Record<Language, string[]> = {
+  python: ["변수와 자료형", "조건문", "반복문", "리스트와 딕셔너리", "함수", "문자열 처리", "알고리즘 기초"],
+  java: ["기본 문법", "조건문과 반복문", "배열", "메서드", "클래스와 객체", "컬렉션", "예외 처리"],
+  c: ["기본 문법", "조건문과 반복문", "배열", "함수", "포인터", "문자열 처리", "구조체와 알고리즘 기초"],
+  cpp: ["기본 문법", "조건문과 반복문", "배열과 문자열", "함수", "클래스와 객체", "STL", "알고리즘 기초"],
+};
+
 const ADMIN_EMAILS = new Set(
   ((import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? "admin@codeduo.dev")
     .split(",")
@@ -75,6 +82,7 @@ const parseRouteQuery = () => {
   return {
     lang: isLanguage(params.get("lang")) ? params.get("lang") as Language : null,
     difficulty: isDifficulty(params.get("difficulty")) ? params.get("difficulty") as Difficulty : null,
+    topic: params.get("topic")?.trim() || null,
   };
 };
 
@@ -886,38 +894,61 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
 
 // ─── LESSON SELECT (난이도 선택) ────────────────────────────────────────────────
 
-function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack }: {
+function LessonSelectPage({ user, selectedLang, setSelectedLang, selectedTopic, setSelectedTopic, onStart, onBack }: {
   user: UserProfile; selectedLang: Language;
   setSelectedLang: (l: Language) => void;
-  onStart: (d: Difficulty) => void; onBack: () => void;
+  selectedTopic: string | null;
+  setSelectedTopic: (topic: string | null) => void;
+  onStart: (d: Difficulty, topic?: string | null) => void; onBack: () => void;
 }) {
   const [counts, setCounts] = useState<Record<Difficulty, number>>({ beginner: 0, intermediate: 0, advanced: 0 });
+  const [topicCounts, setTopicCounts] = useState<Record<string, Record<Difficulty, number>>>({});
   useEffect(() => {
     let cancelled = false;
     getProblems(selectedLang).then((list) => {
       if (cancelled) return;
       const c: Record<Difficulty, number> = { beginner: 0, intermediate: 0, advanced: 0 };
-      for (const p of list) { const d = NUM_DIFF[p.difficulty]; if (d) c[d]++; }
+      const byTopic: Record<string, Record<Difficulty, number>> = {};
+      const parseTags = (tagsJson?: string) => {
+        try { return tagsJson ? JSON.parse(tagsJson) as string[] : []; } catch { return []; }
+      };
+      for (const p of list) {
+        const d = NUM_DIFF[p.difficulty];
+        if (!d) continue;
+        c[d]++;
+        const topic = parseTags(p.tagsJson)[0] ?? "기타";
+        byTopic[topic] ??= { beginner: 0, intermediate: 0, advanced: 0 };
+        byTopic[topic][d]++;
+      }
       setCounts(c);
-    }).catch(() => { if (!cancelled) setCounts({ beginner: 0, intermediate: 0, advanced: 0 }); });
+      setTopicCounts(byTopic);
+    }).catch(() => {
+      if (!cancelled) {
+        setCounts({ beginner: 0, intermediate: 0, advanced: 0 });
+        setTopicCounts({});
+      }
+    });
     return () => { cancelled = true; };
   }, [selectedLang]);
   const langMeta = LANG_META[selectedLang];
+  const topics = TOPICS_BY_LANGUAGE[selectedLang];
+  const activeTopic = selectedTopic && topics.includes(selectedTopic) ? selectedTopic : null;
+  const activeCounts = activeTopic ? (topicCounts[activeTopic] ?? { beginner: 0, intermediate: 0, advanced: 0 }) : counts;
   return (
-    <div className="px-6 py-8 max-w-3xl mx-auto">
+    <div className="px-6 py-8 max-w-5xl mx-auto">
       <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold mb-5" style={{ color: "var(--muted-foreground)" }}>
         <ArrowLeft size={16} />홈으로
       </button>
 
       <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>레슨 선택</h1>
-      <p className="text-sm mb-6" style={{ color: "var(--muted-foreground)" }}>언어와 난이도를 골라 학습을 시작하세요.</p>
+      <p className="text-sm mb-6" style={{ color: "var(--muted-foreground)" }}>언어, 목차, 난이도를 골라 학습을 시작하세요.</p>
 
       {/* Language picker */}
       <div className="flex gap-2 mb-7 flex-wrap">
         {(Object.entries(LANG_META) as [Language, typeof LANG_META[Language]][]).map(([lang, meta]) => {
           const sel = selectedLang === lang;
           return (
-            <button key={lang} onClick={() => setSelectedLang(lang)}
+            <button key={lang} onClick={() => { setSelectedLang(lang); setSelectedTopic(null); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all"
               style={{ borderColor: sel ? meta.color : "var(--border)", background: sel ? meta.light : "#fff", color: sel ? meta.color : "var(--muted-foreground)" }}>
               <span>{meta.icon}</span>{meta.label}
@@ -926,12 +957,39 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
         })}
       </div>
 
+      {/* Topic picker */}
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>목차</h2>
+          <button onClick={() => setSelectedTopic(null)} className="text-xs font-bold" style={{ color: activeTopic ? "var(--primary)" : "var(--muted-foreground)" }}>
+            전체 보기
+          </button>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {topics.map((topic, idx) => {
+            const selected = activeTopic === topic;
+            const total = Object.values(topicCounts[topic] ?? {}).reduce((sum, value) => sum + value, 0);
+            return (
+              <button key={topic} onClick={() => setSelectedTopic(topic)}
+                className="text-left rounded-2xl border-2 p-4 transition-all hover:scale-[1.01]"
+                style={{ borderColor: selected ? langMeta.color : "var(--border)", background: selected ? langMeta.light : "#fff" }}>
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-extrabold" style={{ background: selected ? "#fff" : "var(--secondary)", color: selected ? langMeta.color : "var(--muted-foreground)" }}>{idx + 1}</span>
+                  <span className="font-extrabold text-sm" style={{ color: selected ? langMeta.color : "var(--foreground)" }}>{topic}</span>
+                </div>
+                <div className="text-xs font-bold mt-3" style={{ color: "var(--muted-foreground)" }}>{total}문제</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Difficulty cards */}
       <div className="space-y-3">
         {(Object.entries(DIFFICULTY_META) as [Difficulty, typeof DIFFICULTY_META[Difficulty]][]).map(([diff, meta]) => {
-          const count = counts[diff];
+          const count = activeCounts[diff];
           return (
-            <button key={diff} onClick={() => count > 0 && onStart(diff)} disabled={count === 0}
+            <button key={diff} onClick={() => count > 0 && onStart(diff, activeTopic)} disabled={count === 0}
               className="w-full text-left rounded-2xl border-2 p-5 flex items-center gap-4 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: "var(--border)", background: "#fff" }}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ background: meta.light }}>
@@ -942,7 +1000,7 @@ function LessonSelectPage({ user, selectedLang, setSelectedLang, onStart, onBack
                   <span className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{meta.label}</span>
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: meta.light, color: meta.color }}>{langMeta.icon} {langMeta.label}</span>
                 </div>
-                <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{meta.desc}</p>
+                <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activeTopic ? `${activeTopic} · ${meta.desc}` : meta.desc}</p>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-extrabold text-base" style={{ color: meta.color }}>{count}문제</div>
@@ -1008,8 +1066,8 @@ function mapProblem(p: BackendProblem): Question {
   };
 }
 
-function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
-  user: UserProfile; selectedLang: Language; difficulty: Difficulty;
+function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete, onBack }: {
+  user: UserProfile; selectedLang: Language; difficulty: Difficulty; selectedTopic: string | null;
   onComplete: (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => void;
   onBack: () => void;
 }) {
@@ -1040,7 +1098,9 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
     getProblems(selectedLang, DIFF_NUM[difficulty])
       .then((list) => {
         if (cancelled) return;
-        const mapped = list.map(mapProblem);
+        const mapped = list
+          .map(mapProblem)
+          .filter(question => !selectedTopic || question.tags.includes(selectedTopic));
         setLessonQuestions(mapped);
         setCurrentQ(0);
         setCodeValue(mapped[0]?.template ?? "");
@@ -1048,7 +1108,7 @@ function LessonPage({ user, selectedLang, difficulty, onComplete, onBack }: {
       })
       .catch(() => { if (!cancelled) { setLoadError(true); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [selectedLang, difficulty]);
+  }, [selectedLang, difficulty, selectedTopic]);
 
   const question = lessonQuestions[currentQ];
 
@@ -2668,6 +2728,7 @@ export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedLang, setSelectedLang] = useState<Language>(initialQuery.lang ?? "python");
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(initialQuery.difficulty ?? "beginner");
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(initialQuery.topic);
   const [lessonResult, setLessonResult] = useState<{ correct: number; total: number; wrongs: WrongAnswer[] } | null>(null);
   const [xpEarned, setXpEarned] = useState(0);
   const [sessionWrongs, setSessionWrongs] = useState<WrongAnswer[]>([]);
@@ -2703,16 +2764,18 @@ export default function App() {
 
   const [upgradeReturnScreen, setUpgradeReturnScreen] = useState<Screen>("profile");
 
-  const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
+  const buildRoute = (next: Screen, query: { lang?: Language; difficulty?: Difficulty; topic?: string | null } = {}) => {
     const params = new URLSearchParams();
     const learningScreen = ["home", "lessonSelect", "lesson", "result"].includes(next);
     if (learningScreen) params.set("lang", query.lang ?? selectedLang);
     if (next === "lesson") params.set("difficulty", query.difficulty ?? selectedDifficulty);
+    const topic = Object.prototype.hasOwnProperty.call(query, "topic") ? query.topic : selectedTopic;
+    if ((next === "lesson" || next === "lessonSelect") && topic) params.set("topic", topic);
     const queryString = params.toString();
     return `${SCREEN_PATHS[next]}${queryString ? `?${queryString}` : ""}`;
   };
 
-  const navigate = (next: Screen, replace = false, query: { lang?: Language; difficulty?: Difficulty } = {}) => {
+  const navigate = (next: Screen, replace = false, query: { lang?: Language; difficulty?: Difficulty; topic?: string | null } = {}) => {
     setScreen(next);
     const path = buildRoute(next, query);
     const current = `${window.location.pathname}${window.location.search}`;
@@ -2725,7 +2788,13 @@ export default function App() {
 
   const handleLangChange = (lang: Language) => {
     setSelectedLang(lang);
-    navigate(screen, true, { lang });
+    setSelectedTopic(null);
+    navigate(screen, true, { lang, topic: null });
+  };
+
+  const handleTopicChange = (topic: string | null) => {
+    setSelectedTopic(topic);
+    navigate(screen, true, { topic });
   };
 
   const openUpgrade = (from: Screen) => {
@@ -2739,6 +2808,7 @@ export default function App() {
       setScreen(PATH_SCREENS[window.location.pathname] ?? "login");
       if (query.lang) setSelectedLang(query.lang);
       if (query.difficulty) setSelectedDifficulty(query.difficulty);
+      setSelectedTopic(query.topic);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -2842,8 +2912,8 @@ export default function App() {
   const renderContent = () => {
     switch (screen) {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
-      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} onStart={(d) => { setSelectedDifficulty(d); navigate("lesson", false, { difficulty: d }); }} onBack={() => navigate("home")} />;
-      case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
+      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
+      case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
       case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
       case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;
       case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onReview={() => navigate("wrongReview")} onUpgrade={() => openUpgrade("errors")} />;
