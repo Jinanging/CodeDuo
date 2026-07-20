@@ -1183,7 +1183,9 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
     if (question.type === "code") { runCode(); return; }
 
     // 정답은 브라우저에 두지 않고 백엔드에서만 채점합니다.
-    const submitted = question.type === "mcq" ? String(selectedOption ?? "") : userAnswer;
+    const submitted = question.type === "mcq"
+      ? (selectedOption === null ? "" : question.options?.[selectedOption] ?? "")
+      : userAnswer;
     setSubmissionError("");
     let backend: Awaited<ReturnType<typeof submitAnswer>>;
     try {
@@ -1895,9 +1897,9 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
       return (
         <div className="grid gap-2">
           {active.options.map((option, index) => {
-            const selected = answer === String(index);
+            const selected = answer === option;
             return (
-              <button key={option} onClick={() => setAnswer(String(index))} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
+              <button key={option} onClick={() => setAnswer(option)} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
                 style={{ borderColor: selected ? "var(--primary)" : "var(--border)", background: selected ? "var(--secondary)" : "#fff", color: selected ? "var(--primary)" : "var(--foreground)" }}>
                 {option}
               </button>
@@ -2614,7 +2616,7 @@ function AdminPage({ user }: { user: UserProfile }) {
                 </div>
                 <div>
                   <label className={labelClass}>정답</label>
-                  <input className={inputClass} value={form.answer} onChange={e => updateField("answer", e.target.value)} placeholder="객관식은 0~3 인덱스, 단답형은 정답 문자열" />
+                  <input className={inputClass} value={form.answer} onChange={e => updateField("answer", e.target.value)} placeholder="객관식은 정답 보기 텍스트, 단답형은 정답 문자열" />
                 </div>
               </div>
 
