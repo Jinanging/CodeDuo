@@ -9,7 +9,9 @@ import com.codeduo.lesson.repository.LessonRepository;
 import com.codeduo.problem.entity.Problem;
 import com.codeduo.problem.repository.ProblemRepository;
 import com.codeduo.problem.type.Language;
+import com.codeduo.submission.repository.SubmissionRepository;
 import com.codeduo.user.entity.User;
+import com.codeduo.wronganswer.repository.WrongAnswerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class AdminProblemService {
     private final AdminAccessService adminAccessService;
     private final LessonRepository lessonRepository;
     private final ProblemRepository problemRepository;
+    private final SubmissionRepository submissionRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
 
     @Transactional(readOnly = true)
     public List<AdminLessonResponse> getLessons(User user) {
@@ -77,6 +81,8 @@ public class AdminProblemService {
         if (!problemRepository.existsById(problemId)) {
             throw new BusinessException(HttpStatus.NOT_FOUND, "문제를 찾을 수 없습니다.");
         }
+        wrongAnswerRepository.deleteByProblemId(problemId);
+        submissionRepository.deleteByProblemId(problemId);
         problemRepository.deleteById(problemId);
     }
 

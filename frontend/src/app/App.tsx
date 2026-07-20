@@ -53,6 +53,15 @@ const isLanguage = (value: string | null): value is Language =>
 const isDifficulty = (value: string | null): value is Difficulty =>
   value === "beginner" || value === "intermediate" || value === "advanced";
 
+const ADMIN_EMAILS = new Set(
+  ((import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? "admin@codeduo.dev")
+    .split(",")
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+const isAdminUser = (user: UserProfile) => ADMIN_EMAILS.has(user.email.toLowerCase());
+
 const languageFromSubject = (subject: string): Language => {
   const normalized = subject.toLowerCase();
   if (normalized.includes("c++") || normalized.includes("cpp")) return "cpp";
@@ -596,10 +605,12 @@ const NAV_ITEMS = [
   { id: "analytics", label: "성적 분석", icon: BarChart2,  premium: true  },
   { id: "friends",   label: "친구/그룹", icon: Users,      premium: false },
   { id: "profile",   label: "프로필",   icon: User,        premium: false },
-  { id: "admin",     label: "문제 관리", icon: NotebookPen, premium: false },
+  { id: "admin",     label: "문제 관리", icon: NotebookPen, premium: false, adminOnly: true },
 ];
 
 function Sidebar({ screen, onNav, user, onLogout }: { screen: Screen; onNav: (s: Screen) => void; user: UserProfile; onLogout: () => void; }) {
+  const visibleNavItems = NAV_ITEMS.filter(item => !("adminOnly" in item) || isAdminUser(user));
+
   return (
     <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-border bg-white" style={{ minHeight: "100vh" }}>
       {/* Logo */}
@@ -628,7 +639,7 @@ function Sidebar({ screen, onNav, user, onLogout }: { screen: Screen; onNav: (s:
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-0.5">
-        {NAV_ITEMS.map(({ id, label, icon: Icon, premium }) => {
+        {visibleNavItems.map(({ id, label, icon: Icon, premium }) => {
           const active = screen === id;
           const locked = premium && user.tier === "free";
           return (
@@ -2839,7 +2850,7 @@ export default function App() {
       case "wrongReview": return <WrongAnswerReviewPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onResolve={handleResolveWrong} onBack={() => navigate("errors")} />;
       case "friends":  return <FriendsPage user={user} />;
       case "profile":  return <ProfilePage user={user} onUpgrade={() => openUpgrade("profile")} onSave={handleProfileSave} />;
-      case "admin":    return <AdminPage user={user} />;
+      case "admin":    return isAdminUser(user) ? <AdminPage user={user} /> : <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
       case "upgrade":  return <UpgradePage onBack={() => navigate(upgradeReturnScreen)} onUpgrade={handleUpgrade} />;
       default:         return null;
     }
