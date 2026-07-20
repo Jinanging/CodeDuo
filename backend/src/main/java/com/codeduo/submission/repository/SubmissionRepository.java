@@ -10,6 +10,7 @@ import java.util.List;
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Submission> findByUserIdAndProblemIdOrderByCreatedAtDesc(Long userId, Long problemId);
+    void deleteByProblemId(Long problemId);
 
     // 언어별 "정답" 제출 수 집계 → [Language, count]
     @Query("SELECT p.language, COUNT(s) FROM Submission s JOIN s.problem p " +
