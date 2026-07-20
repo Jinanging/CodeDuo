@@ -9,6 +9,7 @@ import com.codeduo.problem.repository.ProblemRepository;
 import com.codeduo.problem.type.Language;
 import com.codeduo.problem.type.ProblemType;
 import com.codeduo.judge.dto.JudgeTestCase;
+import com.codeduo.user.entity.User;
 import com.codeduo.user.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,7 +36,7 @@ import java.util.UUID;
  *  - 코스 4개 = 언어 (Python / Java / C / C++)
  *  - 각 코스의 레슨 3개 = 난이도 (초급 / 중급 / 고급)
  *  - 문제 36개 = seed-problems.json (언어 x 난이도 당 3문제) 로드
- *  - 정답과 숨김 테스트 = Git에서 제외된 외부 비밀 파일을 실행 시 덮어쓰기
+ *  - 정답과 숨김 테스트 = DB에 저장하고, 외부 비밀 파일이 있으면 실행 시 보강
  */
 @Configuration
 @RequiredArgsConstructor
@@ -53,6 +54,15 @@ public class DataInitializer {
     @Value("${grading.require-secrets:false}")
     private boolean requireGradingSecrets;
 
+    @Value("${app.admin.bootstrap-email:}")
+    private String adminBootstrapEmail;
+
+    @Value("${app.admin.bootstrap-password:}")
+    private String adminBootstrapPassword;
+
+    @Value("${app.admin.bootstrap-nickname:관리자}")
+    private String adminBootstrapNickname;
+
     private static final String[] DIFF_NAME = {"초급", "중급", "고급"};
     private static final String[] DIFF_DESC = {
             "기초 문법과 개념 익히기", "코드 작성과 응용 연습", "심화 개념과 서술형 도전"
@@ -63,9 +73,37 @@ public class DataInitializer {
         return args -> {
             ObjectMapper mapper = new ObjectMapper();
             disableLegacyDemoPasswords();
+            createAdminAccountIfConfigured();
             seedPublicCatalogIfEmpty(mapper);
             applyPrivateGradingData(mapper);
         };
+    }
+
+    private void createAdminAccountIfConfigured() {
+        if (adminBootstrapEmail == null || adminBootstrapEmail.isBlank()) return;
+        if (adminBootstrapPassword == null || adminBootstrapPassword.isBlank()) {
+            throw new IllegalStateException("ADMIN_BOOTSTRAP_EMAIL을 설정했다면 ADMIN_BOOTSTRAP_PASSWORD도 설정해야 합니다.");
+        }
+
+        userRepository.findByEmail(adminBootstrapEmail).ifPresentOrElse(
+                user -> log.info("관리자 부트스트랩 계정이 이미 존재합니다: {}", user.getEmail()),
+                () -> {
+                    User admin = User.builder()
+                            .email(adminBootstrapEmail)
+                            .password(passwordEncoder.encode(adminBootstrapPassword))
+                            .nickname(adminBootstrapNickname)
+                            .avatar(adminBootstrapNickname.length() >= 2
+                                    ? adminBootstrapNickname.substring(0, 2).toUpperCase()
+                                    : adminBootstrapNickname.toUpperCase())
+                            .xp(0)
+                            .streakCount(0)
+                            .hearts(5)
+                            .premium(true)
+                            .build();
+                    userRepository.save(admin);
+                    log.warn("관리자 부트스트랩 계정을 생성했습니다: {}", adminBootstrapEmail);
+                }
+        );
     }
 
     private void disableLegacyDemoPasswords() {
@@ -131,6 +169,13 @@ public class DataInitializer {
     private void applyPrivateGradingData(ObjectMapper mapper) throws Exception {
         Map<String, GradingSecret> secrets = loadGradingSecrets(mapper);
         List<Problem> problems = problemRepository.findAll();
+        if (secrets.isEmpty()) {
+            if (requireGradingSecrets && !problems.isEmpty()) {
+                throw new IllegalStateException("필수 채점 비밀정보가 없습니다.");
+            }
+            log.info("채점 비밀 파일이 없어 기존 DB 채점 정보를 유지합니다.");
+            return;
+        }
 
         List<String> missingKeys = problems.stream()
                 .filter(problem -> !isComplete(problem, secrets.get(problemKey(problem))))
@@ -141,17 +186,11 @@ public class DataInitializer {
         }
 
         for (Problem problem : problems) {
-            // 외부 비밀 파일이 없거나 불완전해도 기존 DB의 채점 정보가 우연히 남지 않게 먼저 제거합니다.
-            problem.setAnswer(null);
-            problem.setRubric(null);
-            problem.setExplanation(null);
-            problem.setTestCasesJson(null);
-
             GradingSecret secret = secrets.get(problemKey(problem));
             if (secret == null) continue;
-            problem.setAnswer(secret.answer());
-            problem.setRubric(secret.rubric());
-            problem.setExplanation(secret.explanation());
+            if (secret.answer() != null) problem.setAnswer(secret.answer());
+            if (secret.rubric() != null) problem.setRubric(secret.rubric());
+            if (secret.explanation() != null) problem.setExplanation(secret.explanation());
             if (secret.testCases() != null && !secret.testCases().isEmpty()) {
                 problem.setTestCasesJson(mapper.writeValueAsString(secret.testCases()));
             }
@@ -159,7 +198,7 @@ public class DataInitializer {
         problemRepository.saveAll(problems);
 
         if (!missingKeys.isEmpty()) {
-            log.warn("채점 비밀정보가 없는 문제 {}개는 안전을 위해 채점이 비활성화됩니다.", missingKeys.size());
+            log.warn("채점 비밀정보가 없는 문제 {}개는 기존 DB 채점 정보를 유지합니다.", missingKeys.size());
         }
     }
 

@@ -28,7 +28,11 @@ services:
       DB_DRIVER: com.mysql.cj.jdbc.Driver
       JWT_SECRET: ${JWT_SECRET:?Set a random JWT_SECRET of at least 32 bytes in a local .env file}
       GRADING_SECRETS_PATH: /run/secrets/codeduo-grading.json
-      GRADING_REQUIRE_SECRETS: "true"
+      GRADING_REQUIRE_SECRETS: ${GRADING_REQUIRE_SECRETS:-false}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+      ADMIN_BOOTSTRAP_NICKNAME: ${ADMIN_BOOTSTRAP_NICKNAME:-관리자}
       JUDGE0_BASE_URL: ${JUDGE0_BASE_URL:-http://host.docker.internal:2358}
       JUDGE0_MOCK: ${JUDGE0_MOCK:-true}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}

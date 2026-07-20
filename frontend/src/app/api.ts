@@ -60,6 +60,20 @@ export interface BackendWeakness { subject: string; score: number; }
 export interface BackendActivity { day: string; solved: number; }
 export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
 export interface BackendAnalytics { weakness: BackendWeakness[]; activity: BackendActivity[]; summary: BackendAnalyticsSummary; }
+export interface AdminLesson {
+  id: number; courseId: number; courseTitle: string; language: string; title: string; description: string; orderIndex: number;
+}
+export interface AdminProblem {
+  id: number; lessonId: number; type: string; language: string; title: string; description: string;
+  difficulty: number; answer?: string; codeTemplate?: string; testInput?: string; expectedOutput?: string;
+  rubric?: string; optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string;
+  testCasesJson?: string; orderIndex: number; createdAt?: string; updatedAt?: string;
+}
+export interface AdminProblemPayload {
+  lessonId: number; type: string; language: string; title: string; description: string; difficulty: number;
+  answer?: string; codeTemplate?: string; testInput?: string; expectedOutput?: string; rubric?: string;
+  optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string; testCasesJson?: string; orderIndex?: number;
+}
 
 export async function login(email: string, password: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
@@ -109,6 +123,31 @@ export async function fetchAnalytics(): Promise<BackendAnalytics> {
 /** 현재 로그인한 유저 정보 조회 (JWT 토큰 기반). 세션 복원/새로고침 시 사용. */
 export async function getMe(): Promise<BackendUser> {
   return req<BackendUser>("/api/users/me");
+}
+
+export async function getAdminLessons(): Promise<AdminLesson[]> {
+  return req<AdminLesson[]>("/api/admin/lessons");
+}
+
+export async function getAdminProblems(filters: { language?: string; difficulty?: number; lessonId?: number } = {}): Promise<AdminProblem[]> {
+  const params = new URLSearchParams();
+  if (filters.language) params.set("language", filters.language.toUpperCase());
+  if (filters.difficulty) params.set("difficulty", String(filters.difficulty));
+  if (filters.lessonId) params.set("lessonId", String(filters.lessonId));
+  const query = params.toString();
+  return req<AdminProblem[]>(`/api/admin/problems${query ? `?${query}` : ""}`);
+}
+
+export async function createAdminProblem(payload: AdminProblemPayload): Promise<AdminProblem> {
+  return req<AdminProblem>("/api/admin/problems", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function updateAdminProblem(id: number, payload: AdminProblemPayload): Promise<AdminProblem> {
+  return req<AdminProblem>(`/api/admin/problems/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+}
+
+export async function deleteAdminProblem(id: number): Promise<void> {
+  return req<void>(`/api/admin/problems/${id}`, { method: "DELETE" });
 }
 
 /** 저장된 로그인 토큰이 있는지. */
