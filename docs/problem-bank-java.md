@@ -373,7 +373,8 @@ codeTemplate: |
 testCasesJson: |
   [
     { "input": "2", "expected": "2 x 1 = 2\n2 x 2 = 4\n2 x 3 = 6\n2 x 4 = 8\n2 x 5 = 10\n2 x 6 = 12\n2 x 7 = 14\n2 x 8 = 16\n2 x 9 = 18" },
-    { "input": "3", "expected": "3 x 1 = 3\n3 x 2 = 6\n3 x 3 = 9\n3 x 4 = 12\n3 x 5 = 15\n3 x 6 = 18\n3 x 7 = 21\n3 x 8 = 24\n3 x 9 = 27" }
+    { "input": "3", "expected": "3 x 1 = 3\n3 x 2 = 6\n3 x 3 = 9\n3 x 4 = 12\n3 x 5 = 15\n3 x 6 = 18\n3 x 7 = 21\n3 x 8 = 24\n3 x 9 = 27" },
+    { "input": "1", "expected": "1 x 1 = 1\n1 x 2 = 2\n1 x 3 = 3\n1 x 4 = 4\n1 x 5 = 5\n1 x 6 = 6\n1 x 7 = 7\n1 x 8 = 8\n1 x 9 = 9" }
   ]
 hint: 문자열과 숫자는 `+`로 이어 붙일 수 있습니다.
 explanation: 1부터 9까지 반복하며 `n + " x " + i + " = " + (n * i)`를 출력한다.
@@ -822,15 +823,15 @@ tagsJson: ["클래스와 객체"]
 type: FILL_BLANK
 difficulty: 1
 title: 생성자 이름
-description: Java 생성자의 이름은 빈칸처럼 무엇과 같아야 하나요?
+description: `Student` 클래스의 생성자가 되도록 빈칸에 들어갈 이름을 쓰세요.
 codeTemplate: |
   class Student {
-      Student() {
+      ____() {
       }
   }
-answer: 클래스 이름
-hint: 위 예시에서 클래스 이름과 생성자 이름을 비교해보세요.
-explanation: 생성자는 반환 타입이 없고 클래스 이름과 같은 이름을 가진다.
+answer: Student
+hint: 생성자의 이름은 클래스 이름과 같아야 합니다.
+explanation: 생성자는 반환 타입이 없고 클래스 이름과 같은 `Student`라는 이름을 가진다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -873,7 +874,8 @@ codeTemplate: |
 testCasesJson: |
   [
     { "input": "Mina", "expected": "Mina" },
-    { "input": "CodeDuo", "expected": "CodeDuo" }
+    { "input": "CodeDuo", "expected": "CodeDuo" },
+    { "input": "Alice", "expected": "Alice" }
   ]
 hint: `this.name = name;`을 사용하세요.
 explanation: 생성자에서 매개변수 값을 객체 필드에 저장한다.

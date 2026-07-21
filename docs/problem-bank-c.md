@@ -1438,6 +1438,10 @@ testCasesJson: |
     {
       "input": "Tom 75",
       "expected": "75"
+    },
+    {
+      "input": "Jin 0",
+      "expected": "0"
     }
   ]
 hint: 구조체 멤버는 `s.score`로 접근합니다.

@@ -56,4 +56,5 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:false}
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:false}
-    path: /swagger-ui/index.html
+    # 별칭을 정적 UI 리소스와 분리해 /swagger-ui/index.html 자기 리다이렉트를 방지한다.
+    path: /swagger-ui.html

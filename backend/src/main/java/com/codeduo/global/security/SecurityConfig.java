@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/auth/**").permitAll();
                     if (apiDocsEnabled) {
-                        auth.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
+                        auth.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll();
                     }
                     auth.anyRequest().authenticated();
                 })
