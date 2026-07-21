@@ -336,6 +336,53 @@ function CodeEditor({
   );
 }
 
+// ─── PUBLIC CODE EXAMPLES ────────────────────────────────────────────────────
+
+function PublicExamples({ testcases }: { testcases?: TestCase[] }) {
+  const examples = (testcases ?? []).filter(tc => tc.input || tc.expected);
+
+  if (examples.length === 0) {
+    return (
+      <div className="mb-3 rounded-2xl border border-amber-200 px-4 py-3 text-sm font-semibold" style={{ background: "#FFFBEB", color: "#92400E" }}>
+        공개 예시 입출력이 아직 등록되지 않았어요. 문제 설명과 힌트를 참고해 코드를 작성해보세요.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 rounded-2xl overflow-hidden border border-border bg-white">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
+        <div className="text-sm font-extrabold" style={{ color: "var(--foreground)" }}>공개 예시 입출력</div>
+        <div className="text-xs font-semibold" style={{ color: "var(--muted-foreground)" }}>
+          숨김 테스트는 제출 후 결과만 표시돼요
+        </div>
+      </div>
+      <div className="divide-y divide-border">
+        {examples.map((example, index) => (
+          <div key={`${example.input}-${index}`} className="grid gap-3 p-4 md:grid-cols-2">
+            <div>
+              <div className="mb-1.5 text-xs font-bold" style={{ color: "var(--muted-foreground)" }}>
+                예시 {index + 1} 입력
+              </div>
+              <pre className="min-h-12 whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm font-mono" style={{ background: "#1E1B2E", color: "#F8FAFC" }}>
+                {example.input || "(입력 없음)"}
+              </pre>
+            </div>
+            <div>
+              <div className="mb-1.5 text-xs font-bold" style={{ color: "var(--muted-foreground)" }}>
+                예시 {index + 1} 출력
+              </div>
+              <pre className="min-h-12 whitespace-pre-wrap break-words rounded-xl px-3 py-2 text-sm font-mono" style={{ background: "#ECFDF5", color: "#047857" }}>
+                {example.expected || "(출력 없음)"}
+              </pre>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── TEST RESULT PANEL ────────────────────────────────────────────────────────
 
 function TestResultPanel({
@@ -1445,17 +1492,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
           {/* ── Code editor ── */}
           {question.type === "code" && (
             <div>
-              {question.testcases?.[0] && (
-                <div
-                  className="mb-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-mono font-semibold"
-                  style={{ background: "#1E1B2E", color: "#A78BFA" }}
-                >
-                  <span style={{ color: "#4B5678" }}>예시</span>
-                  <span>입력: <span className="text-white">{question.testcases[0].input}</span></span>
-                  <span style={{ color: "#4B5678" }}>→</span>
-                  <span>출력: <span className="text-emerald-400">{question.testcases[0].expected}</span></span>
-                </div>
-              )}
+              <PublicExamples testcases={question.testcases} />
               <CodeEditor
                 value={codeValue}
                 onChange={setCodeValue}
