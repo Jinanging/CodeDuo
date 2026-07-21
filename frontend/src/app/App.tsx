@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Flame, Heart, Zap, Trophy, Code2, BookOpen, CheckCircle2, XCircle,
-  ChevronRight, ChevronLeft, RotateCcw, Terminal, Lightbulb, Play, Star, ArrowLeft,
+  ChevronRight, ChevronLeft, RotateCcw, Terminal, Lightbulb, Play, ArrowLeft,
   Users, BarChart2, Lock, Crown, LogOut, UserPlus, Search, X, Check,
-  AlertTriangle, Sparkles, MessageSquare, User, Home, NotebookPen,
-  TrendingUp, Eye, EyeOff, Bell, ChevronDown,
+  AlertTriangle, Sparkles, User, Home, NotebookPen,
+  TrendingUp, Eye, EyeOff,
 } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
@@ -990,8 +990,8 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
 
 // ─── LESSON SELECT (난이도 선택) ────────────────────────────────────────────────
 
-function LessonSelectPage({ user, selectedLang, setSelectedLang, selectedTopic, setSelectedTopic, onStart, onBack }: {
-  user: UserProfile; selectedLang: Language;
+function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSelectedTopic, onStart, onBack }: {
+  selectedLang: Language;
   setSelectedLang: (l: Language) => void;
   selectedTopic: string | null;
   setSelectedTopic: (topic: string | null) => void;
@@ -2009,7 +2009,7 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
     if (active.type === "mcq" && active.options) {
       return (
         <div className="grid gap-2">
-          {active.options.map((option, index) => {
+          {active.options.map((option) => {
             const selected = answer === option;
             return (
               <button key={option} onClick={() => setAnswer(option)} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
@@ -2654,7 +2654,10 @@ function AdminPage({ user }: { user: UserProfile }) {
     setMessage("");
     try {
       const payload = toPayload();
-      if (!payload.title || !payload.description) throw new Error("제목과 문제 설명은 필수입니다.");
+      if (!payload.title || !payload.description) {
+        setError("제목과 문제 설명은 필수입니다.");
+        return;
+      }
       const saved = selectedId ? await updateAdminProblem(selectedId, payload) : await createAdminProblem(payload);
       setMessage(selectedId ? "문제를 수정했습니다." : "문제를 추가했습니다.");
       setProblems(await getAdminProblems());
@@ -3073,7 +3076,7 @@ export default function App() {
   const renderContent = () => {
     switch (screen) {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
-      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
+      case "lessonSelect": return <LessonSelectPage selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
       case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
       case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;

@@ -1,0 +1,11 @@
+
+{
+  "properties": [
+    {
+      "name": "ai.provider",
+      "type": "java.lang.String",
+      "description": "AI 구현체 선택. 기본값은 mock이며 Gemini 사용 시 gemini로 설정합니다.",
+      "defaultValue": "mock"
+    }
+  ]
+}
