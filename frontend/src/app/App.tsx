@@ -11,7 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import {
-  login as apiLogin, signup as apiSignup, submitAnswer, updateProfile as apiUpdateProfile,
+  login as apiLogin, signup as apiSignup, submitAnswer, getAiHint, updateProfile as apiUpdateProfile,
   getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
   getAdminLessons, getAdminProblems, createAdminProblem, updateAdminProblem, deleteAdminProblem,
   type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendUser,
@@ -342,11 +342,19 @@ function TestResultPanel({
   isPremium,
   codeReview,
   resultMessage,
+  aiHint,
+  aiHintLoading,
+  aiHintError,
+  onRequestAiHint,
 }: {
   results: MockResult[];
   isPremium: boolean;
   codeReview?: string;
   resultMessage?: string;
+  aiHint?: string;
+  aiHintLoading?: boolean;
+  aiHintError?: string;
+  onRequestAiHint?: () => void;
 }) {
   const passCount = results.filter(r => r.pass).length;
   const allPassed = results.length > 0 && passCount === results.length;
@@ -429,13 +437,52 @@ function TestResultPanel({
 
       {/* Fail: retry prompt */}
       {!allPassed && (
-        <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: "#FEF2F2", borderLeft: "4px solid #EF4444" }}>
-          <XCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-sm mb-0.5" style={{ color: "#991B1B" }}>{resultMessage || "일부 테스트케이스를 통과하지 못했어요."}</p>
-            <p className="text-sm" style={{ color: "#B91C1C" }}>공개 예시와 오류 유형을 참고해 코드를 수정해보세요.</p>
+        <>
+          <div className="rounded-2xl px-5 py-4 flex items-start gap-3" style={{ background: "#FEF2F2", borderLeft: "4px solid #EF4444" }}>
+            <XCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm mb-0.5" style={{ color: "#991B1B" }}>{resultMessage || "일부 테스트케이스를 통과하지 못했어요."}</p>
+              <p className="text-sm" style={{ color: "#B91C1C" }}>공개 예시와 오류 유형을 참고해 코드를 수정해보세요.</p>
+            </div>
           </div>
-        </div>
+          <div
+            className="rounded-2xl px-5 py-4 flex items-start gap-3"
+            style={{
+              background: isPremium ? "#F5F3FF" : "#F8FAFC",
+              borderLeft: `4px solid ${isPremium ? "#8B5CF6" : "#CBD5E1"}`,
+            }}
+          >
+            {isPremium ? (
+              <Sparkles size={20} className="text-violet-500 shrink-0 mt-0.5" />
+            ) : (
+              <Lock size={20} className="text-slate-400 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm mb-1" style={{ color: isPremium ? "#5B21B6" : "#475569" }}>AI 힌트</p>
+              {isPremium ? (
+                aiHint ? (
+                  <p className="text-sm whitespace-pre-wrap break-words" style={{ color: "#6D28D9" }}>{aiHint}</p>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm" style={{ color: "#6D28D9" }}>틀린 원인을 AI가 힌트로 정리해줘요.</p>
+                    <button
+                      type="button"
+                      onClick={onRequestAiHint}
+                      disabled={aiHintLoading}
+                      className="px-3 py-1.5 rounded-xl text-xs font-extrabold text-white disabled:opacity-60"
+                      style={{ background: "#8B5CF6" }}
+                    >
+                      {aiHintLoading ? "생성 중..." : "힌트 받기"}
+                    </button>
+                  </div>
+                )
+              ) : (
+                <p className="text-sm" style={{ color: "#64748B" }}>프리미엄 계정에서 코드 오답 AI 힌트를 사용할 수 있어요.</p>
+              )}
+              {aiHintError && <p className="mt-2 text-xs font-bold" style={{ color: "#DC2626" }}>{aiHintError}</p>}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1088,6 +1135,10 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   const [testResults, setTestResults] = useState<MockResult[] | null>(null);
   const [codeResultMessage, setCodeResultMessage] = useState("");
   const [backendCodeReview, setBackendCodeReview] = useState<string | undefined>();
+  const [backendSubmissionId, setBackendSubmissionId] = useState<number | null>(null);
+  const [aiHint, setAiHint] = useState("");
+  const [aiHintLoading, setAiHintLoading] = useState(false);
+  const [aiHintError, setAiHintError] = useState("");
   const [feedbackExplanation, setFeedbackExplanation] = useState("");
   const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
@@ -1128,12 +1179,15 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   const resetQ = (idx: number) => {
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
-    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false);
+    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false);
   };
 
   const runCode = async () => {
     setIsRunning(true);
     setTestResults(null);
+    setBackendSubmissionId(null);
+    setAiHint("");
+    setAiHintError("");
     let backend: Awaited<ReturnType<typeof submitAnswer>>;
     try {
       backend = await submitAnswer(question.id, codeValue);
@@ -1147,6 +1201,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
       }]);
       setCodeResultMessage(message);
       setBackendCodeReview(undefined);
+      setBackendSubmissionId(null);
       setFeedback("wrong");
       setIsRunning(false);
       return;
@@ -1162,6 +1217,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
     setTestResults(results);
     setCodeResultMessage(backend.resultMessage ?? "");
     setBackendCodeReview(backend.aiReview);
+    setBackendSubmissionId(backend.id ?? null);
     setFeedbackExplanation(backend.explanation ?? "");
     setIsRunning(false);
     const allPassed = backend.correct;
@@ -1176,6 +1232,20 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
         userAnswer: codeValue.slice(0, 60),
         solvedAt: new Date().toISOString().slice(0, 10),
       }]);
+    }
+  };
+
+  const requestAiHint = async () => {
+    if (!backendSubmissionId || aiHintLoading) return;
+    setAiHintLoading(true);
+    setAiHintError("");
+    try {
+      const result = await getAiHint(backendSubmissionId);
+      setAiHint(result.hint);
+    } catch (error) {
+      setAiHintError(error instanceof Error ? error.message : "AI 힌트를 불러오지 못했습니다.");
+    } finally {
+      setAiHintLoading(false);
     }
   };
 
@@ -1397,6 +1467,10 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
                   isPremium={user.tier === "premium"}
                   codeReview={backendCodeReview}
                   resultMessage={codeResultMessage}
+                  aiHint={aiHint}
+                  aiHintLoading={aiHintLoading}
+                  aiHintError={aiHintError}
+                  onRequestAiHint={requestAiHint}
                 />
               )}
             </div>

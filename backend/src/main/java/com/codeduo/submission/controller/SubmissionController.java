@@ -2,6 +2,7 @@ package com.codeduo.submission.controller;
 
 import com.codeduo.global.response.ApiResponse;
 import com.codeduo.global.security.CurrentUser;
+import com.codeduo.submission.dto.AiHintResponse;
 import com.codeduo.submission.dto.SubmissionRequest;
 import com.codeduo.submission.dto.SubmissionResponse;
 import com.codeduo.submission.service.SubmissionService;
@@ -32,5 +33,10 @@ public class SubmissionController {
     @GetMapping("/api/problems/{problemId}/submissions/me")
     public ApiResponse<List<SubmissionResponse>> mineByProblem(@CurrentUser User user, @PathVariable Long problemId) {
         return ApiResponse.ok("문제별 제출 이력을 조회했습니다.", submissionService.myProblemSubmissions(user, problemId));
+    }
+
+    @PostMapping("/api/submissions/{submissionId}/ai-hint")
+    public ApiResponse<AiHintResponse> aiHint(@CurrentUser User user, @PathVariable Long submissionId) {
+        return ApiResponse.ok("AI 힌트를 생성했습니다.", submissionService.createAiHint(user, submissionId));
     }
 }

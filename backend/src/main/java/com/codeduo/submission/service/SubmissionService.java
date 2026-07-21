@@ -15,6 +15,7 @@ import com.codeduo.problem.type.ProblemType;
 import com.codeduo.progress.service.ProgressService;
 import com.codeduo.submission.dto.SubmissionRequest;
 import com.codeduo.submission.dto.SubmissionResponse;
+import com.codeduo.submission.dto.AiHintResponse;
 import com.codeduo.submission.entity.Submission;
 import com.codeduo.submission.repository.SubmissionRepository;
 import com.codeduo.user.entity.User;
@@ -90,6 +91,34 @@ public class SubmissionService {
     @Transactional(readOnly = true)
     public List<SubmissionResponse> myProblemSubmissions(User user, Long problemId) {
         return submissionRepository.findByUserIdAndProblemIdOrderByCreatedAtDesc(user.getId(), problemId).stream().map(SubmissionResponse::from).toList();
+    }
+
+    public AiHintResponse createAiHint(User user, Long submissionId) {
+        User managedUser = userRepository.getReferenceById(user.getId());
+        if (!managedUser.isPremium()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "AI 힌트는 프리미엄 전용 기능입니다.");
+        }
+
+        Submission submission = submissionRepository.findByIdAndUserId(submissionId, managedUser.getId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "제출 기록을 찾을 수 없습니다."));
+        Problem problem = submission.getProblem();
+
+        if (problem.getType() != ProblemType.CODE) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "코드 문제 제출에서만 AI 힌트를 사용할 수 있습니다.");
+        }
+        if (submission.isCorrect()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 정답 처리된 제출입니다.");
+        }
+        if (submission.getTestResultsJson() == null || submission.getTestResultsJson().isBlank()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "AI 힌트에 사용할 채점 결과가 없습니다.");
+        }
+        if (submission.getAiReview() != null && !submission.getAiReview().isBlank()) {
+            return new AiHintResponse(submission.getAiReview());
+        }
+
+        String hint = aiClient.hintCode(problem, submission);
+        submission.setAiReview(hint);
+        return new AiHintResponse(hint);
     }
 
     private Grade grade(Problem problem, String answer) {
