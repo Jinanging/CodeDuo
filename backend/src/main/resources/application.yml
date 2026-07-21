@@ -36,6 +36,13 @@ app:
     max-attempts: ${AUTH_RATE_LIMIT_MAX_ATTEMPTS:10}
     window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:60}
 
+ai:
+  enabled: ${AI_ENABLED:false}
+  provider: ${AI_PROVIDER:mock}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-flash-lite-latest}
+
 judge0:
   base-url: ${JUDGE0_BASE_URL:http://localhost:2358}
   python-language-id: ${JUDGE0_PYTHON_LANGUAGE_ID:71}
