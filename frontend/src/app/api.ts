@@ -63,6 +63,7 @@ export interface BackendWeakness { subject: string; score: number; }
 export interface BackendActivity { day: string; solved: number; }
 export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
 export interface BackendAnalytics { weakness: BackendWeakness[]; activity: BackendActivity[]; summary: BackendAnalyticsSummary; }
+export interface BackendActivityDay { date: string; count: number; }
 export interface AdminLesson {
   id: number; courseId: number; courseTitle: string; language: string; title: string; description: string; orderIndex: number;
 }
@@ -110,6 +111,11 @@ export async function getLanguageXp(): Promise<Record<string, number>> {
   return req<Record<string, number>>("/api/users/me/language-xp");
 }
 
+/** 프로필 학습 잔디용 날짜별 제출 수. date는 YYYY-MM-DD. */
+export async function getLearningActivity(from: string, to: string): Promise<BackendActivityDay[]> {
+  return req<BackendActivityDay[]>(`/api/users/me/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+}
+
 /** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
 export interface BackendWrongAnswer {
   id: number; problemId: number; question: string; type: string; language: string;
@@ -122,6 +128,10 @@ export async function getWrongAnswers(): Promise<BackendWrongAnswer[]> {
 
 export async function updateProfile(profile: { nickname: string; email: string; avatar: string }): Promise<BackendUser> {
   return req<BackendUser>("/api/users/me", { method: "PATCH", body: JSON.stringify(profile) });
+}
+
+export async function upgradeToPremium(): Promise<BackendUser> {
+  return req<BackendUser>("/api/users/me/upgrade", { method: "POST" });
 }
 
 export async function fetchAnalytics(): Promise<BackendAnalytics> {

@@ -12,7 +12,8 @@ import {
 } from "recharts";
 import {
   login as apiLogin, signup as apiSignup, submitAnswer, getAiHint, updateProfile as apiUpdateProfile,
-  getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
+  upgradeToPremium as apiUpgradeToPremium, getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
+  getLearningActivity,
   getAdminLessons, getAdminProblems, createAdminProblem, updateAdminProblem, deleteAdminProblem,
   type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendUser,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
@@ -2252,9 +2253,12 @@ function ProfilePage({ user, onUpgrade, onSave }: {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [activityPage, setActivityPage] = useState(0);
+  const [activityCounts, setActivityCounts] = useState<Record<string, number>>({});
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const monthWindowEnd = new Date(today.getFullYear(), today.getMonth() - activityPage * 3, 0);
+  const monthWindowEnd = activityPage === 0
+    ? new Date(today)
+    : new Date(today.getFullYear(), today.getMonth() - activityPage * 3 + 1, 0);
   const monthWindowStart = new Date(monthWindowEnd.getFullYear(), monthWindowEnd.getMonth() - 2, 1);
   const startOffset = (monthWindowStart.getDay() + 6) % 7;
   const activityStart = new Date(today);
@@ -2264,14 +2268,32 @@ function ProfilePage({ user, onUpgrade, onSave }: {
   activityEnd.setDate(monthWindowEnd.getDate() + endOffset);
   const activityWeeks = Math.round((activityEnd.getTime() - activityStart.getTime()) / 604800000) + 1;
   const formatActivityDate = (date: Date) => `${date.getMonth() + 1}월 ${date.getDate()}일`;
+  const formatActivityKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   const monthLabels = Array.from({ length: 3 }, (_, i) => `${new Date(monthWindowStart.getFullYear(), monthWindowStart.getMonth() + i, 1).getMonth() + 1}월`);
+  const queryStartKey = formatActivityKey(monthWindowStart);
+  const queryEndKey = formatActivityKey(monthWindowEnd);
+  useEffect(() => {
+    let cancelled = false;
+    getLearningActivity(queryStartKey, queryEndKey)
+      .then(days => {
+        if (cancelled) return;
+        setActivityCounts(Object.fromEntries(days.map(day => [day.date, day.count])));
+      })
+      .catch(() => {
+        if (!cancelled) setActivityCounts({});
+      });
+    return () => { cancelled = true; };
+  }, [queryStartKey, queryEndKey]);
   const activityDays = Array.from({ length: activityWeeks * 7 }, (_, i) => {
     const date = new Date(activityStart);
     date.setDate(activityStart.getDate() + i);
-    const daysAgo = Math.floor((today.getTime() - date.getTime()) / 86400000);
     const outOfRange = date < monthWindowStart || date > monthWindowEnd;
-    const inStreak = !outOfRange && daysAgo >= 0 && daysAgo < user.streak;
-    const count = outOfRange ? 0 : inStreak ? 1 + ((i + user.completedLessons) % 4) : ((i * 7 + user.xp) % 11 === 0 ? 1 : (i * 5 + user.completedLessons) % 17 === 0 ? 2 : 0);
+    const count = outOfRange ? 0 : activityCounts[formatActivityKey(date)] ?? 0;
     return { index: i, count, dateLabel: formatActivityDate(date), outOfRange };
   });
   const activityColors = ["#E5E1F8", "#C4B5FD", "#A78BFA", "#7C3AED", "#4C1D95"];
@@ -2951,9 +2973,14 @@ export default function App() {
     clearToken();
     navigate("login");
   };
-  const handleUpgrade = () => {
-    if (user) setUser(u => u ? { ...u, tier: "premium" } : u);
-    navigate(upgradeReturnScreen);
+  const handleUpgrade = async () => {
+    try {
+      const updated = await apiUpgradeToPremium();
+      setUser(u => u ? { ...u, tier: updated.tier as Tier } : u);
+      navigate(upgradeReturnScreen);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "업그레이드에 실패했습니다.");
+    }
   };
   const handleProfileSave = async (patch: Pick<UserProfile, "username" | "email" | "avatar">) => {
     try {

@@ -7,10 +7,12 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Submission> findByUserIdAndProblemIdOrderByCreatedAtDesc(Long userId, Long problemId);
+    List<Submission> findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(Long userId, LocalDateTime from, LocalDateTime to);
     Optional<Submission> findByIdAndUserId(Long id, Long userId);
     void deleteByProblemId(Long problemId);
 

@@ -4,6 +4,7 @@ import com.codeduo.global.exception.BusinessException;
 import com.codeduo.problem.type.Language;
 import com.codeduo.submission.repository.SubmissionRepository;
 import com.codeduo.user.dto.UpdateProfileRequest;
+import com.codeduo.user.dto.UserActivityResponse;
 import com.codeduo.user.entity.User;
 import com.codeduo.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +38,30 @@ public class UserService {
             result.put(lang.name().toLowerCase(), (int) count * XP_PER_CORRECT);
         }
         return result;
+    }
+
+    public List<UserActivityResponse> getActivity(Long userId, LocalDate from, LocalDate to) {
+        LocalDate safeTo = to == null ? LocalDate.now() : to;
+        LocalDate safeFrom = from == null ? safeTo.minusMonths(3).plusDays(1) : from;
+        if (safeFrom.isAfter(safeTo)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 시작일이 종료일보다 늦을 수 없습니다.");
+        }
+
+        LocalDateTime start = safeFrom.atStartOfDay();
+        LocalDateTime end = safeTo.plusDays(1).atStartOfDay().minusNanos(1);
+        Map<LocalDate, Long> counts = submissionRepository
+                .findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(userId, start, end)
+                .stream()
+                .filter(submission -> submission.getCreatedAt() != null)
+                .collect(Collectors.groupingBy(
+                        submission -> submission.getCreatedAt().toLocalDate(),
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
+
+        return counts.entrySet().stream()
+                .map(entry -> new UserActivityResponse(entry.getKey().toString(), entry.getValue()))
+                .toList();
     }
 
     public User getById(Long id) {
@@ -56,5 +85,12 @@ public class UserService {
         user.setEmail(email);
         user.setAvatar(request.avatar().trim().toUpperCase());
         return user;
+    }
+
+    @Transactional
+    public User upgradeToPremium(User user) {
+        User managedUser = getById(user.getId());
+        managedUser.setPremium(true);
+        return managedUser;
     }
 }
