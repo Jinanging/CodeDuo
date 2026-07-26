@@ -21,7 +21,7 @@ import {
   type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
 } from "./api";
-import codeduoLogo from "../assets/codeduo-logo.png";
+import codeduoLogo from "../assets/codeduo-logo.svg";
 import interviewerMascot from "../assets/interviewer-mascot.png";
 import pythonIcon from "../assets/languages/python.png";
 import javaIcon from "../assets/languages/java.png";
@@ -598,8 +598,8 @@ function AuthScreen({
       {/* Left panel */}
       <div className="hidden md:flex flex-col justify-between w-5/12 p-12 text-white" style={{ background: "var(--primary)" }}>
         <div className="flex items-center gap-2">
-          <div className="rounded-xl bg-white px-3 py-2">
-            <img src={codeduoLogo} alt="CodeDuo" className="h-9 w-auto object-contain" />
+          <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <img src={codeduoLogo} alt="CodeDuo" className="h-11 w-auto object-contain" />
           </div>
         </div>
         <div>
@@ -692,7 +692,7 @@ function Sidebar({ screen, onNav, user, onLogout }: { screen: Screen; onNav: (s:
     <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-border bg-white" style={{ minHeight: "100vh" }}>
       {/* Logo */}
       <div className="h-16 flex items-center gap-2 px-5 border-b border-border">
-        <img src={codeduoLogo} alt="CodeDuo" className="h-10 w-auto object-contain" />
+        <img src={codeduoLogo} alt="CodeDuo" className="h-11 w-auto object-contain" />
       </div>
 
       {/* User card */}
