@@ -1,5 +1,6 @@
-package com.codeduo.user.entity;
+package com.codeduo.friend.entity;
 
+import com.codeduo.problem.type.Language;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,36 +14,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "study_groups")
+public class StudyGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
     @Column(nullable = false)
-    private String password;
+    private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String nickname;
-
-    @Builder.Default
-    private boolean premium = false;
-
-    @Builder.Default
-    private int xp = 0;
-
-    @Builder.Default
-    private int streakCount = 0;
-
-    @Builder.Default
-    private int hearts = 5;
-
-    private String avatar;
-
-    private LocalDateTime lastSeenAt;
+    private Language language;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

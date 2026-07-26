@@ -2,6 +2,8 @@ package com.codeduo.global.config;
 
 import com.codeduo.course.entity.Course;
 import com.codeduo.course.repository.CourseRepository;
+import com.codeduo.friend.entity.StudyGroup;
+import com.codeduo.friend.repository.StudyGroupRepository;
 import com.codeduo.lesson.entity.Lesson;
 import com.codeduo.lesson.repository.LessonRepository;
 import com.codeduo.problem.entity.Problem;
@@ -46,6 +48,7 @@ public class DataInitializer {
     private final LessonRepository lessonRepository;
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
+    private final StudyGroupRepository studyGroupRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${grading.secrets-path:}")
@@ -75,8 +78,43 @@ public class DataInitializer {
             disableLegacyDemoPasswords();
             createAdminAccountIfConfigured();
             seedPublicCatalogIfEmpty(mapper);
+            seedSocialDataIfEmpty();
             applyPrivateGradingData(mapper);
         };
+    }
+
+    private void seedSocialDataIfEmpty() {
+        seedStudyGroup("Python 스터디", Language.PYTHON);
+        seedStudyGroup("알고리즘 크루", Language.CPP);
+        seedStudyGroup("Java 백엔드 팀", Language.JAVA);
+        seedStudyGroup("C 시스템 마스터", Language.C);
+
+        seedCompanionUser("algo.master@codeduo.local", "algo_master", "AM", 4200, 14);
+        seedCompanionUser("java.wizard@codeduo.local", "java_wizard", "JW", 3100, 9);
+        seedCompanionUser("c.pointer@codeduo.local", "c_pointer", "CP", 1800, 3);
+        seedCompanionUser("py.snake@codeduo.local", "py_snake", "PS", 2900, 6);
+        seedCompanionUser("bit.flip@codeduo.local", "bit_flip", "BF", 5500, 21);
+    }
+
+    private void seedStudyGroup(String name, Language language) {
+        if (studyGroupRepository.existsByName(name)) return;
+        studyGroupRepository.save(StudyGroup.builder()
+                .name(name)
+                .language(language)
+                .build());
+    }
+
+    private void seedCompanionUser(String email, String nickname, String avatar, int xp, int streak) {
+        if (userRepository.existsByEmail(email)) return;
+        userRepository.save(User.builder()
+                .email(email)
+                .password(passwordEncoder.encode(UUID.randomUUID() + "-seed-companion"))
+                .nickname(nickname)
+                .avatar(avatar)
+                .xp(xp)
+                .streakCount(streak)
+                .hearts(5)
+                .build());
     }
 
     private void createAdminAccountIfConfigured() {

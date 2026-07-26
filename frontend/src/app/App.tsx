@@ -12,10 +12,13 @@ import {
 } from "recharts";
 import {
   login as apiLogin, signup as apiSignup, submitAnswer, getAiHint, updateProfile as apiUpdateProfile,
-  upgradeToPremium as apiUpgradeToPremium, getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
-  getLearningActivity,
+  upgradeToPremium as apiUpgradeToPremium, heartbeat as apiHeartbeat, getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
+  getLearningActivity, getFriends as apiGetFriends, addFriend as apiAddFriend, removeFriend as apiRemoveFriend,
+  acceptFriend as apiAcceptFriend, rejectFriendRequest as apiRejectFriendRequest, getFriendRequests as apiGetFriendRequests,
+  joinGroup as apiJoinGroup, leaveGroup as apiLeaveGroup, getGroupDetail as apiGetGroupDetail, searchFriends as apiSearchFriends,
   getAdminLessons, getAdminProblems, createAdminProblem, updateAdminProblem, deleteAdminProblem,
   type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendUser,
+  type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
 } from "./api";
 import interviewerMascot from "../assets/interviewer-mascot.png";
@@ -152,7 +155,8 @@ interface WrongAnswer {
   solvedAt: string;
 }
 
-interface MockUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; }
+type RelationStatus = "none" | "sent" | "received" | "friends";
+interface MockUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; relationStatus: RelationStatus; }
 interface MockGroup { id: string; name: string; memberCount: number; language: Language; avatar: string; joined: boolean; }
 interface MockGroupMember { id: string; username: string; avatar: string; xp: number; streak: number; weeklySolved: number; progress: number; online: boolean; }
 
@@ -184,11 +188,11 @@ const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light:
 };
 
 const MOCK_USERS: MockUser[] = [
-  { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, level: 21, isFriend: true },
-  { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, level: 16, isFriend: true },
-  { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, level: 9, isFriend: false },
-  { id: "u4", username: "py_snake", avatar: "PS", xp: 2900, level: 14, isFriend: false },
-  { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, level: 27, isFriend: true },
+  { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, level: 21, isFriend: true, relationStatus: "friends" },
+  { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, level: 16, isFriend: true, relationStatus: "friends" },
+  { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, level: 9, isFriend: false, relationStatus: "none" },
+  { id: "u4", username: "py_snake", avatar: "PS", xp: 2900, level: 14, isFriend: false, relationStatus: "none" },
+  { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, level: 27, isFriend: true, relationStatus: "friends" },
 ];
 
 const MOCK_GROUPS: MockGroup[] = [
@@ -2097,26 +2101,197 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
 function FriendsPage({ user }: { user: UserProfile }) {
   const [tab, setTab] = useState<"friends" | "groups" | "search">("friends");
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState(MOCK_USERS);
-  const [groups, setGroups] = useState(MOCK_GROUPS);
-  const [selectedGroupId, setSelectedGroupId] = useState(MOCK_GROUPS.find(g => g.joined)?.id ?? MOCK_GROUPS[0].id);
+  const [users, setUsers] = useState<MockUser[]>([]);
+  const [groups, setGroups] = useState<MockGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionId, setActionId] = useState("");
+  const [groupDetail, setGroupDetail] = useState<BackendGroupDetail | null>(null);
+  const [groupDetailLoading, setGroupDetailLoading] = useState(false);
+  const [groupDetailError, setGroupDetailError] = useState("");
+  const [searchResults, setSearchResults] = useState<MockUser[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [receivedRequests, setReceivedRequests] = useState<MockUser[]>([]);
+  const [sentRequests, setSentRequests] = useState<MockUser[]>([]);
+
+  const toMockUser = (u: BackendFriend): MockUser => ({
+    id: u.id,
+    username: u.username,
+    avatar: u.avatar,
+    xp: u.xp,
+    level: u.level,
+    isFriend: u.friend,
+    relationStatus: u.relationStatus,
+  });
+
+  const applyFriendsData = (data: BackendFriendsResponse) => {
+    const nextUsers = data.users.map(toMockUser);
+    const nextGroups = data.groups
+      .filter(g => isLanguage(g.language))
+      .map(g => ({
+          id: g.id,
+          name: g.name,
+          memberCount: g.memberCount,
+          language: g.language,
+          avatar: g.name.slice(0, 2).toUpperCase(),
+          joined: g.joined,
+        }));
+    setUsers(nextUsers);
+    setGroups(nextGroups);
+    setSelectedGroupId(current => {
+      if (current && nextGroups.some(g => g.id === current)) return current;
+      return nextGroups.find(g => g.joined)?.id ?? nextGroups[0]?.id ?? "";
+    });
+  };
+
+  const loadFriends = async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      applyFriendsData(await apiGetFriends());
+      const requests = await apiGetFriendRequests();
+      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
+      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "친구와 그룹을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadFriends();
+  }, []);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearchError("");
+      setSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setSearchLoading(true);
+    setSearchError("");
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = await apiSearchFriends(query);
+        if (!cancelled) setSearchResults(results.map(toMockUser));
+      } catch (error) {
+        if (!cancelled) setSearchError(error instanceof Error ? error.message : "사용자를 검색하지 못했습니다.");
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!selectedGroupId) {
+      setGroupDetail(null);
+      return;
+    }
+    const loadGroupDetail = async () => {
+      setGroupDetailLoading(true);
+      setGroupDetailError("");
+      try {
+        const detail = await apiGetGroupDetail(selectedGroupId);
+        setGroupDetail(isLanguage(detail.language) ? detail : null);
+      } catch (error) {
+        setGroupDetailError(error instanceof Error ? error.message : "그룹 상세를 불러오지 못했습니다.");
+      } finally {
+        setGroupDetailLoading(false);
+      }
+    };
+    void loadGroupDetail();
+  }, [selectedGroupId]);
 
   const friends = users.filter(u => u.isFriend);
-  const searchResults = users.filter(u => !u.isFriend && u.username.toLowerCase().includes(searchQuery.toLowerCase()));
   const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? groups[0];
-  const selectedGroupDetail = MOCK_GROUP_DETAILS[selectedGroup.id];
-  const selectedGroupMembers: MockGroupMember[] = [
-    { id: user.id, username: user.username, avatar: user.avatar, xp: user.xp, streak: user.streak, weeklySolved: Math.max(6, Math.round(user.completedLessons / 2)), progress: Math.min(100, Math.round((user.langXp[selectedGroup.language] / LANG_META[selectedGroup.language].maxXp) * 100)), online: true },
-    ...selectedGroupDetail.members,
-  ].sort((a, b) => b.weeklySolved - a.weeklySolved);
+  const selectedGroupMembers = groupDetail?.members ?? [];
 
-  const toggleFriend = (id: string) => setUsers(prev => prev.map(u => u.id === id ? { ...u, isFriend: !u.isFriend } : u));
-  const toggleGroup = (id: string) => setGroups(prev => prev.map(g => g.id === id ? { ...g, joined: !g.joined } : g));
+  const nextRelationAfterFriendAction = (target: MockUser): RelationStatus => {
+    if (target.relationStatus === "none") return "sent";
+    if (target.relationStatus === "received") return "friends";
+    return "none";
+  };
+
+  const syncFriend = async (target: MockUser) => {
+    setActionId(`friend-${target.id}`);
+    setLoadError("");
+    try {
+      applyFriendsData(target.isFriend ? await apiRemoveFriend(target.id) : await apiAddFriend(target.id));
+      const requests = await apiGetFriendRequests();
+      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
+      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+      const nextRelation = nextRelationAfterFriendAction(target);
+      setSearchResults(prev => prev.map(u => u.id === target.id ? { ...u, isFriend: nextRelation === "friends", relationStatus: nextRelation } : u));
+      if (target.relationStatus === "none") setSearchQuery("");
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "친구 상태를 변경하지 못했습니다.");
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const respondFriendRequest = async (target: MockUser, accept: boolean) => {
+    setActionId(`request-${target.id}`);
+    setLoadError("");
+    try {
+      applyFriendsData(accept ? await apiAcceptFriend(target.id) : await apiRejectFriendRequest(target.id));
+      const requests = await apiGetFriendRequests();
+      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
+      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+      setSearchResults(prev => prev.map(u => u.id === target.id ? { ...u, isFriend: accept, relationStatus: accept ? "friends" : "none" } : u));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "친구 요청을 처리하지 못했습니다.");
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const syncGroup = async (target: MockGroup) => {
+    setActionId(`group-${target.id}`);
+    setLoadError("");
+    try {
+      applyFriendsData(target.joined ? await apiLeaveGroup(target.id) : await apiJoinGroup(target.id));
+      if (selectedGroupId === target.id) {
+        setGroupDetail(await apiGetGroupDetail(target.id));
+      }
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "그룹 상태를 변경하지 못했습니다.");
+    } finally {
+      setActionId("");
+    }
+  };
 
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
       <h1 className="text-xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>친구 & 그룹</h1>
       <p className="text-sm mb-5" style={{ color: "var(--muted-foreground)" }}>함께 공부하고 성장해요</p>
+
+      {loading && (
+        <div className="bg-white rounded-2xl border border-border p-8 text-center text-sm font-semibold" style={{ color: "var(--muted-foreground)" }}>
+          친구와 그룹을 불러오는 중...
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div className="bg-white rounded-2xl border border-border p-8 text-center">
+          <AlertTriangle size={28} className="mx-auto mb-3" style={{ color: "#EF4444" }} />
+          <p className="text-sm font-bold mb-3" style={{ color: "var(--foreground)" }}>{loadError}</p>
+          <button onClick={loadFriends} className="px-5 py-2 rounded-xl text-sm font-bold text-white" style={{ background: "var(--primary)" }}>다시 시도</button>
+        </div>
+      )}
+
+      {!loading && !loadError && (
+        <>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-5">
@@ -2131,6 +2306,41 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
       {tab === "friends" && (
         <div className="space-y-2">
+          {receivedRequests.length > 0 && (
+            <section className="bg-white rounded-2xl border border-border p-4 mb-4">
+              <h2 className="text-sm font-extrabold mb-3" style={{ color: "var(--foreground)" }}>받은 친구 요청</h2>
+              <div className="space-y-2">
+                {receivedRequests.map(u => (
+                  <div key={u.id} className="flex items-center gap-3">
+                    <Avatar initials={u.avatar} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{u.username}</div>
+                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lv.{u.level} · {u.xp.toLocaleString()} XP</div>
+                    </div>
+                    <button onClick={() => void respondFriendRequest(u, true)} disabled={actionId === `request-${u.id}`} className="px-3 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>수락</button>
+                    <button onClick={() => void respondFriendRequest(u, false)} disabled={actionId === `request-${u.id}`} className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 disabled:opacity-50" style={{ borderColor: "#EF4444", color: "#EF4444", background: "#FEF2F2" }}>거절</button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          {sentRequests.length > 0 && (
+            <section className="bg-white rounded-2xl border border-border p-4 mb-4">
+              <h2 className="text-sm font-extrabold mb-3" style={{ color: "var(--foreground)" }}>보낸 친구 요청</h2>
+              <div className="space-y-2">
+                {sentRequests.map(u => (
+                  <div key={u.id} className="flex items-center gap-3">
+                    <Avatar initials={u.avatar} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{u.username}</div>
+                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>수락 대기 중</div>
+                    </div>
+                    <button onClick={() => void respondFriendRequest(u, false)} disabled={actionId === `request-${u.id}`} className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 disabled:opacity-50" style={{ borderColor: "#EF4444", color: "#EF4444", background: "#FEF2F2" }}>취소</button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {friends.length === 0 && (
             <div className="text-center py-16 px-4">
               <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--secondary)" }}>
@@ -2158,7 +2368,7 @@ function FriendsPage({ user }: { user: UserProfile }) {
                   </div>
                   <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>주간 목표</div>
                 </div>
-                <button onClick={() => toggleFriend(u.id)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors" style={{ color: "#EF4444" }}><X size={16} /></button>
+                <button onClick={() => void syncFriend(u)} disabled={actionId === `friend-${u.id}`} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors disabled:opacity-50" style={{ color: "#EF4444" }}><X size={16} /></button>
               </div>
             </div>
           ))}
@@ -2167,6 +2377,16 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
       {tab === "groups" && (
         <div className="space-y-4">
+          {groups.length === 0 && (
+            <div className="text-center py-16 px-4">
+              <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--secondary)" }}>
+                <Users size={30} style={{ color: "var(--primary)" }} />
+              </div>
+              <p className="font-bold mb-1" style={{ color: "var(--foreground)" }}>참여 가능한 그룹이 없어요</p>
+            </div>
+          )}
+          {selectedGroup && (
+          <>
           <div className="grid gap-2">
             {groups.map(g => {
               const selected = selectedGroup.id === g.id;
@@ -2181,9 +2401,9 @@ function FriendsPage({ user }: { user: UserProfile }) {
                     </div>
                     <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>멤버 {g.memberCount}명 · {LANG_META[g.language].label}</div>
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); toggleGroup(g.id); }} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all"
+                  <button onClick={(e) => { e.stopPropagation(); void syncGroup(g); }} disabled={actionId === `group-${g.id}`} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all disabled:opacity-50"
                     style={{ borderColor: g.joined ? "#EF4444" : "var(--primary)", background: g.joined ? "#FEF2F2" : "var(--secondary)", color: g.joined ? "#EF4444" : "var(--primary)" }}>
-                    {g.joined ? "탈퇴" : "참여"}
+                    {actionId === `group-${g.id}` ? "처리중" : g.joined ? "탈퇴" : "참여"}
                   </button>
                 </button>
               );
@@ -2201,11 +2421,26 @@ function FriendsPage({ user }: { user: UserProfile }) {
               </span>
             </div>
 
+            {groupDetailLoading && (
+              <div className="rounded-xl p-5 text-center text-sm font-semibold" style={{ background: "var(--secondary)", color: "var(--muted-foreground)" }}>
+                그룹 상세를 불러오는 중...
+              </div>
+            )}
+
+            {!groupDetailLoading && groupDetailError && (
+              <div className="rounded-xl p-5 text-center">
+                <AlertTriangle size={24} className="mx-auto mb-2" style={{ color: "#EF4444" }} />
+                <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>{groupDetailError}</p>
+              </div>
+            )}
+
+            {!groupDetailLoading && !groupDetailError && groupDetail && (
+            <>
             <div className="grid grid-cols-3 gap-3 mb-5">
               {[
-                { label: "주간 풀이", value: `${selectedGroupDetail.solved}/${selectedGroupDetail.weeklyGoal}`, icon: <CheckCircle2 size={16} />, color: "#10B981" },
-                { label: "평균 연속", value: `${Math.round(selectedGroupMembers.reduce((sum, m) => sum + m.streak, 0) / selectedGroupMembers.length)}일`, icon: <Flame size={16} />, color: "#EF4444" },
-                { label: "온라인", value: `${selectedGroupMembers.filter(m => m.online).length}명`, icon: <Users size={16} />, color: "var(--primary)" },
+                { label: "주간 풀이", value: `${groupDetail.weeklySolved}/${groupDetail.weeklyGoal}`, icon: <CheckCircle2 size={16} />, color: "#10B981" },
+                { label: "평균 연속", value: `${groupDetail.averageStreak}일`, icon: <Flame size={16} />, color: "#EF4444" },
+                { label: "온라인", value: `${groupDetail.onlineCount}명`, icon: <Users size={16} />, color: "var(--primary)" },
               ].map(item => (
                 <div key={item.label} className="rounded-xl p-3" style={{ background: "var(--secondary)" }}>
                   <div className="flex items-center gap-1.5 text-xs font-bold mb-1" style={{ color: item.color }}>{item.icon}{item.label}</div>
@@ -2215,10 +2450,13 @@ function FriendsPage({ user }: { user: UserProfile }) {
             </div>
 
             <div className="h-2.5 rounded-full overflow-hidden mb-5" style={{ background: "var(--muted)" }}>
-              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (selectedGroupDetail.solved / selectedGroupDetail.weeklyGoal) * 100)}%`, background: LANG_META[selectedGroup.language].color }} />
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (groupDetail.weeklySolved / Math.max(1, groupDetail.weeklyGoal)) * 100)}%`, background: LANG_META[selectedGroup.language].color }} />
             </div>
 
             <div className="space-y-3">
+              {selectedGroupMembers.length === 0 && (
+                <p className="text-center py-6 text-sm" style={{ color: "var(--muted-foreground)" }}>아직 그룹원이 없어요.</p>
+              )}
               {selectedGroupMembers.map((member, index) => (
                 <div key={member.id} className="flex items-center gap-3">
                   <div className="w-6 text-center text-xs font-extrabold" style={{ color: index === 0 ? "#F59E0B" : "var(--muted-foreground)" }}>{index + 1}</div>
@@ -2242,7 +2480,11 @@ function FriendsPage({ user }: { user: UserProfile }) {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </section>
+          </>
+          )}
         </div>
       )}
 
@@ -2252,9 +2494,14 @@ function FriendsPage({ user }: { user: UserProfile }) {
             <Search size={16} className="absolute left-3.5 top-3.5" style={{ color: "var(--muted-foreground)" }} />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="유저 닉네임 검색..." className="w-full pl-9 pr-4 py-3 rounded-xl border-2 text-sm focus:outline-none" style={{ borderColor: "var(--border)", background: "var(--input-background)" }} />
           </div>
-          {searchQuery.length > 0 && (
+          {searchQuery.trim().length > 0 && searchQuery.trim().length < 2 && (
+            <p className="text-center py-8 text-sm" style={{ color: "var(--muted-foreground)" }}>닉네임을 2글자 이상 입력해주세요.</p>
+          )}
+          {searchQuery.trim().length >= 2 && (
             <div className="space-y-2">
-              {searchResults.length === 0 && <p className="text-center py-8 text-sm" style={{ color: "var(--muted-foreground)" }}>"{searchQuery}" 검색 결과 없음</p>}
+              {searchLoading && <p className="text-center py-8 text-sm" style={{ color: "var(--muted-foreground)" }}>검색 중...</p>}
+              {!searchLoading && searchError && <p className="text-center py-8 text-sm font-bold" style={{ color: "#EF4444" }}>{searchError}</p>}
+              {!searchLoading && !searchError && searchResults.length === 0 && <p className="text-center py-8 text-sm" style={{ color: "var(--muted-foreground)" }}>"{searchQuery}" 검색 결과 없음</p>}
               {searchResults.map(u => (
                 <div key={u.id} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3">
                   <Avatar initials={u.avatar} />
@@ -2262,14 +2509,22 @@ function FriendsPage({ user }: { user: UserProfile }) {
                     <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{u.username}</div>
                     <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lv.{u.level} · {u.xp.toLocaleString()} XP</div>
                   </div>
-                  <button onClick={() => { toggleFriend(u.id); setSearchQuery(""); }} className="flex items-center gap-1 px-4 py-1.5 rounded-xl text-xs font-bold text-white" style={{ background: "var(--primary)" }}>
-                    <UserPlus size={13} />친구 추가
+                  <button
+                    onClick={() => void syncFriend(u)}
+                    disabled={actionId === `friend-${u.id}` || u.relationStatus === "sent"}
+                    className="flex items-center gap-1 px-4 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-50"
+                    style={{ background: u.relationStatus === "friends" ? "#EF4444" : u.relationStatus === "sent" ? "#9CA3AF" : "var(--primary)" }}
+                  >
+                    {u.relationStatus === "friends" ? <X size={13} /> : <UserPlus size={13} />}
+                    {actionId === `friend-${u.id}` ? "처리중" : u.relationStatus === "friends" ? "친구 삭제" : u.relationStatus === "sent" ? "요청됨" : u.relationStatus === "received" ? "요청 수락" : "친구 요청"}
                   </button>
                 </div>
               ))}
             </div>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   );
@@ -2979,6 +3234,15 @@ export default function App() {
     restoreSession();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    void apiHeartbeat().catch(() => {});
+    const heartbeatTimer = window.setInterval(() => {
+      void apiHeartbeat().catch(() => {});
+    }, 30_000);
+    return () => window.clearInterval(heartbeatTimer);
+  }, [user?.id]);
 
   const handleLogin = async (email: string, password: string, mode: "login" | "register", username: string) => {
     // 실제 백엔드 로그인/회원가입만 허용(DB에 있는 계정만). 에러는 AuthScreen이 표시.

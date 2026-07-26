@@ -93,4 +93,10 @@ public class UserService {
         managedUser.setPremium(true);
         return managedUser;
     }
+
+    @Transactional
+    public void heartbeat(User user) {
+        User managedUser = getById(user.getId());
+        managedUser.setLastSeenAt(LocalDateTime.now());
+    }
 }
