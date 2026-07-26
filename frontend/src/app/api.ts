@@ -64,6 +64,56 @@ export interface BackendActivity { day: string; solved: number; }
 export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
 export interface BackendAnalytics { weakness: BackendWeakness[]; activity: BackendActivity[]; summary: BackendAnalyticsSummary; }
 export interface BackendActivityDay { date: string; count: number; }
+export interface BackendFriend {
+  id: string;
+  username: string;
+  avatar: string;
+  xp: number;
+  level: number;
+  friend: boolean;
+  relationStatus: "none" | "sent" | "received" | "friends";
+}
+export interface BackendFriendRequest {
+  id: string;
+  user: BackendFriend;
+  direction: "received" | "sent";
+}
+export interface BackendFriendRequestsResponse {
+  received: BackendFriendRequest[];
+  sent: BackendFriendRequest[];
+}
+export interface BackendStudyGroup {
+  id: string;
+  name: string;
+  memberCount: number;
+  language: string;
+  joined: boolean;
+}
+export interface BackendFriendsResponse {
+  users: BackendFriend[];
+  groups: BackendStudyGroup[];
+}
+export interface BackendGroupMember {
+  id: string;
+  username: string;
+  avatar: string;
+  xp: number;
+  streak: number;
+  weeklySolved: number;
+  progress: number;
+  online: boolean;
+}
+export interface BackendGroupDetail {
+  id: string;
+  name: string;
+  language: string;
+  memberCount: number;
+  weeklyGoal: number;
+  weeklySolved: number;
+  averageStreak: number;
+  onlineCount: number;
+  members: BackendGroupMember[];
+}
 export interface AdminLesson {
   id: number; courseId: number; courseTitle: string; language: string; title: string; description: string; orderIndex: number;
 }
@@ -116,6 +166,47 @@ export async function getLearningActivity(from: string, to: string): Promise<Bac
   return req<BackendActivityDay[]>(`/api/users/me/activity?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
 }
 
+/** 친구/그룹 목록 조회. */
+export async function getFriends(): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>("/api/friends");
+}
+
+export async function searchFriends(query: string): Promise<BackendFriend[]> {
+  return req<BackendFriend[]>(`/api/friends/search?query=${encodeURIComponent(query)}`);
+}
+
+export async function getFriendRequests(): Promise<BackendFriendRequestsResponse> {
+  return req<BackendFriendRequestsResponse>("/api/friends/requests");
+}
+
+export async function addFriend(userId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/${encodeURIComponent(userId)}`, { method: "POST" });
+}
+
+export async function acceptFriend(userId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/${encodeURIComponent(userId)}/accept`, { method: "POST" });
+}
+
+export async function rejectFriendRequest(userId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/${encodeURIComponent(userId)}/request`, { method: "DELETE" });
+}
+
+export async function removeFriend(userId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/${encodeURIComponent(userId)}`, { method: "DELETE" });
+}
+
+export async function joinGroup(groupId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/groups/${encodeURIComponent(groupId)}/join`, { method: "POST" });
+}
+
+export async function leaveGroup(groupId: string): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>(`/api/friends/groups/${encodeURIComponent(groupId)}/join`, { method: "DELETE" });
+}
+
+export async function getGroupDetail(groupId: string): Promise<BackendGroupDetail> {
+  return req<BackendGroupDetail>(`/api/friends/groups/${encodeURIComponent(groupId)}`);
+}
+
 /** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
 export interface BackendWrongAnswer {
   id: number; problemId: number; question: string; type: string; language: string;
@@ -132,6 +223,10 @@ export async function updateProfile(profile: { nickname: string; email: string; 
 
 export async function upgradeToPremium(): Promise<BackendUser> {
   return req<BackendUser>("/api/users/me/upgrade", { method: "POST" });
+}
+
+export async function heartbeat(): Promise<void> {
+  return req<void>("/api/users/me/heartbeat", { method: "POST" });
 }
 
 export async function fetchAnalytics(): Promise<BackendAnalytics> {

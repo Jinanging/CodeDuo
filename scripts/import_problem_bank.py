@@ -127,6 +127,26 @@ def normalize_json_field(value):
     return str(value)
 
 
+def first_test_case(problem):
+    value = problem.get("testCasesJson")
+    if not value:
+        return None
+    if isinstance(value, str):
+        value = value.strip()
+    try:
+        cases = json.loads(value) if isinstance(value, str) else value
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(cases, list) or not cases:
+        return None
+    first = cases[0]
+    if not isinstance(first, dict):
+        return None
+    if "input" not in first or "expected" not in first:
+        return None
+    return first
+
+
 def build_payload(problem, lesson_id):
     required = ["type", "language", "difficulty", "title", "description"]
     missing = [key for key in required if key not in problem or problem[key] in (None, "")]
@@ -157,6 +177,12 @@ def build_payload(problem, lesson_id):
         value = problem.get(field)
         if value not in (None, ""):
             payload[field] = str(value)
+
+    if payload["type"] == "CODE" and ("testInput" not in payload or "expectedOutput" not in payload):
+        test_case = first_test_case(problem)
+        if test_case:
+            payload.setdefault("testInput", str(test_case.get("input", "")))
+            payload.setdefault("expectedOutput", str(test_case.get("expected", "")))
 
     for field in json_fields:
         value = normalize_json_field(problem.get(field))

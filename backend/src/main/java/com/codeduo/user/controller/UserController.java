@@ -46,6 +46,12 @@ public class UserController {
         return ApiResponse.ok("프리미엄으로 업그레이드했습니다.", UserResponse.from(updated));
     }
 
+    @PostMapping("/me/heartbeat")
+    public ApiResponse<Void> heartbeat(@CurrentUser User user) {
+        userService.heartbeat(user);
+        return ApiResponse.ok("온라인 상태를 갱신했습니다.", null);
+    }
+
     @GetMapping("/me/language-xp")
     public ApiResponse<Map<String, Integer>> languageXp(@CurrentUser User user) {
         return ApiResponse.ok("언어별 XP를 조회했습니다.", userService.getLanguageXp(user.getId()));
