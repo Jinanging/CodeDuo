@@ -21,7 +21,12 @@ import {
   type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
 } from "./api";
+import codeduoLogo from "../assets/codeduo-logo.png";
 import interviewerMascot from "../assets/interviewer-mascot.png";
+import pythonIcon from "../assets/languages/python.png";
+import javaIcon from "../assets/languages/java.png";
+import cIcon from "../assets/languages/c.png";
+import cppIcon from "../assets/languages/cpp.png";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -163,10 +168,10 @@ interface StudyGroupView { id: string; name: string; memberCount: number; langua
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 const LANG_META: Record<Language, { label: string; color: string; light: string; icon: string; maxXp: number }> = {
-  python: { label: "Python", color: "#3B82F6", light: "#DBEAFE", icon: "🐍", maxXp: 300 },
-  java:   { label: "Java",   color: "#F97316", light: "#FFEDD5", icon: "☕", maxXp: 200 },
-  c:      { label: "C",      color: "#6366F1", light: "#E0E7FF", icon: "⚙️", maxXp: 250 },
-  cpp:    { label: "C++",    color: "#EC4899", light: "#FCE7F3", icon: "🔧", maxXp: 150 },
+  python: { label: "Python", color: "#3B82F6", light: "#DBEAFE", icon: pythonIcon, maxXp: 300 },
+  java:   { label: "Java",   color: "#F97316", light: "#FFEDD5", icon: javaIcon, maxXp: 200 },
+  c:      { label: "C",      color: "#6366F1", light: "#E0E7FF", icon: cIcon, maxXp: 250 },
+  cpp:    { label: "C++",    color: "#EC4899", light: "#FCE7F3", icon: cppIcon, maxXp: 150 },
 };
 
 const TYPE_META: Record<QuestionType, { label: string; color: string }> = {
@@ -234,8 +239,8 @@ function CodeEditor({
           <div className="w-3 h-3 rounded-full" style={{ background: "#FEBC2E" }} />
           <div className="w-3 h-3 rounded-full" style={{ background: "#28C840" }} />
         </div>
-        <span className="text-xs font-semibold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#A78BFA" }}>
-          {langMeta.icon} {langMeta.label}
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#A78BFA" }}>
+          <LanguageIcon language={language} size={15} />{langMeta.label}
         </span>
         <Terminal size={13} style={{ color: "#4B5563" }} />
       </div>
@@ -495,6 +500,18 @@ function Badge({ type }: { type: QuestionType }) {
   );
 }
 
+function LanguageIcon({ language, size = 22, className = "" }: { language: Language; size?: number; className?: string }) {
+  return (
+    <img
+      src={LANG_META[language].icon}
+      alt=""
+      aria-hidden="true"
+      className={`inline-block object-contain align-middle ${className}`}
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
 function PremiumBadge() {
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white" style={{ background: "linear-gradient(135deg, #F59E0B, #EF4444)" }}>
@@ -581,8 +598,9 @@ function AuthScreen({
       {/* Left panel */}
       <div className="hidden md:flex flex-col justify-between w-5/12 p-12 text-white" style={{ background: "var(--primary)" }}>
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"><Code2 size={18} /></div>
-          <span className="font-extrabold text-xl">CodeDuo</span>
+          <div className="rounded-xl bg-white px-3 py-2">
+            <img src={codeduoLogo} alt="CodeDuo" className="h-9 w-auto object-contain" />
+          </div>
         </div>
         <div>
           <h1 className="text-4xl font-extrabold mb-4 leading-tight">코딩 실력을<br />게임처럼 키워보세요</h1>
@@ -602,8 +620,7 @@ function AuthScreen({
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-sm">
           <div className="md:hidden flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ background: "var(--primary)" }}><Code2 size={18} /></div>
-            <span className="font-extrabold text-xl" style={{ color: "var(--foreground)" }}>CodeDuo</span>
+            <img src={codeduoLogo} alt="CodeDuo" className="h-11 w-auto object-contain" />
           </div>
 
           <h2 className="text-2xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>
@@ -675,8 +692,7 @@ function Sidebar({ screen, onNav, user, onLogout }: { screen: Screen; onNav: (s:
     <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-border bg-white" style={{ minHeight: "100vh" }}>
       {/* Logo */}
       <div className="h-16 flex items-center gap-2 px-5 border-b border-border">
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white" style={{ background: "var(--primary)" }}><Code2 size={16} /></div>
-        <span className="font-extrabold text-lg" style={{ color: "var(--foreground)" }}>CodeDuo</span>
+        <img src={codeduoLogo} alt="CodeDuo" className="h-10 w-auto object-contain" />
       </div>
 
       {/* User card */}
@@ -784,7 +800,7 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
           const progress = languageLevelProgress(user.langXp[lang], meta.maxXp);
           return (
             <button key={lang} onClick={() => setSelectedLang(lang)} className="rounded-2xl p-4 text-left border-2 transition-all" style={{ background: sel ? meta.light : "#fff", borderColor: sel ? meta.color : "var(--border)", transform: sel ? "translateY(-2px)" : "none", boxShadow: sel ? `0 4px 16px ${meta.color}25` : "none" }}>
-              <div className="text-2xl mb-2">{meta.icon}</div>
+              <LanguageIcon language={lang} size={32} className="mb-2" />
               <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{meta.label}</div>
               <div className="text-xs font-semibold mb-2" style={{ color: meta.color }}>Lv.{progress.level}</div>
               <XpBar current={progress.currentXp} max={meta.maxXp} color={meta.color} />
@@ -801,7 +817,7 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
             <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
             <div className="relative">
               <p className="text-xs font-semibold text-white/60 mb-1">오늘의 레슨</p>
-              <h2 className="text-xl font-extrabold text-white mb-1">{langMeta.icon} {langMeta.label} 기초 다지기</h2>
+              <h2 className="flex items-center gap-2 text-xl font-extrabold text-white mb-1"><LanguageIcon language={selectedLang} size={28} />{langMeta.label} 기초 다지기</h2>
               <p className="text-sm text-white/60 mb-5">초급·중급·고급 · 객관식 · 주관식 · 코딩</p>
               <button onClick={onStartLesson} className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "#fff", color: "var(--primary)" }}>
                 <Play size={16} />레슨 시작
@@ -999,7 +1015,7 @@ function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSel
             <button key={lang} onClick={() => { setSelectedLang(lang); setSelectedTopic(null); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all"
               style={{ borderColor: sel ? meta.color : "var(--border)", background: sel ? meta.light : "#fff", color: sel ? meta.color : "var(--muted-foreground)" }}>
-              <span>{meta.icon}</span>{meta.label}
+              <LanguageIcon language={lang} size={20} />{meta.label}
             </button>
           );
         })}
@@ -1046,7 +1062,7 @@ function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSel
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{meta.label}</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: meta.light, color: meta.color }}>{langMeta.icon} {langMeta.label}</span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: meta.light, color: meta.color }}><LanguageIcon language={selectedLang} size={14} />{langMeta.label}</span>
                 </div>
                 <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activeTopic ? `${activeTopic} · ${meta.desc}` : meta.desc}</p>
               </div>
@@ -1362,8 +1378,8 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
 
           {/* ── Question card ── */}
           <div className="bg-white rounded-3xl p-8 border border-border mb-5 shadow-sm">
-            <div className="text-sm font-bold mb-3" style={{ color: langMeta.color }}>
-              {langMeta.icon} {langMeta.label} · {question.title}
+            <div className="flex items-center gap-1.5 text-sm font-bold mb-3" style={{ color: langMeta.color }}>
+              <LanguageIcon language={selectedLang} size={16} />{langMeta.label} · {question.title}
             </div>
             <p className="font-semibold text-xl leading-relaxed whitespace-pre-line" style={{ color: "var(--foreground)" }}>
               {question.type === "fill-blank" ? (
@@ -1581,7 +1597,7 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
         <h1 className="text-2xl font-extrabold mb-1" style={{ color: "var(--foreground)" }}>
           {pct === 100 ? "완벽해요! 만점이에요 🎉" : pct >= 80 ? "잘했어요!" : pct >= 60 ? "꽤 잘했어요!" : "다시 도전해봐요!"}
         </h1>
-        <p style={{ color: "var(--muted-foreground)" }}>{langMeta.icon} {langMeta.label} 레슨 완료</p>
+        <p className="inline-flex items-center gap-1.5" style={{ color: "var(--muted-foreground)" }}><LanguageIcon language={selectedLang} size={18} />{langMeta.label} 레슨 완료</p>
       </div>
 
       {/* Score cards */}
@@ -1771,7 +1787,7 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
                 const reason = `${area.subject} 영역 정확도 ${area.score}%`;
                 return (
                 <div key={title} className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/40 transition-colors cursor-pointer">
-                  <div className="text-xl">{LANG_META[lang as Language].icon}</div>
+                  <LanguageIcon language={lang} size={24} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm truncate" style={{ color: "var(--foreground)" }}>{title}</p>
                     <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{reason}</p>
@@ -1824,7 +1840,7 @@ function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgra
               <button key={l} onClick={() => setFilterLang(l as Language | "all")}
                 className="px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all"
                 style={{ borderColor: filterLang === l ? "var(--primary)" : "var(--border)", background: filterLang === l ? "var(--secondary)" : "#fff", color: filterLang === l ? "var(--primary)" : "var(--muted-foreground)" }}>
-                {l === "all" ? "전체" : `${LANG_META[l as Language].icon} ${LANG_META[l as Language].label}`}
+                {l === "all" ? "전체" : <span className="inline-flex items-center gap-1.5"><LanguageIcon language={l as Language} size={15} />{LANG_META[l as Language].label}</span>}
               </button>
             ))}
           </div>
@@ -1886,7 +1902,7 @@ function ErrorNotebookPage({ user, sessionWrongs, resolvedIds, onReview, onUpgra
                   <div key={i} className="bg-white rounded-2xl border border-border p-5">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge type={w.type} />
-                      <span className="text-xs font-bold" style={{ color: LANG_META[w.language].color }}>{LANG_META[w.language].icon} {LANG_META[w.language].label}</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: LANG_META[w.language].color }}><LanguageIcon language={w.language} size={15} />{LANG_META[w.language].label}</span>
                       <span className="ml-auto text-xs" style={{ color: "var(--muted-foreground)" }}>{w.solvedAt}</span>
                     </div>
                     <p className="font-semibold text-sm mb-3 leading-relaxed" style={{ color: "var(--foreground)" }}>{w.question}</p>
@@ -2018,7 +2034,7 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
             </div>
             <div className="flex items-center gap-2 mb-3">
               <Badge type={active.type} />
-              <span className="text-xs font-bold" style={{ color: LANG_META[active.language].color }}>{LANG_META[active.language].icon} {LANG_META[active.language].label}</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: LANG_META[active.language].color }}><LanguageIcon language={active.language} size={15} />{LANG_META[active.language].label}</span>
             </div>
             {renderInput()}
             {feedback === "wrong" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>아직 아니에요. 정답 방향을 다시 떠올려보세요.</div>}
@@ -2342,7 +2358,9 @@ function FriendsPage({ user }: { user: UserProfile }) {
               return (
                 <button key={g.id} onClick={() => setSelectedGroupId(g.id)} className="bg-white rounded-2xl border p-4 flex items-center gap-3 text-left transition-all"
                   style={{ borderColor: selected ? LANG_META[g.language].color : "var(--border)", boxShadow: selected ? `0 6px 18px ${LANG_META[g.language].color}18` : "none" }}>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg" style={{ background: LANG_META[g.language].color }}>{LANG_META[g.language].icon}</div>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white border border-border">
+                    <LanguageIcon language={g.language} size={32} />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="font-bold text-sm truncate" style={{ color: "var(--foreground)" }}>{g.name}</div>
@@ -2640,7 +2658,7 @@ function ProfilePage({ user, onUpgrade, onSave }: {
             return (
               <div key={lang}>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-semibold">{meta.icon} {meta.label}</span>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold"><LanguageIcon language={lang} size={18} />{meta.label}</span>
                   <span className="text-xs font-bold" style={{ color: meta.color }}>Lv.{progress.level} · {user.langXp[lang]} XP</span>
                 </div>
                 <XpBar current={progress.currentXp} max={meta.maxXp} color={meta.color} />
