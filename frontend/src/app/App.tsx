@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import {
   Flame, Heart, Zap, Trophy, Code2, BookOpen, CheckCircle2, XCircle,
-  ChevronRight, ChevronLeft, RotateCcw, Terminal, Lightbulb, Play, Star, ArrowLeft,
+  ChevronRight, ChevronLeft, RotateCcw, Terminal, Lightbulb, Play, ArrowLeft,
   Users, BarChart2, Lock, Crown, LogOut, UserPlus, Search, X, Check,
-  AlertTriangle, Sparkles, MessageSquare, User, Home, NotebookPen,
-  TrendingUp, Eye, EyeOff, Bell, ChevronDown,
+  AlertTriangle, Sparkles, User, Home, NotebookPen,
+  TrendingUp, Eye, EyeOff,
 } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
@@ -17,7 +17,7 @@ import {
   acceptFriend as apiAcceptFriend, rejectFriendRequest as apiRejectFriendRequest, getFriendRequests as apiGetFriendRequests,
   joinGroup as apiJoinGroup, leaveGroup as apiLeaveGroup, getGroupDetail as apiGetGroupDetail, searchFriends as apiSearchFriends,
   getAdminLessons, getAdminProblems, createAdminProblem, updateAdminProblem, deleteAdminProblem,
-  type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendUser,
+  type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendActivity, type BackendUser,
   type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
 } from "./api";
@@ -98,8 +98,9 @@ interface UserProfile {
   xp: number;
   streak: number;
   hearts: number;
-  completedLessons: number;
+  totalSolved: number;
   langXp: Record<Language, number>;
+  weeklyActivity: BackendActivity[];
   friendIds: string[];
   groupIds: string[];
   avatar: string;
@@ -156,17 +157,16 @@ interface WrongAnswer {
 }
 
 type RelationStatus = "none" | "sent" | "received" | "friends";
-interface MockUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; relationStatus: RelationStatus; }
-interface MockGroup { id: string; name: string; memberCount: number; language: Language; avatar: string; joined: boolean; }
-interface MockGroupMember { id: string; username: string; avatar: string; xp: number; streak: number; weeklySolved: number; progress: number; online: boolean; }
+interface FriendUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; relationStatus: RelationStatus; }
+interface StudyGroupView { id: string; name: string; memberCount: number; language: Language; avatar: string; joined: boolean; }
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const LANG_META: Record<Language, { label: string; color: string; light: string; icon: string; xp: number; level: number; maxXp: number }> = {
-  python: { label: "Python", color: "#3B82F6", light: "#DBEAFE", icon: "🐍", xp: 240, level: 12, maxXp: 300 },
-  java:   { label: "Java",   color: "#F97316", light: "#FFEDD5", icon: "☕", xp: 120, level: 5,  maxXp: 200 },
-  c:      { label: "C",      color: "#6366F1", light: "#E0E7FF", icon: "⚙️", xp: 180, level: 8,  maxXp: 250 },
-  cpp:    { label: "C++",    color: "#EC4899", light: "#FCE7F3", icon: "🔧", xp: 60,  level: 3,  maxXp: 150 },
+const LANG_META: Record<Language, { label: string; color: string; light: string; icon: string; maxXp: number }> = {
+  python: { label: "Python", color: "#3B82F6", light: "#DBEAFE", icon: "🐍", maxXp: 300 },
+  java:   { label: "Java",   color: "#F97316", light: "#FFEDD5", icon: "☕", maxXp: 200 },
+  c:      { label: "C",      color: "#6366F1", light: "#E0E7FF", icon: "⚙️", maxXp: 250 },
+  cpp:    { label: "C++",    color: "#EC4899", light: "#FCE7F3", icon: "🔧", maxXp: 150 },
 };
 
 const TYPE_META: Record<QuestionType, { label: string; color: string }> = {
@@ -178,7 +178,7 @@ const TYPE_META: Record<QuestionType, { label: string; color: string }> = {
 
 // XP awarded per correct answer, by type
 const TYPE_XP: Record<QuestionType, number> = {
-  mcq: 10, "fill-blank": 10, "short-answer": 10, code: 20,
+  mcq: 10, "fill-blank": 10, "short-answer": 10, code: 10,
 };
 
 const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light: string; icon: string; desc: string }> = {
@@ -187,70 +187,14 @@ const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light:
   advanced:     { label: "고급", color: "#EF4444", light: "#FEF2F2", icon: "🚀", desc: "심화 개념 도전" },
 };
 
-const MOCK_USERS: MockUser[] = [
-  { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, level: 21, isFriend: true, relationStatus: "friends" },
-  { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, level: 16, isFriend: true, relationStatus: "friends" },
-  { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, level: 9, isFriend: false, relationStatus: "none" },
-  { id: "u4", username: "py_snake", avatar: "PS", xp: 2900, level: 14, isFriend: false, relationStatus: "none" },
-  { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, level: 27, isFriend: true, relationStatus: "friends" },
-];
+const WEEK_DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
+const EMPTY_WEEKLY_ACTIVITY = (): BackendActivity[] => WEEK_DAYS.map(day => ({ day, solved: 0 }));
+const EMPTY_WEAKNESS_DATA = ["Python", "Java", "C", "C++"].map(subject => ({ subject, score: 0 }));
 
-const MOCK_GROUPS: MockGroup[] = [
-  { id: "g1", name: "Python 스터디 🐍", memberCount: 12, language: "python", avatar: "PS", joined: true },
-  { id: "g2", name: "알고리즘 크루 ⚡", memberCount: 8, language: "cpp", avatar: "AC", joined: false },
-  { id: "g3", name: "Java 백엔드 팀 ☕", memberCount: 5, language: "java", avatar: "JB", joined: false },
-  { id: "g4", name: "C 시스템 마스터 ⚙️", memberCount: 7, language: "c", avatar: "CS", joined: true },
-];
-
-const MOCK_GROUP_DETAILS: Record<string, { weeklyGoal: number; solved: number; members: MockGroupMember[] }> = {
-  g1: {
-    weeklyGoal: 90, solved: 64,
-    members: [
-      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 18, progress: 82, online: true },
-      { id: "u4", username: "py_snake", avatar: "PS", xp: 2900, streak: 6, weeklySolved: 12, progress: 64, online: true },
-      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 22, progress: 91, online: false },
-    ],
-  },
-  g2: {
-    weeklyGoal: 72, solved: 38,
-    members: [
-      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 15, progress: 78, online: false },
-      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 11, progress: 56, online: true },
-      { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, streak: 3, weeklySolved: 7, progress: 35, online: false },
-    ],
-  },
-  g3: {
-    weeklyGoal: 45, solved: 29,
-    members: [
-      { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, streak: 9, weeklySolved: 13, progress: 69, online: true },
-      { id: "u1", username: "algo_master", avatar: "AM", xp: 4200, streak: 14, weeklySolved: 9, progress: 52, online: false },
-      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 7, progress: 44, online: true },
-    ],
-  },
-  g4: {
-    weeklyGoal: 56, solved: 41,
-    members: [
-      { id: "u3", username: "c_pointer", avatar: "CP", xp: 1800, streak: 3, weeklySolved: 10, progress: 58, online: false },
-      { id: "u5", username: "bit_flip", avatar: "BF", xp: 5500, streak: 21, weeklySolved: 16, progress: 86, online: true },
-      { id: "u2", username: "java_wizard", avatar: "JW", xp: 3100, streak: 9, weeklySolved: 8, progress: 49, online: true },
-    ],
-  },
-};
-
-
-const WEAKNESS_DATA = [
-  { subject: "Python 기초", score: 82 },
-  { subject: "Java OOP", score: 48 },
-  { subject: "C 포인터", score: 35 },
-  { subject: "C++ STL", score: 62 },
-  { subject: "알고리즘", score: 55 },
-  { subject: "자료구조", score: 70 },
-];
-
-const ACTIVITY_DATA = [
-  { day: "월", solved: 4 }, { day: "화", solved: 7 }, { day: "수", solved: 2 },
-  { day: "목", solved: 9 }, { day: "금", solved: 5 }, { day: "토", solved: 11 }, { day: "일", solved: 6 },
-];
+const normalizeWeeklyActivity = (activity: BackendActivity[]): BackendActivity[] => WEEK_DAYS.map(day => {
+  const solved = activity.find(item => item.day === day)?.solved ?? 0;
+  return { day, solved: Math.max(0, solved) };
+});
 
 // ─── SMALL COMPONENTS ────────────────────────────────────────────────────────
 
@@ -575,11 +519,20 @@ function LockOverlay({ onUpgrade }: { onUpgrade: () => void }) {
 }
 
 function XpBar({ current, max, color }: { current: number; max: number; color: string }) {
+  const progress = max > 0 ? Math.min(100, Math.max(0, (current / max) * 100)) : 0;
   return (
     <div className="w-full h-2.5 rounded-full bg-muted overflow-hidden">
-      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(current / max) * 100}%`, background: color }} />
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${progress}%`, background: color }} />
     </div>
   );
+}
+
+function languageLevelProgress(totalXp: number, maxXp: number) {
+  const safeXp = Math.max(0, totalXp);
+  return {
+    level: Math.floor(safeXp / maxXp) + 1,
+    currentXp: safeXp % maxXp,
+  };
 }
 
 function Avatar({ initials, color, size = "md" }: { initials: string; color?: string; size?: "sm" | "md" | "lg" }) {
@@ -801,20 +754,14 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
   const langMeta = LANG_META[selectedLang];
   const selectedQuestions = langProblems;
   const recommended = selectedQuestions.slice(0, 3);
-  const codeCount = selectedQuestions.filter(q => q.type === "code").length;
+  const todayLabel = ["일", "월", "화", "수", "목", "금", "토"][new Date().getDay()];
+  const todaySolved = user.weeklyActivity.find(item => item.day === todayLabel)?.solved ?? 0;
+  const weeklySolved = user.weeklyActivity.reduce((sum, item) => sum + item.solved, 0);
+  const maxDailySolved = Math.max(1, ...user.weeklyActivity.map(item => item.solved));
   const todayMissions = [
-    { label: `${langMeta.label} 문제 3개 풀기`, done: Math.min(user.completedLessons, 3), total: 3, icon: <BookOpen size={16} />, color: langMeta.color },
-    { label: "코딩 문제 1개 통과", done: codeCount > 0 && user.completedLessons > 0 ? 1 : 0, total: 1, icon: <Terminal size={16} />, color: "#10B981" },
+    { label: "오늘 문제 3개 풀기", done: Math.min(todaySolved, 3), total: 3, icon: <BookOpen size={16} />, color: langMeta.color },
+    { label: "이번 주 문제 5개 풀기", done: Math.min(weeklySolved, 5), total: 5, icon: <Terminal size={16} />, color: "#10B981" },
     { label: "연속 학습 유지", done: user.streak > 0 ? 1 : 0, total: 1, icon: <Flame size={16} />, color: "#EF4444" },
-  ];
-  const weekActivity = [
-    { day: "월", xp: 20, active: true },
-    { day: "화", xp: 35, active: true },
-    { day: "수", xp: 0, active: false },
-    { day: "목", xp: 45, active: true },
-    { day: "금", xp: 30, active: true },
-    { day: "토", xp: 0, active: false },
-    { day: "일", xp: 15, active: user.streak > 0 },
   ];
   const weakest = selectedQuestions.find(q => q.difficulty === "intermediate") ?? selectedQuestions[0];
 
@@ -834,13 +781,14 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
       <div className="grid grid-cols-2 gap-3 mb-5 md:grid-cols-4">
         {(Object.entries(LANG_META) as [Language, typeof LANG_META[Language]][]).map(([lang, meta]) => {
           const sel = selectedLang === lang;
+          const progress = languageLevelProgress(user.langXp[lang], meta.maxXp);
           return (
             <button key={lang} onClick={() => setSelectedLang(lang)} className="rounded-2xl p-4 text-left border-2 transition-all" style={{ background: sel ? meta.light : "#fff", borderColor: sel ? meta.color : "var(--border)", transform: sel ? "translateY(-2px)" : "none", boxShadow: sel ? `0 4px 16px ${meta.color}25` : "none" }}>
               <div className="text-2xl mb-2">{meta.icon}</div>
               <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{meta.label}</div>
-              <div className="text-xs font-semibold mb-2" style={{ color: meta.color }}>Lv.{meta.level}</div>
-              <XpBar current={user.langXp[lang]} max={meta.maxXp} color={meta.color} />
-              <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>{user.langXp[lang]}/{meta.maxXp} XP</div>
+              <div className="text-xs font-semibold mb-2" style={{ color: meta.color }}>Lv.{progress.level}</div>
+              <XpBar current={progress.currentXp} max={meta.maxXp} color={meta.color} />
+              <div className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>{user.langXp[lang]} XP</div>
             </button>
           );
         })}
@@ -935,7 +883,7 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
             {[
-              { label: "완료 레슨", value: `${user.completedLessons}`, icon: <Trophy size={18} />, color: "#F59E0B" },
+              { label: "총 풀이", value: `${user.totalSolved}`, icon: <Trophy size={18} />, color: "#F59E0B" },
               { label: "연속 학습", value: `${user.streak}일`, icon: <Flame size={18} />, color: "#EF4444" },
               { label: "총 XP", value: `${user.xp}`, icon: <Zap size={18} />, color: "var(--primary)" },
             ].map(({ label, value, icon, color }) => (
@@ -954,15 +902,16 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>주간 학습</h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>이번 주 XP 흐름</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>이번 주 풀이 수</p>
               </div>
               <TrendingUp size={18} style={{ color: "var(--accent)" }} />
             </div>
             <div className="grid grid-cols-7 gap-2 items-end h-28">
-              {weekActivity.map(item => (
+              {user.weeklyActivity.map(item => (
                 <div key={item.day} className="flex flex-col items-center gap-2 h-full justify-end">
-                  <div className="w-full rounded-t-lg min-h-[10px]" style={{ height: `${Math.max(12, item.xp * 1.7)}px`, background: item.active ? langMeta.color : "var(--muted)" }} />
-                  <span className="text-xs font-semibold" style={{ color: item.active ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.day}</span>
+                  <span className="text-[10px] font-semibold" style={{ color: item.solved > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.solved}</span>
+                  <div className="w-full rounded-t-lg min-h-[10px]" style={{ height: `${Math.max(10, (item.solved / maxDailySolved) * 72)}px`, background: item.solved > 0 ? langMeta.color : "var(--muted)" }} />
+                  <span className="text-xs font-semibold" style={{ color: item.solved > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.day}</span>
                 </div>
               ))}
             </div>
@@ -993,8 +942,8 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
 
 // ─── LESSON SELECT (난이도 선택) ────────────────────────────────────────────────
 
-function LessonSelectPage({ user, selectedLang, setSelectedLang, selectedTopic, setSelectedTopic, onStart, onBack }: {
-  user: UserProfile; selectedLang: Language;
+function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSelectedTopic, onStart, onBack }: {
+  selectedLang: Language;
   setSelectedLang: (l: Language) => void;
   selectedTopic: string | null;
   setSelectedTopic: (topic: string | null) => void;
@@ -1709,9 +1658,9 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
 function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () => void }) {
   const isPremium = user.tier === "premium";
   const fallbackAnalytics: BackendAnalytics = {
-    weakness: WEAKNESS_DATA,
-    activity: ACTIVITY_DATA,
-    summary: { totalSolved: user.completedLessons, weeklySolved: 0, streak: user.streak, accuracy: 0 },
+    weakness: EMPTY_WEAKNESS_DATA,
+    activity: EMPTY_WEEKLY_ACTIVITY(),
+    summary: { totalSolved: user.totalSolved, weeklySolved: 0, streak: user.streak, accuracy: 0 },
   };
   const [analytics, setAnalytics] = useState<BackendAnalytics>(fallbackAnalytics);
   const [analyticsStatus, setAnalyticsStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -1738,7 +1687,7 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
       });
 
     return () => { alive = false; };
-  }, [isPremium, user.completedLessons, user.streak]);
+  }, [isPremium, user.totalSolved, user.streak]);
 
   const recommendedAreas = [...analytics.weakness]
     .sort((a, b) => a.score - b.score)
@@ -1773,7 +1722,7 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
 
           {analyticsStatus === "error" && (
             <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm" style={{ color: "#92400E" }}>
-              분석 데이터를 불러오지 못해 예시 데이터를 표시합니다.
+              분석 데이터를 불러오지 못해 학습 통계를 0으로 표시합니다.
             </div>
           )}
 
@@ -2012,7 +1961,7 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
     if (active.type === "mcq" && active.options) {
       return (
         <div className="grid gap-2">
-          {active.options.map((option, index) => {
+          {active.options.map((option) => {
             const selected = answer === option;
             return (
               <button key={option} onClick={() => setAnswer(option)} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
@@ -2101,8 +2050,8 @@ function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onResolve, on
 function FriendsPage({ user }: { user: UserProfile }) {
   const [tab, setTab] = useState<"friends" | "groups" | "search">("friends");
   const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState<MockUser[]>([]);
-  const [groups, setGroups] = useState<MockGroup[]>([]);
+  const [users, setUsers] = useState<FriendUser[]>([]);
+  const [groups, setGroups] = useState<StudyGroupView[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -2110,13 +2059,13 @@ function FriendsPage({ user }: { user: UserProfile }) {
   const [groupDetail, setGroupDetail] = useState<BackendGroupDetail | null>(null);
   const [groupDetailLoading, setGroupDetailLoading] = useState(false);
   const [groupDetailError, setGroupDetailError] = useState("");
-  const [searchResults, setSearchResults] = useState<MockUser[]>([]);
+  const [searchResults, setSearchResults] = useState<FriendUser[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
-  const [receivedRequests, setReceivedRequests] = useState<MockUser[]>([]);
-  const [sentRequests, setSentRequests] = useState<MockUser[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<FriendUser[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendUser[]>([]);
 
-  const toMockUser = (u: BackendFriend): MockUser => ({
+  const toFriendUser = (u: BackendFriend): FriendUser => ({
     id: u.id,
     username: u.username,
     avatar: u.avatar,
@@ -2127,14 +2076,14 @@ function FriendsPage({ user }: { user: UserProfile }) {
   });
 
   const applyFriendsData = (data: BackendFriendsResponse) => {
-    const nextUsers = data.users.map(toMockUser);
+    const nextUsers = data.users.map(toFriendUser);
     const nextGroups = data.groups
       .filter(g => isLanguage(g.language))
       .map(g => ({
           id: g.id,
           name: g.name,
           memberCount: g.memberCount,
-          language: g.language,
+          language: g.language as Language,
           avatar: g.name.slice(0, 2).toUpperCase(),
           joined: g.joined,
         }));
@@ -2152,8 +2101,8 @@ function FriendsPage({ user }: { user: UserProfile }) {
     try {
       applyFriendsData(await apiGetFriends());
       const requests = await apiGetFriendRequests();
-      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
-      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+      setReceivedRequests(requests.received.map(request => toFriendUser(request.user)));
+      setSentRequests(requests.sent.map(request => toFriendUser(request.user)));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "친구와 그룹을 불러오지 못했습니다.");
     } finally {
@@ -2179,7 +2128,7 @@ function FriendsPage({ user }: { user: UserProfile }) {
     const timer = window.setTimeout(async () => {
       try {
         const results = await apiSearchFriends(query);
-        if (!cancelled) setSearchResults(results.map(toMockUser));
+        if (!cancelled) setSearchResults(results.map(toFriendUser));
       } catch (error) {
         if (!cancelled) setSearchError(error instanceof Error ? error.message : "사용자를 검색하지 못했습니다.");
       } finally {
@@ -2216,20 +2165,20 @@ function FriendsPage({ user }: { user: UserProfile }) {
   const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? groups[0];
   const selectedGroupMembers = groupDetail?.members ?? [];
 
-  const nextRelationAfterFriendAction = (target: MockUser): RelationStatus => {
+  const nextRelationAfterFriendAction = (target: FriendUser): RelationStatus => {
     if (target.relationStatus === "none") return "sent";
     if (target.relationStatus === "received") return "friends";
     return "none";
   };
 
-  const syncFriend = async (target: MockUser) => {
+  const syncFriend = async (target: FriendUser) => {
     setActionId(`friend-${target.id}`);
     setLoadError("");
     try {
       applyFriendsData(target.isFriend ? await apiRemoveFriend(target.id) : await apiAddFriend(target.id));
       const requests = await apiGetFriendRequests();
-      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
-      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+      setReceivedRequests(requests.received.map(request => toFriendUser(request.user)));
+      setSentRequests(requests.sent.map(request => toFriendUser(request.user)));
       const nextRelation = nextRelationAfterFriendAction(target);
       setSearchResults(prev => prev.map(u => u.id === target.id ? { ...u, isFriend: nextRelation === "friends", relationStatus: nextRelation } : u));
       if (target.relationStatus === "none") setSearchQuery("");
@@ -2240,14 +2189,14 @@ function FriendsPage({ user }: { user: UserProfile }) {
     }
   };
 
-  const respondFriendRequest = async (target: MockUser, accept: boolean) => {
+  const respondFriendRequest = async (target: FriendUser, accept: boolean) => {
     setActionId(`request-${target.id}`);
     setLoadError("");
     try {
       applyFriendsData(accept ? await apiAcceptFriend(target.id) : await apiRejectFriendRequest(target.id));
       const requests = await apiGetFriendRequests();
-      setReceivedRequests(requests.received.map(request => toMockUser(request.user)));
-      setSentRequests(requests.sent.map(request => toMockUser(request.user)));
+      setReceivedRequests(requests.received.map(request => toFriendUser(request.user)));
+      setSentRequests(requests.sent.map(request => toFriendUser(request.user)));
       setSearchResults(prev => prev.map(u => u.id === target.id ? { ...u, isFriend: accept, relationStatus: accept ? "friends" : "none" } : u));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "친구 요청을 처리하지 못했습니다.");
@@ -2256,7 +2205,7 @@ function FriendsPage({ user }: { user: UserProfile }) {
     }
   };
 
-  const syncGroup = async (target: MockGroup) => {
+  const syncGroup = async (target: StudyGroupView) => {
     setActionId(`group-${target.id}`);
     setLoadError("");
     try {
@@ -2353,9 +2302,9 @@ function FriendsPage({ user }: { user: UserProfile }) {
               </button>
             </div>
           )}
-          {friends.map(u => (
+          {friends.map((u, index) => (
             <div key={u.id} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3">
-              <Avatar initials={u.avatar} color={["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899"][MOCK_USERS.indexOf(u) % 5]} />
+              <Avatar initials={u.avatar} color={["#7C3AED", "#3B82F6", "#10B981", "#F59E0B", "#EC4899"][index % 5]} />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{u.username}</div>
                 <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lv.{u.level} · {u.xp.toLocaleString()} XP</div>
@@ -2673,7 +2622,7 @@ function ProfilePage({ user, onUpgrade, onSave }: {
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          {[{ label: "총 XP", value: user.xp.toLocaleString(), color: "var(--primary)" }, { label: "연속 학습", value: `${user.streak}일`, color: "#F59E0B" }, { label: "완료 레슨", value: `${user.completedLessons}`, color: "#10B981" }].map(({ label, value, color }) => (
+          {[{ label: "총 XP", value: user.xp.toLocaleString(), color: "var(--primary)" }, { label: "연속 학습", value: `${user.streak}일`, color: "#F59E0B" }, { label: "총 풀이", value: `${user.totalSolved}`, color: "#10B981" }].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl p-3 text-center" style={{ background: "var(--secondary)" }}>
               <div className="font-extrabold" style={{ color }}>{value}</div>
               <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{label}</div>
@@ -2686,15 +2635,18 @@ function ProfilePage({ user, onUpgrade, onSave }: {
       <div className="bg-white rounded-2xl border border-border p-5 mb-5">
         <h3 className="font-bold mb-4" style={{ color: "var(--foreground)" }}>언어별 진행도</h3>
         <div className="space-y-3">
-          {(Object.entries(LANG_META) as [Language, typeof LANG_META[Language]][]).map(([lang, meta]) => (
-            <div key={lang}>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-semibold">{meta.icon} {meta.label}</span>
-                <span className="text-xs font-bold" style={{ color: meta.color }}>Lv.{meta.level} · {user.langXp[lang]} XP</span>
+          {(Object.entries(LANG_META) as [Language, typeof LANG_META[Language]][]).map(([lang, meta]) => {
+            const progress = languageLevelProgress(user.langXp[lang], meta.maxXp);
+            return (
+              <div key={lang}>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm font-semibold">{meta.icon} {meta.label}</span>
+                  <span className="text-xs font-bold" style={{ color: meta.color }}>Lv.{progress.level} · {user.langXp[lang]} XP</span>
+                </div>
+                <XpBar current={progress.currentXp} max={meta.maxXp} color={meta.color} />
               </div>
-              <XpBar current={user.langXp[lang]} max={meta.maxXp} color={meta.color} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -2905,7 +2857,10 @@ function AdminPage({ user }: { user: UserProfile }) {
     setMessage("");
     try {
       const payload = toPayload();
-      if (!payload.title || !payload.description) throw new Error("제목과 문제 설명은 필수입니다.");
+      if (!payload.title || !payload.description) {
+        setError("제목과 문제 설명은 필수입니다.");
+        return;
+      }
       const saved = selectedId ? await updateAdminProblem(selectedId, payload) : await createAdminProblem(payload);
       setMessage(selectedId ? "문제를 수정했습니다." : "문제를 추가했습니다.");
       setProblems(await getAdminProblems());
@@ -3136,20 +3091,38 @@ export default function App() {
       xp: u.xp,
       streak: u.streak,
       hearts: u.hearts,
-      completedLessons: 24,
+      totalSolved: 0,
       langXp: makeLangXp(),
+      weeklyActivity: EMPTY_WEEKLY_ACTIVITY(),
       friendIds: [],
       groupIds: [],
       avatar: u.avatar || u.nickname.slice(0, 2).toUpperCase(),
     };
   };
 
-  // 백엔드가 계산한 언어별 XP로 갱신 (정답 제출 기반)
-  const refreshLangXp = async () => {
-    try {
-      const langXp = await getLanguageXp();
-      setUser((p) => (p ? { ...p, langXp: { ...p.langXp, ...(langXp as Record<Language, number>) } } : p));
-    } catch { /* 백엔드 미연결 시 무시 */ }
+  // 로그인 직후와 제출 완료 후 실제 XP·풀이 수·주간 활동을 백엔드 값으로 동기화한다.
+  const refreshProgress = async () => {
+    const [languageXpResult, analyticsResult] = await Promise.allSettled([
+      getLanguageXp(),
+      fetchAnalytics(),
+    ]);
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current };
+      if (languageXpResult.status === "fulfilled") {
+        const langXp = { ...current.langXp };
+        (Object.keys(LANG_META) as Language[]).forEach(language => {
+          const value = languageXpResult.value[language];
+          langXp[language] = Number.isFinite(value) ? Math.max(0, value) : 0;
+        });
+        next.langXp = langXp;
+      }
+      if (analyticsResult.status === "fulfilled") {
+        next.totalSolved = Math.max(0, analyticsResult.value.summary.totalSolved);
+        next.weeklyActivity = normalizeWeeklyActivity(analyticsResult.value.activity);
+      }
+      return next;
+    });
   };
 
   const [upgradeReturnScreen, setUpgradeReturnScreen] = useState<Screen>("profile");
@@ -3223,7 +3196,7 @@ export default function App() {
 
       if (restored) {
         setUser(restored);
-        refreshLangXp();
+        refreshProgress();
         if (screen === "login" || screen === "register") navigate("home", true);
       } else if (screen !== "login" && screen !== "register") {
         navigate("login", true);
@@ -3250,7 +3223,7 @@ export default function App() {
     const profile = profileFromBackend(u);
     setUser(profile);
     navigate("home");
-    refreshLangXp();
+    refreshProgress();
   };
 
   const handleComplete = (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => {
@@ -3259,14 +3232,13 @@ export default function App() {
     if (user) setUser(u => u ? {
       ...u,
       xp: u.xp + earned,
-      completedLessons: u.completedLessons + 1,
       langXp: { ...u.langXp, [selectedLang]: u.langXp[selectedLang] + earned },
     } : u);
     setLessonResult({ correct, total, wrongs });
     navigate("result");
     // 백엔드에 저장된 최신 XP/스트릭으로 동기화
     getMe().then((u) => setUser((p) => (p ? { ...p, xp: u.xp, streak: u.streak, hearts: u.hearts } : p))).catch(() => {});
-    refreshLangXp();
+    refreshProgress();
   };
 
   const handleLogout = () => {
@@ -3316,7 +3288,7 @@ export default function App() {
   const renderContent = () => {
     switch (screen) {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
-      case "lessonSelect": return <LessonSelectPage user={user} selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
+      case "lessonSelect": return <LessonSelectPage selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
       case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
       case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;

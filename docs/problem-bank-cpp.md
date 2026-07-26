@@ -698,8 +698,8 @@ title: 함수 반환형
 description: 값을 반환하지 않는 함수의 반환형은?
 optionsJson: ["void", "null", "none", "empty"]
 answer: void
-hint: 가장 기본 개념을 고르세요.
-explanation: 정답은 `void`이다.
+hint: 반환값이 없다는 뜻의 C++ 키워드입니다.
+explanation: `void`는 함수가 값을 반환하지 않음을 나타내는 반환형이다.
 tagsJson: ["함수"]
 ```
 
@@ -708,12 +708,12 @@ tagsJson: ["함수"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 함수 기본 문법
-description: 함수 학습에서 가장 관련 있는 C++ 키워드나 기능은?
-optionsJson: ["return", "try", "printf", "scanf"]
-answer: return
-hint: 목차와 가장 직접 연결된 보기를 고르세요.
-explanation: 목차의 핵심 문법과 관련된 선택지가 정답이다.
+title: 함수 선언
+description: 두 정수를 받아 정수를 반환하는 `add` 함수의 올바른 선언은?
+optionsJson: ["int add(int a, int b);", "add int(a, b);", "void add = int a, int b;", "function add(int, int);"]
+answer: int add(int a, int b);
+hint: 반환형, 함수 이름, 매개변수 목록 순서로 작성합니다.
+explanation: 함수 선언은 `반환형 함수이름(매개변수);` 형식으로 작성한다.
 tagsJson: ["함수"]
 ```
 
@@ -722,15 +722,15 @@ tagsJson: ["함수"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 함수 빈칸
-description: 함수와 관련된 기본 코드를 완성하세요.
+title: 함수 결과 반환
+description: 두 수의 합을 호출한 곳으로 돌려주도록 빈칸을 완성하세요.
 answer: return
 codeTemplate: |
   int add(int a, int b) {
       ____ a + b;
   }
-hint: 문맥에 맞는 핵심 단어를 넣으세요.
-explanation: 빈칸에는 해당 문법의 핵심 키워드가 들어간다.
+hint: 함수의 계산 결과를 돌려주는 키워드입니다.
+explanation: `return a + b;`는 두 수의 합을 함수 호출 결과로 반환한다.
 tagsJson: ["함수"]
 ```
 
@@ -739,11 +739,11 @@ tagsJson: ["함수"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 함수 단답
-description: 함수에서 자주 쓰는 핵심 용어 하나를 쓰세요.
-answer: return
-hint: 이 목차의 대표 단어입니다.
-explanation: 해당 목차에서 자주 사용하는 핵심 용어다.
+title: 참조 매개변수 기호
+description: 함수에서 인수를 복사하지 않고 원본을 참조하도록 매개변수 자료형 뒤에 붙이는 기호 하나를 쓰세요.
+answer: "&"
+hint: 주소 연산자와 같은 모양의 기호입니다.
+explanation: `int& value`처럼 `&`를 붙이면 원본 객체를 참조하는 매개변수가 된다.
 tagsJson: ["함수"]
 ```
 
@@ -752,34 +752,37 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 함수 연습 1
-description: 입력 조건에 맞게 간단한 결과를 출력하세요.
+title: 절댓값 함수
+description: 정수 n의 절댓값을 반환하는 `absoluteValue` 함수를 완성하고 결과를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
+  int absoluteValue(int n) {
+      // n의 절댓값을 반환하세요
+  }
   int main() {
-      int a, b;
-      cin >> a >> b;
-      // 두 수 중 큰 값을 출력하세요
+      int n;
+      cin >> n;
+      cout << absoluteValue(n);
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "3 5",
-      "expected": "5"
+      "input": "-7",
+      "expected": "7"
     },
     {
-      "input": "10 2",
-      "expected": "10"
+      "input": "0",
+      "expected": "0"
     },
     {
-      "input": "-1 -4",
-      "expected": "-1"
+      "input": "12",
+      "expected": "12"
     }
   ]
-hint: 조건문 또는 max를 사용할 수 있습니다.
-explanation: 두 값을 비교해 큰 값을 출력한다.
+hint: n이 음수이면 `-n`, 아니면 n을 반환하세요.
+explanation: 함수 안에서 부호를 확인해 0 이상인 값을 반환한다.
 tagsJson: ["함수"]
 ```
 
@@ -788,17 +791,23 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 함수 연습 2
-description: 정수 n과 n개의 정수를 입력받아 합계를 출력하세요.
+title: 벡터 합계 함수
+description: 정수 벡터를 참조로 받아 모든 원소의 합을 반환하는 `sumValues` 함수를 완성하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
   using namespace std;
+  int sumValues(const vector<int>& values) {
+      int total = 0;
+      // 모든 원소를 total에 더하세요
+      return total;
+  }
   int main() {
-      int n, sum = 0;
+      int n;
       cin >> n;
-      // n개의 정수를 더하세요
-      cout << sum;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      cout << sumValues(values);
       return 0;
   }
 testCasesJson: |
@@ -816,8 +825,8 @@ testCasesJson: |
       "expected": "8"
     }
   ]
-hint: 반복문으로 입력받으며 더하세요.
-explanation: n번 반복하며 sum에 누적한다.
+hint: 범위 기반 for문으로 values의 각 원소를 순회하세요.
+explanation: 벡터를 `const` 참조로 전달하면 복사 없이 읽고 합계를 반환할 수 있다.
 tagsJson: ["함수"]
 ```
 
@@ -826,35 +835,38 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 함수 심화 1
-description: 정수 n과 n개의 정수를 입력받아 짝수 개수를 출력하세요.
+title: 재귀 팩토리얼 함수
+description: 0 이상 10 이하의 정수 n을 입력받아 재귀 함수 `factorial`로 n!을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
+  long long factorial(int n) {
+      if (n <= 1) return 1;
+      // 재귀 호출로 n!을 반환하세요
+  }
   int main() {
-      int n, x, count = 0;
+      int n;
       cin >> n;
-      // 짝수 개수를 세세요
-      cout << count;
+      cout << factorial(n);
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 3 4 6",
-      "expected": "3"
+      "input": "0",
+      "expected": "1"
     },
     {
-      "input": "4\n1 3 5 7",
-      "expected": "0"
+      "input": "5",
+      "expected": "120"
     },
     {
-      "input": "3\n0 -2 9",
-      "expected": "2"
+      "input": "10",
+      "expected": "3628800"
     }
   ]
-hint: 2로 나눈 나머지를 확인하세요.
-explanation: 각 수가 짝수이면 count를 증가시킨다.
+hint: `n! = n * (n - 1)!` 관계를 이용하세요.
+explanation: n이 1 이하이면 1을 반환하고, 그 외에는 `n * factorial(n - 1)`을 반환한다.
 tagsJson: ["함수"]
 ```
 
@@ -863,39 +875,43 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 함수 심화 2
-description: 정수 n과 n개의 정수를 입력받아 오름차순이면 `yes`, 아니면 `no`를 출력하세요.
+title: 참조 매개변수로 최솟값과 최댓값 구하기
+description: 1 이상인 정수 n과 정수 벡터를 입력받아 최솟값과 최댓값을 참조 매개변수에 저장하는 `findMinMax` 함수를 완성하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
   using namespace std;
+  void findMinMax(const vector<int>& values, int& minValue, int& maxValue) {
+      minValue = maxValue = values[0];
+      // 모든 원소를 비교해 minValue와 maxValue를 갱신하세요
+  }
   int main() {
       int n;
       cin >> n;
-      vector<int> v(n);
-      for (int i = 0; i < n; i++) cin >> v[i];
-      bool ok = true;
-      // 오름차순인지 확인하세요
-      cout << (ok ? "yes" : "no");
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      int minValue, maxValue;
+      findMinMax(values, minValue, maxValue);
+      cout << minValue << ' ' << maxValue;
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 2 4 5",
-      "expected": "yes"
+      "input": "5\n3 1 9 -2 7",
+      "expected": "-2 9"
     },
     {
-      "input": "4\n1 3 2 4",
-      "expected": "no"
+      "input": "4\n-5 -1 -9 -3",
+      "expected": "-9 -1"
     },
     {
-      "input": "1\n9",
-      "expected": "yes"
+      "input": "1\n42",
+      "expected": "42 42"
     }
   ]
-hint: 인접한 값을 비교하세요.
-explanation: 앞 값이 뒤 값보다 크면 오름차순이 아니다.
+hint: 각 value가 현재 최솟값보다 작거나 최댓값보다 큰지 확인하세요.
+explanation: 참조 매개변수를 사용하면 함수가 두 결과 값을 호출한 곳의 변수에 직접 저장할 수 있다.
 tagsJson: ["함수"]
 ```
 
@@ -907,10 +923,10 @@ difficulty: 3
 title: 함수 재사용 장점
 description: 함수를 사용하면 좋은 점을 설명하세요.
 rubric: |
-  - 핵심 개념을 정확히 설명하면 40점
-  - 코드 관리나 문제 해결에 주는 장점을 설명하면 40점
-  - 예시를 들면 20점
-explanation: 함수는 C++ 학습에서 중요한 개념이며 문제 해결 방식을 더 체계적으로 만들어준다.
+  - 중복 코드를 줄여 재사용할 수 있다는 점을 설명하면 35점
+  - 기능별로 분리해 가독성이 좋아진다는 점을 설명하면 35점
+  - 테스트나 유지보수가 쉬워지는 예시를 들면 30점
+explanation: 함수는 하나의 기능을 이름 있는 단위로 분리해 재사용성, 가독성, 테스트 편의성을 높인다.
 tagsJson: ["함수"]
 ```
 
@@ -937,12 +953,12 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 클래스와 객체 기본 문법
-description: 클래스와 객체 학습에서 가장 관련 있는 C++ 키워드나 기능은?
-optionsJson: ["class", "try", "printf", "scanf"]
-answer: class
-hint: 목차와 가장 직접 연결된 보기를 고르세요.
-explanation: 목차의 핵심 문법과 관련된 선택지가 정답이다.
+title: class의 기본 접근 수준
+description: C++에서 `class` 내부 멤버의 기본 접근 수준은?
+optionsJson: ["private", "public", "protected", "package"]
+answer: private
+hint: `struct`의 기본 접근 수준과 다릅니다.
+explanation: C++의 `class` 멤버는 접근 지정자를 생략하면 기본적으로 `private`이다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -951,16 +967,16 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 클래스와 객체 빈칸
-description: 클래스와 객체와 관련된 기본 코드를 완성하세요.
+title: public 접근 지정자
+description: 클래스 외부에서 `age`에 접근할 수 있도록 빈칸을 완성하세요.
 answer: public
 codeTemplate: |
   class Person {
   ____:
       int age;
   };
-hint: 문맥에 맞는 핵심 단어를 넣으세요.
-explanation: 빈칸에는 해당 문법의 핵심 키워드가 들어간다.
+hint: 외부에 공개한다는 뜻의 접근 지정자입니다.
+explanation: `public:` 아래에 선언한 멤버는 클래스 외부에서도 접근할 수 있다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -969,11 +985,11 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 클래스와 객체 단답
-description: 클래스와 객체에서 자주 쓰는 핵심 용어 하나를 쓰세요.
-answer: class
-hint: 이 목차의 대표 단어입니다.
-explanation: 해당 목차에서 자주 사용하는 핵심 용어다.
+title: 객체 초기화 함수
+description: 객체가 생성될 때 자동으로 호출되며 클래스와 같은 이름을 갖는 특별한 멤버 함수를 무엇이라고 하나요?
+answer: 생성자
+hint: 영어로 constructor입니다.
+explanation: 생성자는 객체가 만들어질 때 필드의 초기값을 설정하는 특별한 멤버 함수다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -982,34 +998,45 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 클래스와 객체 연습 1
-description: 입력 조건에 맞게 간단한 결과를 출력하세요.
+title: Rectangle 클래스 넓이
+description: 0 이상의 가로와 세로를 저장하는 `Rectangle` 클래스의 `area` 메서드를 완성해 넓이를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
+  class Rectangle {
+  private:
+      int width;
+      int height;
+  public:
+      Rectangle(int width, int height) : width(width), height(height) {}
+      int area() const {
+          // 넓이를 반환하세요
+      }
+  };
   int main() {
-      int a, b;
-      cin >> a >> b;
-      // 두 수 중 큰 값을 출력하세요
+      int width, height;
+      cin >> width >> height;
+      Rectangle rectangle(width, height);
+      cout << rectangle.area();
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "3 5",
-      "expected": "5"
+      "input": "3 4",
+      "expected": "12"
     },
     {
-      "input": "10 2",
-      "expected": "10"
+      "input": "0 7",
+      "expected": "0"
     },
     {
-      "input": "-1 -4",
-      "expected": "-1"
+      "input": "9 2",
+      "expected": "18"
     }
   ]
-hint: 조건문 또는 max를 사용할 수 있습니다.
-explanation: 두 값을 비교해 큰 값을 출력한다.
+hint: 가로와 세로를 곱한 값을 반환하세요.
+explanation: 생성자로 필드를 초기화하고 `area` 메서드에서 `width * height`를 반환한다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -1018,36 +1045,48 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 클래스와 객체 연습 2
-description: 정수 n과 n개의 정수를 입력받아 합계를 출력하세요.
+title: Counter 클래스
+description: 초기값과 증가 횟수 n을 입력받아 `Counter` 객체의 값을 n번 증가시킨 뒤 출력하세요.
 codeTemplate: |
   #include <iostream>
-  #include <vector>
   using namespace std;
+  class Counter {
+  private:
+      int value;
+  public:
+      Counter(int initial) : value(initial) {}
+      void increase() {
+          // value를 1 증가시키세요
+      }
+      int getValue() const {
+          return value;
+      }
+  };
   int main() {
-      int n, sum = 0;
-      cin >> n;
-      // n개의 정수를 더하세요
-      cout << sum;
+      int initial, n;
+      cin >> initial >> n;
+      Counter counter(initial);
+      for (int i = 0; i < n; i++) counter.increase();
+      cout << counter.getValue();
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "4\n1 2 3 4",
-      "expected": "10"
+      "input": "10 3",
+      "expected": "13"
     },
     {
-      "input": "3\n10 -1 5",
-      "expected": "14"
+      "input": "-2 2",
+      "expected": "0"
     },
     {
-      "input": "1\n8",
-      "expected": "8"
+      "input": "5 0",
+      "expected": "5"
     }
   ]
-hint: 반복문으로 입력받으며 더하세요.
-explanation: n번 반복하며 sum에 누적한다.
+hint: `increase` 메서드 안에서 `value++`를 실행하세요.
+explanation: 객체의 private 필드는 public 메서드를 통해 안전하게 변경하고 조회할 수 있다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -1056,35 +1095,52 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 클래스와 객체 심화 1
-description: 정수 n과 n개의 정수를 입력받아 짝수 개수를 출력하세요.
+title: BankAccount 입출금
+description: 0 이상의 초기 잔액, 입금액, 출금액을 입력받아 `BankAccount` 객체로 처리하세요. 잔액이 부족하면 `error`, 아니면 최종 잔액을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
+  class BankAccount {
+  private:
+      int balance;
+  public:
+      BankAccount(int initialBalance) : balance(initialBalance) {}
+      void deposit(int amount) {
+          balance += amount;
+      }
+      bool withdraw(int amount) {
+          // 잔액이 부족하면 false, 출금에 성공하면 true를 반환하세요
+      }
+      int getBalance() const {
+          return balance;
+      }
+  };
   int main() {
-      int n, x, count = 0;
-      cin >> n;
-      // 짝수 개수를 세세요
-      cout << count;
+      int initial, depositAmount, withdrawAmount;
+      cin >> initial >> depositAmount >> withdrawAmount;
+      BankAccount account(initial);
+      account.deposit(depositAmount);
+      if (account.withdraw(withdrawAmount)) cout << account.getBalance();
+      else cout << "error";
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 3 4 6",
-      "expected": "3"
+      "input": "1000 500 300",
+      "expected": "1200"
     },
     {
-      "input": "4\n1 3 5 7",
+      "input": "100 0 150",
+      "expected": "error"
+    },
+    {
+      "input": "0 100 100",
       "expected": "0"
-    },
-    {
-      "input": "3\n0 -2 9",
-      "expected": "2"
     }
   ]
-hint: 2로 나눈 나머지를 확인하세요.
-explanation: 각 수가 짝수이면 count를 증가시킨다.
+hint: 출금액이 balance보다 크면 잔액을 바꾸지 말고 false를 반환하세요.
+explanation: 잔액을 private으로 숨기고 메서드에서 출금 가능 여부를 검사해 객체 상태를 보호한다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -1093,39 +1149,51 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 클래스와 객체 심화 2
-description: 정수 n과 n개의 정수를 입력받아 오름차순이면 `yes`, 아니면 `no`를 출력하세요.
+title: 가상 함수 오버라이딩
+description: `Shape`를 상속한 `Rectangle` 클래스의 `area` 가상 함수를 재정의해 사각형 넓이를 출력하세요.
 codeTemplate: |
   #include <iostream>
-  #include <vector>
   using namespace std;
+  class Shape {
+  public:
+      virtual int area() const = 0;
+      virtual ~Shape() = default;
+  };
+  class Rectangle : public Shape {
+  private:
+      int width;
+      int height;
+  public:
+      Rectangle(int width, int height) : width(width), height(height) {}
+      int area() const override {
+          // 넓이를 반환하세요
+      }
+  };
   int main() {
-      int n;
-      cin >> n;
-      vector<int> v(n);
-      for (int i = 0; i < n; i++) cin >> v[i];
-      bool ok = true;
-      // 오름차순인지 확인하세요
-      cout << (ok ? "yes" : "no");
+      int width, height;
+      cin >> width >> height;
+      Rectangle rectangle(width, height);
+      Shape& shape = rectangle;
+      cout << shape.area();
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 2 4 5",
-      "expected": "yes"
+      "input": "5 6",
+      "expected": "30"
     },
     {
-      "input": "4\n1 3 2 4",
-      "expected": "no"
+      "input": "1 9",
+      "expected": "9"
     },
     {
-      "input": "1\n9",
-      "expected": "yes"
+      "input": "0 4",
+      "expected": "0"
     }
   ]
-hint: 인접한 값을 비교하세요.
-explanation: 앞 값이 뒤 값보다 크면 오름차순이 아니다.
+hint: `width * height`를 반환하세요.
+explanation: 파생 클래스가 가상 함수를 `override`하면 기본 클래스 참조로 호출해도 재정의한 메서드가 실행된다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -1137,10 +1205,10 @@ difficulty: 3
 title: 객체지향 장점
 description: 클래스와 객체를 사용하면 좋은 점을 설명하세요.
 rubric: |
-  - 핵심 개념을 정확히 설명하면 40점
-  - 코드 관리나 문제 해결에 주는 장점을 설명하면 40점
-  - 예시를 들면 20점
-explanation: 클래스와 객체는 C++ 학습에서 중요한 개념이며 문제 해결 방식을 더 체계적으로 만들어준다.
+  - 데이터와 관련 동작을 하나로 묶는 캡슐화를 설명하면 35점
+  - 상속이나 다형성을 통한 확장과 재사용을 설명하면 35점
+  - 실제 클래스와 객체 예시를 들면 30점
+explanation: 클래스는 상태와 동작을 묶고 접근을 제어하며, 상속과 다형성으로 코드를 재사용하고 확장하게 한다.
 tagsJson: ["클래스와 객체"]
 ```
 
@@ -1167,12 +1235,12 @@ tagsJson: ["STL"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: STL 기본 문법
-description: STL 학습에서 가장 관련 있는 C++ 키워드나 기능은?
-optionsJson: ["vector", "try", "printf", "scanf"]
-answer: vector
-hint: 목차와 가장 직접 연결된 보기를 고르세요.
-explanation: 목차의 핵심 문법과 관련된 선택지가 정답이다.
+title: vector 원소 개수
+description: `vector<int> values`에 저장된 원소 개수를 구하는 올바른 표현은?
+optionsJson: ["values.size()", "values.length", "size(values)", "values.count"]
+answer: values.size()
+hint: vector가 제공하는 멤버 함수를 호출합니다.
+explanation: `vector`의 `size()` 멤버 함수는 현재 저장된 원소 개수를 반환한다.
 tagsJson: ["STL"]
 ```
 
@@ -1181,14 +1249,14 @@ tagsJson: ["STL"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: STL 빈칸
-description: STL와 관련된 기본 코드를 완성하세요.
+title: vector 원소 추가
+description: vector의 맨 뒤에 정수 3을 추가하도록 빈칸을 완성하세요.
 answer: push_back
 codeTemplate: |
   vector<int> v;
   v.____(3);
-hint: 문맥에 맞는 핵심 단어를 넣으세요.
-explanation: 빈칸에는 해당 문법의 핵심 키워드가 들어간다.
+hint: 뒤에 밀어 넣는다는 뜻의 멤버 함수입니다.
+explanation: `push_back`은 vector의 마지막 위치에 새 원소를 추가한다.
 tagsJson: ["STL"]
 ```
 
@@ -1197,11 +1265,11 @@ tagsJson: ["STL"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: STL 단답
-description: STL에서 자주 쓰는 핵심 용어 하나를 쓰세요.
-answer: vector
-hint: 이 목차의 대표 단어입니다.
-explanation: 해당 목차에서 자주 사용하는 핵심 용어다.
+title: 중복 없는 정렬 컨테이너
+description: 원소를 자동으로 정렬하며 중복 값을 저장하지 않는 STL 컨테이너 이름만 쓰세요.
+answer: set
+hint: 수학의 집합과 같은 이름입니다.
+explanation: `set`은 원소를 정렬된 상태로 저장하며 같은 값을 한 번만 보관한다.
 tagsJson: ["STL"]
 ```
 
@@ -1210,34 +1278,37 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 2
-title: STL 연습 1
-description: 입력 조건에 맞게 간단한 결과를 출력하세요.
+title: set으로 중복 제거
+description: 정수 n과 n개의 정수를 입력받아 `set`에 저장한 서로 다른 값의 개수를 출력하세요.
 codeTemplate: |
   #include <iostream>
+  #include <set>
   using namespace std;
   int main() {
-      int a, b;
-      cin >> a >> b;
-      // 두 수 중 큰 값을 출력하세요
+      int n;
+      cin >> n;
+      set<int> uniqueValues;
+      // n개의 정수를 set에 삽입하세요
+      cout << uniqueValues.size();
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "3 5",
-      "expected": "5"
+      "input": "5\n1 1 2 3 3",
+      "expected": "3"
     },
     {
-      "input": "10 2",
-      "expected": "10"
+      "input": "4\n7 7 7 7",
+      "expected": "1"
     },
     {
-      "input": "-1 -4",
-      "expected": "-1"
+      "input": "6\n-1 0 -1 2 0 2",
+      "expected": "3"
     }
   ]
-hint: 조건문 또는 max를 사용할 수 있습니다.
-explanation: 두 값을 비교해 큰 값을 출력한다.
+hint: 입력할 때마다 `uniqueValues.insert(value)`를 호출하세요.
+explanation: set은 중복 삽입을 무시하므로 모든 값을 넣은 뒤 크기가 서로 다른 값의 개수다.
 tagsJson: ["STL"]
 ```
 
@@ -1246,36 +1317,40 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 2
-title: STL 연습 2
-description: 정수 n과 n개의 정수를 입력받아 합계를 출력하세요.
+title: map으로 단어 빈도 세기
+description: 정수 n, n개의 단어, 찾을 단어 target을 입력받아 `map`으로 target의 등장 횟수를 출력하세요.
 codeTemplate: |
   #include <iostream>
-  #include <vector>
+  #include <map>
+  #include <string>
   using namespace std;
   int main() {
-      int n, sum = 0;
+      int n;
       cin >> n;
-      // n개의 정수를 더하세요
-      cout << sum;
+      map<string, int> frequency;
+      // n개의 단어 빈도수를 저장하세요
+      string target;
+      cin >> target;
+      cout << frequency[target];
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "4\n1 2 3 4",
-      "expected": "10"
+      "input": "5\napple banana apple kiwi apple\napple",
+      "expected": "3"
     },
     {
-      "input": "3\n10 -1 5",
-      "expected": "14"
+      "input": "4\na b c d\nz",
+      "expected": "0"
     },
     {
-      "input": "1\n8",
-      "expected": "8"
+      "input": "6\nred blue red green blue blue\nblue",
+      "expected": "3"
     }
   ]
-hint: 반복문으로 입력받으며 더하세요.
-explanation: n번 반복하며 sum에 누적한다.
+hint: 단어를 읽을 때 `frequency[word]++`를 실행하세요.
+explanation: map의 키에 단어를, 값에 등장 횟수를 저장하면 특정 단어의 빈도를 바로 조회할 수 있다.
 tagsJson: ["STL"]
 ```
 
@@ -1284,35 +1359,43 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 3
-title: STL 심화 1
-description: 정수 n과 n개의 정수를 입력받아 짝수 개수를 출력하세요.
+title: sort로 내림차순 정렬
+description: 정수 n과 n개의 정수를 입력받아 STL `sort`로 내림차순 정렬해 공백으로 출력하세요.
 codeTemplate: |
   #include <iostream>
+  #include <vector>
+  #include <algorithm>
+  #include <functional>
   using namespace std;
   int main() {
-      int n, x, count = 0;
+      int n;
       cin >> n;
-      // 짝수 개수를 세세요
-      cout << count;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      // values를 내림차순으로 정렬하세요
+      for (int i = 0; i < n; i++) {
+          if (i > 0) cout << ' ';
+          cout << values[i];
+      }
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 3 4 6",
-      "expected": "3"
+      "input": "5\n3 1 5 2 4",
+      "expected": "5 4 3 2 1"
     },
     {
-      "input": "4\n1 3 5 7",
-      "expected": "0"
+      "input": "4\n-1 7 0 7",
+      "expected": "7 7 0 -1"
     },
     {
-      "input": "3\n0 -2 9",
-      "expected": "2"
+      "input": "1\n9",
+      "expected": "9"
     }
   ]
-hint: 2로 나눈 나머지를 확인하세요.
-explanation: 각 수가 짝수이면 count를 증가시킨다.
+hint: 비교 함수로 `greater<int>()`를 전달하세요.
+explanation: `sort(values.begin(), values.end(), greater<int>())`는 큰 값부터 정렬한다.
 tagsJson: ["STL"]
 ```
 
@@ -1321,39 +1404,36 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 3
-title: STL 심화 2
-description: 정수 n과 n개의 정수를 입력받아 오름차순이면 `yes`, 아니면 `no`를 출력하세요.
+title: priority_queue로 k번째 큰 수
+description: 정수 n, k와 n개의 정수를 입력받아 `priority_queue`를 사용해 k번째로 큰 값을 출력하세요.
 codeTemplate: |
   #include <iostream>
-  #include <vector>
+  #include <queue>
   using namespace std;
   int main() {
-      int n;
-      cin >> n;
-      vector<int> v(n);
-      for (int i = 0; i < n; i++) cin >> v[i];
-      bool ok = true;
-      // 오름차순인지 확인하세요
-      cout << (ok ? "yes" : "no");
+      int n, k;
+      cin >> n >> k;
+      priority_queue<int> values;
+      // n개의 정수를 우선순위 큐에 넣고 k번째 큰 값을 구하세요
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 2 4 5",
-      "expected": "yes"
+      "input": "5 2\n3 1 5 2 4",
+      "expected": "4"
     },
     {
-      "input": "4\n1 3 2 4",
-      "expected": "no"
+      "input": "6 3\n7 7 2 9 1 5",
+      "expected": "7"
     },
     {
-      "input": "1\n9",
-      "expected": "yes"
+      "input": "4 4\n-1 -5 0 3",
+      "expected": "-5"
     }
   ]
-hint: 인접한 값을 비교하세요.
-explanation: 앞 값이 뒤 값보다 크면 오름차순이 아니다.
+hint: 모든 값을 push한 뒤 k-1번 pop하고 top을 출력하세요.
+explanation: 기본 priority_queue의 top에는 가장 큰 값이 있으므로 k-1개를 제거하면 k번째 큰 값이 남는다.
 tagsJson: ["STL"]
 ```
 
@@ -1363,12 +1443,12 @@ tagsJson: ["STL"]
 type: ESSAY
 difficulty: 3
 title: STL 사용 장점
-description: STL를 사용하면 좋은 점을 설명하세요.
+description: STL을 사용하면 좋은 점을 설명하세요.
 rubric: |
-  - 핵심 개념을 정확히 설명하면 40점
-  - 코드 관리나 문제 해결에 주는 장점을 설명하면 40점
-  - 예시를 들면 20점
-explanation: STL는 C++ 학습에서 중요한 개념이며 문제 해결 방식을 더 체계적으로 만들어준다.
+  - 검증된 컨테이너와 알고리즘을 재사용할 수 있다는 점을 설명하면 35점
+  - 구현 시간과 오류 가능성을 줄인다는 점을 설명하면 35점
+  - vector, map, sort 등의 적절한 예시를 들면 30점
+explanation: STL은 표준화되고 검증된 자료구조와 알고리즘을 제공해 코드를 간결하고 안정적으로 만든다.
 tagsJson: ["STL"]
 ```
 
@@ -1395,12 +1475,12 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 알고리즘 기초 기본 문법
-description: 알고리즘 기초 학습에서 가장 관련 있는 C++ 키워드나 기능은?
-optionsJson: ["for", "try", "printf", "scanf"]
-answer: for
-hint: 목차와 가장 직접 연결된 보기를 고르세요.
-explanation: 목차의 핵심 문법과 관련된 선택지가 정답이다.
+title: 이진 탐색 조건
+description: 일반적인 이진 탐색을 적용하기 전에 데이터가 만족해야 하는 조건은?
+optionsJson: ["정렬되어 있어야 한다", "모두 양수여야 한다", "중복이 없어야 한다", "배열 길이가 짝수여야 한다"]
+answer: 정렬되어 있어야 한다
+hint: 탐색 범위를 절반씩 줄이려면 값의 순서를 알아야 합니다.
+explanation: 이진 탐색은 정렬된 데이터에서 중간값과 비교하며 탐색 범위를 절반으로 줄인다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1409,15 +1489,13 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 알고리즘 기초 빈칸
-description: 알고리즘 기초와 관련된 기본 코드를 완성하세요.
-answer: found
+title: 이진 탐색 중간 인덱스
+description: 이진 탐색에서 구간의 중간 인덱스를 계산하도록 빈칸을 완성하세요.
+answer: 2
 codeTemplate: |
-  for (int i = 0; i < n; i++) {
-      if (arr[i] == target) ____ = true;
-  }
-hint: 문맥에 맞는 핵심 단어를 넣으세요.
-explanation: 빈칸에는 해당 문법의 핵심 키워드가 들어간다.
+  int mid = left + (right - left) / ____;
+hint: 구간 길이를 절반으로 나눕니다.
+explanation: `left + (right - left) / 2`는 오버플로 위험을 줄이면서 중간 인덱스를 계산한다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1426,11 +1504,11 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 알고리즘 기초 단답
-description: 알고리즘 기초에서 자주 쓰는 핵심 용어 하나를 쓰세요.
-answer: 정렬
-hint: 이 목차의 대표 단어입니다.
-explanation: 해당 목차에서 자주 사용하는 핵심 용어다.
+title: 선형 탐색 시간 복잡도
+description: 길이가 n인 배열에서 선형 탐색의 최악 시간 복잡도를 Big-O 표기법으로 쓰세요.
+answer: O(n)
+hint: 최악의 경우 모든 원소를 한 번씩 확인합니다.
+explanation: 선형 탐색은 최악의 경우 n개 원소 전체를 확인하므로 시간 복잡도는 O(n)이다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1439,34 +1517,41 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 알고리즘 기초 연습 1
-description: 입력 조건에 맞게 간단한 결과를 출력하세요.
+title: 선형 탐색 첫 위치
+description: 정수 n, n개의 정수, target을 입력받아 target이 처음 나타나는 인덱스를 출력하세요. 없으면 -1을 출력하세요.
 codeTemplate: |
   #include <iostream>
+  #include <vector>
   using namespace std;
   int main() {
-      int a, b;
-      cin >> a >> b;
-      // 두 수 중 큰 값을 출력하세요
+      int n;
+      cin >> n;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      int target;
+      cin >> target;
+      int index = -1;
+      // 앞에서부터 target을 찾아 index를 갱신하세요
+      cout << index;
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "3 5",
-      "expected": "5"
+      "input": "5\n4 2 7 2 9\n2",
+      "expected": "1"
     },
     {
-      "input": "10 2",
-      "expected": "10"
-    },
-    {
-      "input": "-1 -4",
+      "input": "4\n1 3 5 7\n6",
       "expected": "-1"
+    },
+    {
+      "input": "1\n8\n8",
+      "expected": "0"
     }
   ]
-hint: 조건문 또는 max를 사용할 수 있습니다.
-explanation: 두 값을 비교해 큰 값을 출력한다.
+hint: 찾은 즉시 index를 저장하고 반복을 종료하세요.
+explanation: 배열을 앞에서부터 확인하고 처음 일치한 위치를 저장하면 선형 탐색의 첫 결과를 구할 수 있다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1475,36 +1560,45 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 알고리즘 기초 연습 2
-description: 정수 n과 n개의 정수를 입력받아 합계를 출력하세요.
+title: 선택 정렬
+description: 정수 n과 n개의 정수를 입력받아 선택 정렬로 오름차순 정렬한 결과를 공백으로 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
+  #include <utility>
   using namespace std;
   int main() {
-      int n, sum = 0;
+      int n;
       cin >> n;
-      // n개의 정수를 더하세요
-      cout << sum;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      for (int i = 0; i < n - 1; i++) {
+          int minIndex = i;
+          // i 이후에서 가장 작은 값의 위치를 찾아 i와 교환하세요
+      }
+      for (int i = 0; i < n; i++) {
+          if (i > 0) cout << ' ';
+          cout << values[i];
+      }
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "4\n1 2 3 4",
-      "expected": "10"
+      "input": "5\n4 1 3 5 2",
+      "expected": "1 2 3 4 5"
     },
     {
-      "input": "3\n10 -1 5",
-      "expected": "14"
+      "input": "4\n3 3 -1 0",
+      "expected": "-1 0 3 3"
     },
     {
       "input": "1\n8",
       "expected": "8"
     }
   ]
-hint: 반복문으로 입력받으며 더하세요.
-explanation: n번 반복하며 sum에 누적한다.
+hint: 안쪽 반복문에서 minIndex를 갱신한 뒤 `swap(values[i], values[minIndex])`를 실행하세요.
+explanation: 선택 정렬은 정렬되지 않은 구간의 최솟값을 찾아 현재 위치와 교환하는 과정을 반복한다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1513,35 +1607,42 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 알고리즘 기초 심화 1
-description: 정수 n과 n개의 정수를 입력받아 짝수 개수를 출력하세요.
+title: 이진 탐색
+description: 오름차순으로 정렬된 n개의 정수와 target을 입력받아 이진 탐색으로 찾으면 `found`, 없으면 `not found`를 출력하세요.
 codeTemplate: |
   #include <iostream>
+  #include <vector>
   using namespace std;
   int main() {
-      int n, x, count = 0;
+      int n;
       cin >> n;
-      // 짝수 개수를 세세요
-      cout << count;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      int target;
+      cin >> target;
+      int left = 0, right = n - 1;
+      bool found = false;
+      // 이진 탐색으로 target을 찾으세요
+      cout << (found ? "found" : "not found");
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 3 4 6",
-      "expected": "3"
+      "input": "6\n1 3 5 7 9 11\n7",
+      "expected": "found"
     },
     {
-      "input": "4\n1 3 5 7",
-      "expected": "0"
+      "input": "5\n2 4 6 8 10\n3",
+      "expected": "not found"
     },
     {
-      "input": "3\n0 -2 9",
-      "expected": "2"
+      "input": "1\n-5\n-5",
+      "expected": "found"
     }
   ]
-hint: 2로 나눈 나머지를 확인하세요.
-explanation: 각 수가 짝수이면 count를 증가시킨다.
+hint: 중간값과 target을 비교해 left 또는 right를 갱신하세요.
+explanation: 이진 탐색은 중간값과 비교할 때마다 탐색 구간을 절반으로 줄인다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1550,39 +1651,40 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 알고리즘 기초 심화 2
-description: 정수 n과 n개의 정수를 입력받아 오름차순이면 `yes`, 아니면 `no`를 출력하세요.
+title: 투 포인터로 두 수의 합 찾기
+description: 오름차순으로 정렬된 n개의 정수와 target을 입력받아 서로 다른 두 원소의 합이 target이면 `YES`, 없으면 `NO`를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
   using namespace std;
   int main() {
-      int n;
-      cin >> n;
-      vector<int> v(n);
-      for (int i = 0; i < n; i++) cin >> v[i];
-      bool ok = true;
-      // 오름차순인지 확인하세요
-      cout << (ok ? "yes" : "no");
+      int n, target;
+      cin >> n >> target;
+      vector<int> values(n);
+      for (int& value : values) cin >> value;
+      int left = 0, right = n - 1;
+      bool found = false;
+      // 두 포인터를 이동하며 합이 target인 두 원소를 찾으세요
+      cout << (found ? "YES" : "NO");
       return 0;
   }
 testCasesJson: |
   [
     {
-      "input": "5\n1 2 2 4 5",
-      "expected": "yes"
+      "input": "5 9\n1 2 4 5 8",
+      "expected": "YES"
     },
     {
-      "input": "4\n1 3 2 4",
-      "expected": "no"
+      "input": "4 20\n2 4 7 9",
+      "expected": "NO"
     },
     {
-      "input": "1\n9",
-      "expected": "yes"
+      "input": "6 0\n-5 -2 -1 1 3 8",
+      "expected": "YES"
     }
   ]
-hint: 인접한 값을 비교하세요.
-explanation: 앞 값이 뒤 값보다 크면 오름차순이 아니다.
+hint: 합이 target보다 작으면 left를, 크면 right를 이동하세요.
+explanation: 정렬된 배열에서 양 끝 포인터를 이동하면 O(n)에 두 수의 합을 찾을 수 있다.
 tagsJson: ["알고리즘 기초"]
 ```
 
@@ -1592,12 +1694,12 @@ tagsJson: ["알고리즘 기초"]
 type: ESSAY
 difficulty: 3
 title: 알고리즘 복잡도
-description: 알고리즘 기초를 사용하면 좋은 점을 설명하세요.
+description: 같은 문제를 해결하는 O(n) 알고리즘과 O(n²) 알고리즘이 있을 때 입력 크기가 커질수록 성능 차이가 커지는 이유를 설명하세요.
 rubric: |
-  - 핵심 개념을 정확히 설명하면 40점
-  - 코드 관리나 문제 해결에 주는 장점을 설명하면 40점
-  - 예시를 들면 20점
-explanation: 알고리즘 기초는 C++ 학습에서 중요한 개념이며 문제 해결 방식을 더 체계적으로 만들어준다.
+  - O(n)은 입력 크기에 비례하고 O(n²)은 입력 크기의 제곱에 비례해 연산량이 증가한다고 설명하면 40점
+  - 입력이 커질수록 증가율 차이가 커진다고 설명하면 35점
+  - 구체적인 입력 크기나 탐색·반복문 예시를 들면 25점
+explanation: 입력 크기 n이 커질 때 O(n²)의 연산량은 O(n)보다 훨씬 빠르게 증가하므로 시간 복잡도 선택이 중요하다.
 tagsJson: ["알고리즘 기초"]
 ```
 

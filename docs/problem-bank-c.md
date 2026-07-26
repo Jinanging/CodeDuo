@@ -917,9 +917,9 @@ difficulty: 1
 title: 주소 연산자
 description: C에서 변수의 주소를 구하는 연산자는?
 optionsJson: ["&", "*", "%", "#"]
-answer: &
+answer: "&"
 hint: scanf에서 변수 앞에 자주 붙습니다.
-explanation: `&x`는 변수 x의 메모리 주소를 뜻한다.
+explanation: "`&x`는 변수 x의 메모리 주소를 뜻한다."
 tagsJson: ["포인터"]
 ```
 
@@ -931,9 +931,9 @@ difficulty: 1
 title: 간접 참조 연산자
 description: 포인터가 가리키는 값을 읽거나 바꿀 때 사용하는 연산자는?
 optionsJson: ["*", "&", "->", "::"]
-answer: *
+answer: "*"
 hint: 포인터 선언에도 쓰이는 기호입니다.
-explanation: `*p`는 p가 가리키는 위치의 값을 의미한다.
+explanation: "`*p`는 p가 가리키는 위치의 값을 의미한다."
 tagsJson: ["포인터"]
 ```
 
@@ -944,7 +944,7 @@ type: FILL_BLANK
 difficulty: 1
 title: 포인터 선언
 description: 정수형 포인터 p를 선언하려면 빈칸에 들어갈 기호는?
-answer: *
+answer: "*"
 codeTemplate: |
   int ____p;
 hint: 간접 참조 연산자와 같은 기호입니다.
@@ -971,7 +971,7 @@ tagsJson: ["포인터"]
 type: CODE
 difficulty: 2
 title: 포인터로 값 출력
-description: 정수 n을 입력받고 포인터 p가 n을 가리키게 한 뒤 `*p`를 출력하세요.
+description: "정수 n을 입력받고 포인터 p가 n을 가리키게 한 뒤 `*p`를 출력하세요."
 codeTemplate: |
   #include <stdio.h>
   int main() {
@@ -996,8 +996,8 @@ testCasesJson: |
       "expected": "0"
     }
   ]
-hint: `*p`를 출력하세요.
-explanation: 포인터 p는 n의 주소를 저장하므로 `*p`는 n의 값이다.
+hint: "`*p`를 출력하세요."
+explanation: "포인터 p는 n의 주소를 저장하므로 `*p`는 n의 값이다."
 tagsJson: ["포인터"]
 ```
 
@@ -1033,7 +1033,7 @@ testCasesJson: |
       "expected": "8"
     }
   ]
-hint: `*p += 10;`처럼 값을 바꿀 수 있습니다.
+hint: "`*p += 10;`처럼 값을 바꿀 수 있습니다."
 explanation: 포인터로 원본 변수의 값을 직접 수정한다.
 tagsJson: ["포인터"]
 ```
@@ -1110,7 +1110,7 @@ testCasesJson: |
       "expected": "8"
     }
   ]
-hint: `*(p + i)`로 i번째 원소에 접근할 수 있습니다.
+hint: "`*(p + i)`로 i번째 원소에 접근할 수 있습니다."
 explanation: 배열 이름은 첫 원소 주소처럼 사용할 수 있다.
 tagsJson: ["포인터"]
 ```
@@ -1438,6 +1438,10 @@ testCasesJson: |
     {
       "input": "Tom 75",
       "expected": "75"
+    },
+    {
+      "input": "Jin 0",
+      "expected": "0"
     }
   ]
 hint: 구조체 멤버는 `s.score`로 접근합니다.

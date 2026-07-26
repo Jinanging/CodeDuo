@@ -455,7 +455,8 @@ codeTemplate: |
 testCasesJson: |
   [
     { "input": "2", "expected": "2 x 1 = 2\n2 x 2 = 4\n2 x 3 = 6\n2 x 4 = 8\n2 x 5 = 10\n2 x 6 = 12\n2 x 7 = 14\n2 x 8 = 16\n2 x 9 = 18" },
-    { "input": "3", "expected": "3 x 1 = 3\n3 x 2 = 6\n3 x 3 = 9\n3 x 4 = 12\n3 x 5 = 15\n3 x 6 = 18\n3 x 7 = 21\n3 x 8 = 24\n3 x 9 = 27" }
+    { "input": "3", "expected": "3 x 1 = 3\n3 x 2 = 6\n3 x 3 = 9\n3 x 4 = 12\n3 x 5 = 15\n3 x 6 = 18\n3 x 7 = 21\n3 x 8 = 24\n3 x 9 = 27" },
+    { "input": "1", "expected": "1 x 1 = 1\n1 x 2 = 2\n1 x 3 = 3\n1 x 4 = 4\n1 x 5 = 5\n1 x 6 = 6\n1 x 7 = 7\n1 x 8 = 8\n1 x 9 = 9" }
   ]
 hint: f-string을 사용하면 출력 형식을 맞추기 쉽습니다.
 explanation: 1부터 9까지 반복하며 `n * i`를 출력한다.
@@ -475,7 +476,8 @@ codeTemplate: |
 testCasesJson: |
   [
     { "input": "3", "expected": "*\n**\n***" },
-    { "input": "5", "expected": "*\n**\n***\n****\n*****" }
+    { "input": "5", "expected": "*\n**\n***\n****\n*****" },
+    { "input": "1", "expected": "*" }
   ]
 hint: 문자열도 곱셈이 가능합니다.
 explanation: i번째 줄에 `"*" * i`를 출력한다.
