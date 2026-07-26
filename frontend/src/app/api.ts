@@ -217,6 +217,63 @@ export async function getWrongAnswers(): Promise<BackendWrongAnswer[]> {
   return req<BackendWrongAnswer[]>("/api/wrong-answers");
 }
 
+export interface InterviewQuestion {
+  id: number;
+  order: number;
+  language: string;
+  topic: string;
+  question: string;
+}
+
+export interface InterviewTurn {
+  id: number;
+  order: number;
+  language: string;
+  topic: string;
+  question: string;
+  answer: string;
+  score: number;
+  verdict: "STRONG_PASS" | "PASS" | "BORDERLINE" | "NEEDS_IMPROVEMENT";
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+  modelAnswer: string;
+  answeredAt?: string;
+}
+
+export interface InterviewSession {
+  id: number;
+  status: "ACTIVE" | "COMPLETED";
+  totalQuestions: number;
+  completedQuestions: number;
+  averageScore?: number;
+  currentQuestion?: InterviewQuestion;
+  turns: InterviewTurn[];
+  finalReview?: {
+    verdict: InterviewTurn["verdict"];
+    overallReview: string;
+    hiringRecommendation: string;
+    focusAreas: string[];
+  };
+  createdAt?: string;
+  completedAt?: string;
+}
+
+export async function startInterview(): Promise<InterviewSession> {
+  return req<InterviewSession>("/api/interviews", { method: "POST" });
+}
+
+export async function submitInterviewAnswer(sessionId: number, answer: string): Promise<InterviewSession> {
+  return req<InterviewSession>(`/api/interviews/${sessionId}/answers`, {
+    method: "POST",
+    body: JSON.stringify({ answer }),
+  });
+}
+
+export async function getInterviewHistory(): Promise<InterviewSession[]> {
+  return req<InterviewSession[]>("/api/interviews");
+}
+
 export async function updateProfile(profile: { nickname: string; email: string; avatar: string }): Promise<BackendUser> {
   return req<BackendUser>("/api/users/me", { method: "PATCH", body: JSON.stringify(profile) });
 }
