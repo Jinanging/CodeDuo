@@ -1,0 +1,19 @@
+<svg width="320" height="96" viewBox="0 0 320 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">CodeDuo</title>
+  <defs>
+    <linearGradient id="codeduoMark" x1="28" y1="72" x2="82" y2="18" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4C1D95"/>
+      <stop offset="0.48" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#C4B5FD"/>
+    </linearGradient>
+    <linearGradient id="codeduoText" x1="104" y1="24" x2="294" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#211431"/>
+      <stop offset="1" stop-color="#4C1D95"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(15 13)">
+    <path d="M37.6 4.6L55.4 22.4L48.5 29.3L38.3 19.1L18.8 38.6C12.8 44.6 12.8 54.4 18.8 60.4C24.8 66.4 34.6 66.4 40.6 60.4L50.9 50.1L59.1 58.3L48.8 68.6C36.4 81 16.3 81 3.9 68.6C-8.5 56.2-8.5 36.1 3.9 23.7L23.4 4.2L13.5 -5.7H37.6V4.6Z" fill="url(#codeduoMark)" transform="translate(13 5)"/>
+    <path d="M52.4 70.4L34.6 52.6L41.5 45.7L51.7 55.9L71.2 36.4C77.2 30.4 77.2 20.6 71.2 14.6C65.2 8.6 55.4 8.6 49.4 14.6L39.1 24.9L30.9 16.7L41.2 6.4C53.6 -6 73.7 -6 86.1 6.4C98.5 18.8 98.5 38.9 86.1 51.3L66.6 70.8L76.5 80.7H52.4V70.4Z" fill="url(#codeduoMark)" opacity="0.72" transform="translate(-2 -5)"/>
+  </g>
+  <text x="106" y="63" fill="url(#codeduoText)" font-family="Outfit, Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="39" font-weight="900" letter-spacing="0">CodeDuo</text>
+</svg>
