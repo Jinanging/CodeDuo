@@ -2131,6 +2131,7 @@ function AIInterviewPage({ user, onBack }: { user: UserProfile; onBack: () => vo
   const [showFeedback, setShowFeedback] = useState(false);
   const [error, setError] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const activeSession = history.find(item => item.status === "ACTIVE");
 
   useEffect(() => {
     getInterviewHistory().then(setHistory).catch(() => {});
@@ -2145,6 +2146,14 @@ function AIInterviewPage({ user, onBack }: { user: UserProfile; onBack: () => vo
     recognitionRef.current = null;
     setListening(false);
     setInterimTranscript("");
+  };
+
+  const openSession = (item: InterviewSession) => {
+    setSession(item);
+    setAnswer("");
+    setInterimTranscript("");
+    setShowFeedback(false);
+    setError("");
   };
 
   const startSession = async () => {
@@ -2283,14 +2292,19 @@ function AIInterviewPage({ user, onBack }: { user: UserProfile; onBack: () => vo
                   </div>
                 ))}
               </div>
+              {activeSession && (
+                <div className="flex w-fit items-center gap-2 px-3 py-2 rounded-xl bg-white/15 border border-white/15 text-sm font-bold mb-4">
+                  <Play size={15} />{activeSession.completedQuestions}/{activeSession.totalQuestions}문항까지 진행한 면접이 있습니다
+                </div>
+              )}
               <button
-                onClick={startSession}
+                onClick={() => activeSession ? openSession(activeSession) : void startSession()}
                 disabled={starting}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-extrabold bg-white disabled:opacity-60"
                 style={{ color: "#6D28D9" }}
               >
-                {starting ? <Loader2 size={18} className="animate-spin" /> : <Mic size={18} />}
-                {starting ? "학습 이력 분석 중..." : "새 AI 면접 시작"}
+                {starting ? <Loader2 size={18} className="animate-spin" /> : activeSession ? <Play size={18} /> : <Mic size={18} />}
+                {starting ? "학습 이력 분석 중..." : activeSession ? "진행 중인 면접 이어서 하기" : "새 AI 면접 시작"}
               </button>
             </div>
           </div>
@@ -2318,7 +2332,12 @@ function AIInterviewPage({ user, onBack }: { user: UserProfile; onBack: () => vo
             ) : (
               <div className="space-y-2">
                 {history.slice(0, 3).map(item => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => openSession(item)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border text-left transition-colors hover:border-purple-300"
+                  >
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold" style={{ background: "var(--secondary)", color: "var(--primary)" }}>
                       {item.averageScore ?? "-"}
                     </div>
@@ -2326,10 +2345,11 @@ function AIInterviewPage({ user, onBack }: { user: UserProfile; onBack: () => vo
                       <p className="text-sm font-bold" style={{ color: "var(--foreground)" }}>기술 면접 #{item.id}</p>
                       <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{item.completedQuestions}/{item.totalQuestions}문항 완료</p>
                     </div>
-                    <span className="text-xs font-bold" style={{ color: item.status === "COMPLETED" ? "#047857" : "#B45309" }}>
-                      {item.status === "COMPLETED" ? "완료" : "진행 중"}
+                    <span className="text-xs font-bold whitespace-nowrap" style={{ color: item.status === "COMPLETED" ? "#047857" : "#B45309" }}>
+                      {item.status === "COMPLETED" ? "결과 보기" : "계속하기"}
                     </span>
-                  </div>
+                    <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />
+                  </button>
                 ))}
               </div>
             )}

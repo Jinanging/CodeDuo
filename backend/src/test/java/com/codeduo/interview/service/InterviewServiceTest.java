@@ -30,6 +30,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,6 +99,49 @@ class InterviewServiceTest {
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.currentQuestion().question()).contains("검증");
         assertThat(response.completedQuestions()).isZero();
+    }
+
+    @Test
+    void returnsExistingActiveInterviewInsteadOfCreatingAnotherOne() {
+        InterviewSession activeSession = InterviewSession.builder()
+                .id(10L)
+                .user(user)
+                .status(InterviewStatus.ACTIVE)
+                .totalQuestions(3)
+                .turns(new ArrayList<>())
+                .build();
+        activeSession.addTurn(InterviewTurn.builder()
+                .id(20L)
+                .questionOrder(1)
+                .language("PYTHON")
+                .topic("반복문")
+                .question("range의 동작을 설명해보세요.")
+                .expectedPoints("시작, 종료, 간격")
+                .answer("종료값 직전까지 반복합니다.")
+                .score(80)
+                .verdict("PASS")
+                .feedback("핵심을 설명했습니다.")
+                .answeredAt(java.time.LocalDateTime.now())
+                .build());
+        activeSession.addTurn(InterviewTurn.builder()
+                .id(21L)
+                .questionOrder(2)
+                .language("PYTHON")
+                .topic("경계값")
+                .question("반복문의 경계 오류를 어떻게 검증하나요?")
+                .expectedPoints("최솟값, 최댓값, 빈 입력")
+                .build());
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(interviewSessionRepository.findFirstByUserIdAndStatusOrderByCreatedAtDesc(1L, InterviewStatus.ACTIVE))
+                .thenReturn(Optional.of(activeSession));
+
+        InterviewSessionResponse response = service.start(user);
+
+        assertThat(response.id()).isEqualTo(10L);
+        assertThat(response.completedQuestions()).isEqualTo(1);
+        assertThat(response.currentQuestion().order()).isEqualTo(2);
+        verifyNoInteractions(aiClient);
     }
 
     @Test
