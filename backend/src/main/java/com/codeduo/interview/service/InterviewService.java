@@ -43,6 +43,13 @@ public class InterviewService {
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
         requirePremium(managedUser);
 
+        InterviewSession activeSession = interviewSessionRepository
+                .findFirstByUserIdAndStatusOrderByCreatedAtDesc(managedUser.getId(), InterviewStatus.ACTIVE)
+                .orElse(null);
+        if (activeSession != null) {
+            return InterviewSessionResponse.from(activeSession);
+        }
+
         StudyData studyData = studyData(managedUser.getId());
         if (studyData.wrongAnswers().isEmpty() && studyData.submissions().isEmpty()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "AI 면접을 시작하려면 먼저 레슨 문제를 풀어주세요.");
