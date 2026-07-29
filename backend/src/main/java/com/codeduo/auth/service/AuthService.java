@@ -26,11 +26,15 @@ public class AuthService {
         if (userRepository.existsByEmail(request.email())) {
             throw new BusinessException(HttpStatus.CONFLICT, "이미 가입된 이메일입니다.");
         }
+        String nickname = request.nickname().trim();
+        if (userRepository.existsByNicknameIgnoreCase(nickname)) {
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+        }
         User user = userRepository.save(User.builder()
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .nickname(request.nickname())
-                .avatar(request.nickname().length() >= 2 ? request.nickname().substring(0, 2).toUpperCase() : request.nickname().toUpperCase())
+                .nickname(nickname)
+                .avatar(nickname.length() >= 2 ? nickname.substring(0, 2).toUpperCase() : nickname.toUpperCase())
                 .xp(0)
                 .streakCount(0)
                 .hearts(5)

@@ -4,6 +4,7 @@ import com.codeduo.ai.dto.EssayGradeResult;
 import com.codeduo.ai.dto.InterviewEvaluation;
 import com.codeduo.ai.dto.InterviewFinalReview;
 import com.codeduo.ai.dto.InterviewQuestion;
+import com.codeduo.analytics.dto.AnalyticsDtos.AiLearningReport;
 import com.codeduo.global.exception.BusinessException;
 import com.codeduo.problem.entity.Problem;
 import com.codeduo.submission.entity.Submission;
@@ -232,6 +233,43 @@ public class GeminiAiClient implements AiClient {
                 requiredText(json, "overallReview", "AI 최종 총평을 생성하지 못했습니다."),
                 requiredText(json, "hiringRecommendation", "AI 채용 의견을 생성하지 못했습니다."),
                 stringList(json, "focusAreas", "핵심 개념을 구체적인 코드 예시와 함께 설명해보세요.")
+        );
+    }
+
+    @Override
+    public AiLearningReport createLearningReport(String learningContext) {
+        String raw = generateJson("""
+                너는 초보 개발자를 돕는 코딩 학습 코치다.
+                사용자의 최근 풀이 기록을 바탕으로 성적표가 아니라 다음 학습 방향을 제안하는 리포트를 작성한다.
+
+                규칙:
+                - 한국어로 답한다.
+                - 사용자가 모든 언어를 공부해야 한다고 가정하지 않는다.
+                - 풀지 않은 언어를 취약하다고 단정하지 않는다.
+                - "정확도"라는 표현은 쓰지 않는다.
+                - 오답노트와 겹치지 않도록 개별 문제 해설보다 학습 흐름, 반복 패턴, 다음 행동을 중심으로 쓴다.
+                - 각 배열은 1~3개 항목으로 제한한다.
+
+                <학습기록>
+                %s
+                </학습기록>
+
+                반드시 아래 JSON 객체 하나만 반환한다.
+                {
+                  "summary": "최근 학습 흐름에 대한 2~3문장 요약",
+                  "strengths": ["잘 이어가고 있는 점"],
+                  "patterns": ["최근 풀이에서 보이는 패턴"],
+                  "focusAreas": ["다시 보면 좋은 영역"],
+                  "nextActions": ["바로 할 수 있는 다음 학습 행동"]
+                }
+                """.formatted(limit(learningContext, 18000)));
+        com.fasterxml.jackson.databind.JsonNode json = parseJson(raw);
+        return new AiLearningReport(
+                requiredText(json, "summary", "AI 학습 리포트를 생성하지 못했습니다."),
+                stringList(json, "strengths", "꾸준히 풀이 기록을 쌓고 있습니다."),
+                stringList(json, "patterns", "최근 풀이 기록을 바탕으로 학습 흐름을 확인해보세요."),
+                stringList(json, "focusAreas", "오답노트에서 최근 오답을 다시 확인해보세요."),
+                stringList(json, "nextActions", "최근 오답 1~2개를 복습하고 이어서 문제를 풀어보세요.")
         );
     }
 

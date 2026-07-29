@@ -2,8 +2,11 @@ package com.codeduo.friend.service;
 
 import com.codeduo.friend.dto.FriendDtos.*;
 import com.codeduo.friend.entity.Friendship;
+import com.codeduo.friend.entity.StudyGroup;
+import com.codeduo.friend.entity.StudyGroupJoinRequest;
 import com.codeduo.friend.entity.StudyGroupMember;
 import com.codeduo.friend.repository.FriendshipRepository;
+import com.codeduo.friend.repository.StudyGroupJoinRequestRepository;
 import com.codeduo.friend.repository.StudyGroupMemberRepository;
 import com.codeduo.friend.repository.StudyGroupRepository;
 import com.codeduo.friend.type.FriendshipStatus;
@@ -35,6 +38,7 @@ public class FriendService {
     private final FriendshipRepository friendshipRepository;
     private final StudyGroupRepository studyGroupRepository;
     private final StudyGroupMemberRepository studyGroupMemberRepository;
+    private final StudyGroupJoinRequestRepository studyGroupJoinRequestRepository;
     private final SubmissionRepository submissionRepository;
 
     @Transactional(readOnly = true)
@@ -43,6 +47,9 @@ public class FriendService {
         Set<Long> friendIds = friendIdsOf(currentUserId);
         Set<Long> joinedGroupIds = studyGroupMemberRepository.findAllByUserId(currentUserId).stream()
                 .map(member -> member.getStudyGroup().getId())
+                .collect(Collectors.toSet());
+        Set<Long> pendingGroupIds = studyGroupJoinRequestRepository.findAllByUserId(currentUserId).stream()
+                .map(request -> request.getStudyGroup().getId())
                 .collect(Collectors.toSet());
 
         return new FriendsResponse(
@@ -59,13 +66,7 @@ public class FriendService {
                         ))
                         .toList(),
                 studyGroupRepository.findAll().stream()
-                        .map(group -> new StudyGroup(
-                                String.valueOf(group.getId()),
-                                group.getName(),
-                                (int) studyGroupMemberRepository.countByStudyGroupId(group.getId()),
-                                group.getLanguage().name().toLowerCase(),
-                                joinedGroupIds.contains(group.getId())
-                        ))
+                        .map(group -> toStudyGroup(group, currentUserId, joinedGroupIds, pendingGroupIds))
                         .toList()
         );
     }
@@ -85,6 +86,46 @@ public class FriendService {
                         relationStatus(currentUser.getId(), user.getId())
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.codeduo.friend.dto.FriendDtos.StudyGroup> searchGroups(User currentUser, String query) {
+        String safeQuery = query == null ? "" : query.trim();
+        if (safeQuery.length() < 2) return List.of();
+        Set<Long> joinedGroupIds = studyGroupMemberRepository.findAllByUserId(currentUser.getId()).stream()
+                .map(member -> member.getStudyGroup().getId())
+                .collect(Collectors.toSet());
+        Set<Long> pendingGroupIds = studyGroupJoinRequestRepository.findAllByUserId(currentUser.getId()).stream()
+                .map(request -> request.getStudyGroup().getId())
+                .collect(Collectors.toSet());
+        return studyGroupRepository.findTop20ByNameContainingIgnoreCaseOrderByNameAsc(safeQuery).stream()
+                .map(group -> toStudyGroup(group, currentUser.getId(), joinedGroupIds, pendingGroupIds))
+                .toList();
+    }
+
+    public FriendsResponse createGroup(User currentUser, CreateGroupRequest request) {
+        String name = clean(request.name());
+        if (name.length() < 2) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "그룹 이름은 2자 이상이어야 합니다.");
+        }
+        if (studyGroupRepository.existsByName(name)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "이미 같은 이름의 그룹이 있습니다.");
+        }
+        int maxMembers = Math.max(2, Math.min(50, request.maxMembers()));
+        Language language = parseLanguage(request.language());
+        StudyGroup group = studyGroupRepository.save(StudyGroup.builder()
+                .name(name)
+                .description(limit(clean(request.description()), 1000))
+                .maxMembers(maxMembers)
+                .imageUrl(limit(clean(request.imageUrl()), 2_000_000))
+                .language(language)
+                .owner(currentUser)
+                .build());
+        studyGroupMemberRepository.save(StudyGroupMember.builder()
+                .studyGroup(group)
+                .user(currentUser)
+                .build());
+        return getFriends(currentUser);
     }
 
     public FriendsResponse addFriend(User currentUser, Long targetUserId) {
@@ -150,22 +191,53 @@ public class FriendService {
     public FriendsResponse joinGroup(User currentUser, Long groupId) {
         var group = studyGroupRepository.findById(groupId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."));
-        studyGroupMemberRepository.findByStudyGroupIdAndUserId(groupId, currentUser.getId())
-                .orElseGet(() -> studyGroupMemberRepository.save(StudyGroupMember.builder()
-                        .studyGroup(group)
-                        .user(currentUser)
-                        .build()));
+        if (studyGroupMemberRepository.findByStudyGroupIdAndUserId(groupId, currentUser.getId()).isPresent()) {
+            return getFriends(currentUser);
+        }
+        if (studyGroupJoinRequestRepository.existsByStudyGroupIdAndUserId(groupId, currentUser.getId())) {
+            return getFriends(currentUser);
+        }
+        if (studyGroupMemberRepository.countByStudyGroupId(groupId) >= maxMembersOf(group)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "그룹 정원이 가득 찼습니다.");
+        }
+        studyGroupJoinRequestRepository.save(StudyGroupJoinRequest.builder()
+                .studyGroup(group)
+                .user(currentUser)
+                .build());
         return getFriends(currentUser);
     }
 
     public FriendsResponse leaveGroup(User currentUser, Long groupId) {
         studyGroupMemberRepository.findByStudyGroupIdAndUserId(groupId, currentUser.getId())
                 .ifPresent(studyGroupMemberRepository::delete);
+        studyGroupJoinRequestRepository.deleteByStudyGroupIdAndUserId(groupId, currentUser.getId());
         return getFriends(currentUser);
     }
 
+    public GroupDetailResponse acceptGroupRequest(User currentUser, Long groupId, Long userId) {
+        StudyGroup group = requireOwnedGroup(currentUser, groupId);
+        StudyGroupJoinRequest request = studyGroupJoinRequestRepository.findByStudyGroupIdAndUserId(groupId, userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "그룹 참가 신청을 찾을 수 없습니다."));
+        if (studyGroupMemberRepository.countByStudyGroupId(groupId) >= maxMembersOf(group)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "그룹 정원이 가득 찼습니다.");
+        }
+        studyGroupMemberRepository.findByStudyGroupIdAndUserId(groupId, userId)
+                .orElseGet(() -> studyGroupMemberRepository.save(StudyGroupMember.builder()
+                        .studyGroup(group)
+                        .user(request.getUser())
+                        .build()));
+        studyGroupJoinRequestRepository.delete(request);
+        return getGroupDetail(currentUser, groupId);
+    }
+
+    public GroupDetailResponse rejectGroupRequest(User currentUser, Long groupId, Long userId) {
+        requireOwnedGroup(currentUser, groupId);
+        studyGroupJoinRequestRepository.deleteByStudyGroupIdAndUserId(groupId, userId);
+        return getGroupDetail(currentUser, groupId);
+    }
+
     @Transactional(readOnly = true)
-    public GroupDetailResponse getGroupDetail(Long groupId) {
+    public GroupDetailResponse getGroupDetail(User currentUser, Long groupId) {
         var group = studyGroupRepository.findById(groupId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."));
         List<StudyGroupMember> memberships = studyGroupMemberRepository.findAllByStudyGroupId(groupId);
@@ -186,16 +258,54 @@ public class FriendService {
         int weeklySolved = members.stream().mapToInt(GroupMember::weeklySolved).sum();
         int averageStreak = members.isEmpty() ? 0 : (int) Math.round(members.stream().mapToInt(GroupMember::streak).average().orElse(0));
         int onlineCount = (int) members.stream().filter(GroupMember::online).count();
+        boolean ownedByMe = isOwner(group, currentUser.getId());
+        boolean joined = studyGroupMemberRepository.findByStudyGroupIdAndUserId(groupId, currentUser.getId()).isPresent();
+        boolean pendingRequest = studyGroupJoinRequestRepository.existsByStudyGroupIdAndUserId(groupId, currentUser.getId());
+        List<GroupJoinRequest> pendingRequests = ownedByMe
+                ? studyGroupJoinRequestRepository.findAllByStudyGroupId(groupId).stream()
+                        .map(request -> new GroupJoinRequest(
+                                String.valueOf(request.getId()),
+                                toFriend(request.getUser(), "none"),
+                                request.getRequestedAt() == null ? "" : request.getRequestedAt().toString()
+                        ))
+                        .toList()
+                : List.of();
         return new GroupDetailResponse(
                 String.valueOf(group.getId()),
                 group.getName(),
+                safe(group.getDescription()),
                 group.getLanguage().name().toLowerCase(),
+                safe(group.getImageUrl()),
+                group.getOwner() == null ? "" : String.valueOf(group.getOwner().getId()),
+                group.getOwner() == null ? "" : group.getOwner().getNickname(),
                 memberships.size(),
+                maxMembersOf(group),
                 Math.max(10, memberships.size() * 10),
                 weeklySolved,
                 averageStreak,
                 onlineCount,
-                members
+                joined,
+                pendingRequest,
+                ownedByMe,
+                members,
+                pendingRequests
+        );
+    }
+
+    private com.codeduo.friend.dto.FriendDtos.StudyGroup toStudyGroup(StudyGroup group, Long currentUserId, Set<Long> joinedGroupIds, Set<Long> pendingGroupIds) {
+        return new com.codeduo.friend.dto.FriendDtos.StudyGroup(
+                String.valueOf(group.getId()),
+                group.getName(),
+                safe(group.getDescription()),
+                (int) studyGroupMemberRepository.countByStudyGroupId(group.getId()),
+                maxMembersOf(group),
+                group.getLanguage().name().toLowerCase(),
+                safe(group.getImageUrl()),
+                group.getOwner() == null ? "" : String.valueOf(group.getOwner().getId()),
+                group.getOwner() == null ? "" : group.getOwner().getNickname(),
+                joinedGroupIds.contains(group.getId()),
+                pendingGroupIds.contains(group.getId()),
+                isOwner(group, currentUserId)
         );
     }
 
@@ -248,6 +358,44 @@ public class FriendService {
 
     private int levelOf(int xp) {
         return Math.max(1, xp / 200 + 1);
+    }
+
+    private StudyGroup requireOwnedGroup(User currentUser, Long groupId) {
+        StudyGroup group = studyGroupRepository.findById(groupId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "그룹을 찾을 수 없습니다."));
+        if (!isOwner(group, currentUser.getId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "그룹장만 처리할 수 있습니다.");
+        }
+        return group;
+    }
+
+    private boolean isOwner(StudyGroup group, Long userId) {
+        return group.getOwner() != null && group.getOwner().getId().equals(userId);
+    }
+
+    private int maxMembersOf(StudyGroup group) {
+        return group.getMaxMembers() > 0 ? group.getMaxMembers() : 20;
+    }
+
+    private Language parseLanguage(String value) {
+        try {
+            return Language.valueOf(clean(value).toUpperCase());
+        } catch (Exception e) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "지원하지 않는 언어입니다.");
+        }
+    }
+
+    private String clean(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null) return "";
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
     }
 
     private GroupMember toGroupMember(User user, Language language, int weeklySolved) {

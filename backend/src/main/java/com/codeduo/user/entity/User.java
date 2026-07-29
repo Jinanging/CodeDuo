@@ -40,6 +40,7 @@ public class User {
     @Builder.Default
     private int hearts = 5;
 
+    @Column(columnDefinition = "LONGTEXT")
     private String avatar;
 
     private LocalDateTime lastSeenAt;

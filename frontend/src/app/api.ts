@@ -77,6 +77,13 @@ export interface BackendWeakness { subject: string; score: number; }
 export interface BackendActivity { day: string; solved: number; }
 export interface BackendAnalyticsSummary { totalSolved: number; weeklySolved: number; streak: number; accuracy: number; }
 export interface BackendAnalytics { weakness: BackendWeakness[]; activity: BackendActivity[]; summary: BackendAnalyticsSummary; }
+export interface AiLearningReport {
+  summary: string;
+  strengths: string[];
+  patterns: string[];
+  focusAreas: string[];
+  nextActions: string[];
+}
 export interface BackendActivityDay { date: string; count: number; }
 export interface BackendFriend {
   id: string;
@@ -99,9 +106,16 @@ export interface BackendFriendRequestsResponse {
 export interface BackendStudyGroup {
   id: string;
   name: string;
+  description: string;
   memberCount: number;
+  maxMembers: number;
   language: string;
+  imageUrl: string;
+  ownerId: string;
+  ownerName: string;
   joined: boolean;
+  pendingRequest: boolean;
+  ownedByMe: boolean;
 }
 export interface BackendFriendsResponse {
   users: BackendFriend[];
@@ -120,13 +134,34 @@ export interface BackendGroupMember {
 export interface BackendGroupDetail {
   id: string;
   name: string;
+  description: string;
   language: string;
+  imageUrl: string;
+  ownerId: string;
+  ownerName: string;
   memberCount: number;
+  maxMembers: number;
   weeklyGoal: number;
   weeklySolved: number;
   averageStreak: number;
   onlineCount: number;
+  joined: boolean;
+  pendingRequest: boolean;
+  ownedByMe: boolean;
   members: BackendGroupMember[];
+  pendingRequests: BackendGroupJoinRequest[];
+}
+export interface BackendGroupJoinRequest {
+  id: string;
+  user: BackendFriend;
+  requestedAt: string;
+}
+export interface CreateGroupPayload {
+  name: string;
+  description: string;
+  maxMembers: number;
+  language: string;
+  imageUrl: string;
 }
 export interface AdminLesson {
   id: number; courseId: number; courseTitle: string; language: string; title: string; description: string; orderIndex: number;
@@ -189,6 +224,10 @@ export async function searchFriends(query: string): Promise<BackendFriend[]> {
   return req<BackendFriend[]>(`/api/friends/search?query=${encodeURIComponent(query)}`);
 }
 
+export async function searchGroups(query: string): Promise<BackendStudyGroup[]> {
+  return req<BackendStudyGroup[]>(`/api/friends/groups/search?query=${encodeURIComponent(query)}`);
+}
+
 export async function getFriendRequests(): Promise<BackendFriendRequestsResponse> {
   return req<BackendFriendRequestsResponse>("/api/friends/requests");
 }
@@ -213,12 +252,24 @@ export async function joinGroup(groupId: string): Promise<BackendFriendsResponse
   return req<BackendFriendsResponse>(`/api/friends/groups/${encodeURIComponent(groupId)}/join`, { method: "POST" });
 }
 
+export async function createGroup(payload: CreateGroupPayload): Promise<BackendFriendsResponse> {
+  return req<BackendFriendsResponse>("/api/friends/groups", { method: "POST", body: JSON.stringify(payload) });
+}
+
 export async function leaveGroup(groupId: string): Promise<BackendFriendsResponse> {
   return req<BackendFriendsResponse>(`/api/friends/groups/${encodeURIComponent(groupId)}/join`, { method: "DELETE" });
 }
 
 export async function getGroupDetail(groupId: string): Promise<BackendGroupDetail> {
   return req<BackendGroupDetail>(`/api/friends/groups/${encodeURIComponent(groupId)}`);
+}
+
+export async function acceptGroupRequest(groupId: string, userId: string): Promise<BackendGroupDetail> {
+  return req<BackendGroupDetail>(`/api/friends/groups/${encodeURIComponent(groupId)}/requests/${encodeURIComponent(userId)}/accept`, { method: "POST" });
+}
+
+export async function rejectGroupRequest(groupId: string, userId: string): Promise<BackendGroupDetail> {
+  return req<BackendGroupDetail>(`/api/friends/groups/${encodeURIComponent(groupId)}/requests/${encodeURIComponent(userId)}`, { method: "DELETE" });
 }
 
 /** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
@@ -302,6 +353,10 @@ export async function heartbeat(): Promise<void> {
 
 export async function fetchAnalytics(): Promise<BackendAnalytics> {
   return req<BackendAnalytics>("/api/analytics");
+}
+
+export async function fetchAiLearningReport(): Promise<AiLearningReport> {
+  return req<AiLearningReport>("/api/analytics/ai-report");
 }
 
 /** 현재 로그인한 유저 정보 조회 (JWT 토큰 기반). 세션 복원/새로고침 시 사용. */
