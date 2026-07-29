@@ -39,6 +39,8 @@ public class Problem {
     @Column(columnDefinition = "TEXT")
     private String answer;
 
+    private Integer correctOptionIndex;
+
     @Column(columnDefinition = "TEXT")
     private String codeTemplate;
 

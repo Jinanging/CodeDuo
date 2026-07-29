@@ -23,8 +23,8 @@
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: Java 출력문
-description: Java에서 문자열 `Hello`를 한 줄로 출력하는 올바른 코드는?
+title: 안내 문구 출력하기
+description: 콘솔 프로그램에서 사용자에게 `Hello`를 한 줄로 보여주려고 합니다. Java에서 올바른 출력 코드는?
 optionsJson: ["System.out.println(\"Hello\");", "print(\"Hello\")", "console.log(\"Hello\");", "cout << \"Hello\";"]
 answer: "System.out.println(\"Hello\");"
 hint: Java 표준 출력은 `System.out`을 사용합니다.
@@ -37,12 +37,12 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 정수 변수 선언
-description: Java에서 정수 변수 `age`에 20을 저장하는 올바른 코드는?
-optionsJson: ["int age = 20;", "age = 20", "let age = 20;", "Integer age := 20;"]
-answer: "int age = 20;"
+title: 점수 변수 선언하기
+description: 퀴즈 점수 20점을 `score` 변수에 저장하려고 합니다. Java의 정적 타입 문법에 맞는 코드는?
+optionsJson: ["int score = 20;", "score = 20", "let score = 20;", "Integer score := 20;"]
+answer: "int score = 20;"
 hint: Java는 변수 선언 시 자료형을 먼저 씁니다.
-explanation: Java의 기본 정수 자료형은 `int`이며 `int age = 20;`처럼 선언한다.
+explanation: Java의 기본 정수 자료형은 `int`이며 `int score = 20;`처럼 선언한다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -51,8 +51,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 메인 메서드 빈칸
-description: Java 프로그램의 시작점인 메서드 이름으로 빈칸에 들어갈 단어는?
+title: 프로그램 시작점 찾기
+description: Java 프로그램이 실행될 때 가장 먼저 호출되는 메서드 이름으로 빈칸에 들어갈 단어는?
 codeTemplate: |
   public class Main {
       public static void ____(String[] args) {
@@ -70,8 +70,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 문자열 자료형 이름
-description: Java에서 문자열을 저장하는 대표 클래스 이름만 쓰세요.
+title: 닉네임 자료형 고르기
+description: 사용자 닉네임처럼 여러 글자로 된 텍스트를 저장할 때 사용하는 Java의 대표 클래스 이름만 쓰세요.
 answer: String
 hint: 첫 글자가 대문자인 참조 자료형입니다.
 explanation: Java에서 문자열은 `String` 클래스로 표현한다.
@@ -83,8 +83,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 두 정수의 합
-description: 두 정수 a, b를 입력받아 합을 출력하세요.
+title: 두 라운드 점수 합산
+description: 두 라운드에서 얻은 정수 점수 a, b를 입력받아 총점을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -92,7 +92,7 @@ codeTemplate: |
           Scanner sc = new Scanner(System.in);
           int a = sc.nextInt();
           int b = sc.nextInt();
-          // 합을 출력하세요
+          // 총점을 출력하세요
       }
   }
 testCasesJson: |
@@ -101,8 +101,8 @@ testCasesJson: |
     { "input": "-1 6", "expected": "5" },
     { "input": "10 0", "expected": "10" }
   ]
-hint: `a + b`를 출력하면 됩니다.
-explanation: `System.out.println(a + b);`로 두 정수의 합을 출력한다.
+hint: 두 점수를 더해 출력하면 됩니다.
+explanation: `System.out.println(a + b);`로 두 라운드 점수의 합을 출력한다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -111,8 +111,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 사칙연산 결과
-description: 두 정수 a, b를 입력받아 합과 차를 각각 한 줄에 출력하세요.
+title: 점수 변화 출력
+description: 이전 점수 a와 이번에 얻은 점수 b를 입력받아 총점과 점수 차이를 각각 한 줄에 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -139,8 +139,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 평균 구하기
-description: 세 정수를 입력받아 정수 나눗셈으로 평균을 출력하세요.
+title: 세 과제 평균 점수
+description: 세 과제 점수를 입력받아 정수 나눗셈으로 평균을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -168,8 +168,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 몫과 나머지
-description: 두 양의 정수 a, b를 입력받아 a를 b로 나눈 몫과 나머지를 공백으로 출력하세요.
+title: 스터디 그룹 나누기
+description: 전체 인원 a명과 한 그룹 인원 b명을 입력받아 만들 수 있는 그룹 수와 남는 인원을 공백으로 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -177,7 +177,7 @@ codeTemplate: |
           Scanner sc = new Scanner(System.in);
           int a = sc.nextInt();
           int b = sc.nextInt();
-          // 몫과 나머지를 출력하세요
+          // 그룹 수와 남는 인원을 출력하세요
       }
   }
 testCasesJson: |
@@ -186,8 +186,8 @@ testCasesJson: |
     { "input": "10 5", "expected": "2 0" },
     { "input": "20 6", "expected": "3 2" }
   ]
-hint: 몫은 `/`, 나머지는 `%`입니다.
-explanation: `System.out.println((a / b) + " " + (a % b));`로 출력한다.
+hint: 그룹 수는 몫, 남는 인원은 나머지입니다.
+explanation: `a / b`는 만들 수 있는 그룹 수, `a % b`는 남는 인원이다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -196,13 +196,14 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: Java의 정적 타입 설명
-description: Java가 정적 타입 언어라는 말의 의미를 간단히 설명하세요.
+title: 정적 타입이 오류를 줄이는 방식
+description: Java가 정적 타입 언어라는 말의 의미와, 변수에 맞지 않는 자료형을 넣으려 할 때 어떤 장점이 있는지 설명하세요.
 rubric: |
-  - 변수 선언 시 자료형을 명시해야 한다는 점을 설명하면 40점
-  - 컴파일 단계에서 타입 오류를 찾을 수 있다는 점을 설명하면 40점
-  - `int`, `String` 같은 예시를 들면 20점
-explanation: Java는 변수와 메서드의 타입을 코드에 명시하며, 컴파일러가 타입이 맞는지 검사한다.
+  - 변수 선언 시 자료형을 명시해야 한다는 점을 설명하면 30점
+  - 컴파일 단계에서 타입 오류를 찾을 수 있다는 점을 설명하면 35점
+  - 코드가 커질수록 타입 정보가 협업과 유지보수에 도움이 된다는 점을 설명하면 20점
+  - `int`, `String` 같은 예시를 들면 15점
+explanation: Java는 변수와 메서드의 타입을 코드에 명시한다. 컴파일러가 타입을 검사하므로 실행 전에 많은 실수를 찾을 수 있다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -215,8 +216,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: if 조건식
-description: Java에서 `x`가 10보다 큰지 검사하는 올바른 조건식은?
+title: 보상 지급 조건 작성하기
+description: 풀이 점수 `x`가 10보다 큰 경우에만 보상을 주려고 합니다. Java에서 올바른 조건식은?
 optionsJson: ["if (x > 10)", "if x > 10:", "when x > 10", "if [x > 10]"]
 answer: "if (x > 10)"
 hint: Java의 조건식은 괄호 안에 씁니다.
@@ -229,8 +230,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: for 반복문
-description: Java에서 0부터 4까지 반복하는 올바른 코드는?
+title: 5문제 반복 처리하기
+description: 오늘의 미션 5문제를 0번부터 4번까지 차례로 처리하려고 합니다. 올바른 Java 반복문은?
 optionsJson: ["for (int i = 0; i < 5; i++)", "for i in range(5):", "repeat i 5", "loop (i < 5)"]
 answer: "for (int i = 0; i < 5; i++)"
 hint: Java for문은 초기식, 조건식, 증감식을 세미콜론으로 구분합니다.
@@ -243,8 +244,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: else 빈칸
-description: 조건이 거짓일 때 실행되는 블록을 만들기 위해 빈칸에 들어갈 키워드는?
+title: 실패 메시지 처리하기
+description: 60점 이상이면 통과, 그렇지 않으면 실패 메시지를 출력하려고 합니다. 빈칸에 들어갈 키워드는?
 codeTemplate: |
   if (score >= 60) {
       System.out.println("pass");
@@ -262,8 +263,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 반복 중단 키워드
-description: Java 반복문을 즉시 종료할 때 사용하는 키워드만 쓰세요.
+title: 목표 달성 후 반복 멈추기
+description: 목표 점수를 찾으면 더 확인하지 않고 Java 반복문을 즉시 종료하려고 합니다. 사용하는 키워드만 쓰세요.
 answer: break
 hint: switch문에서도 사용할 수 있습니다.
 explanation: `break`는 현재 반복문이나 switch문을 빠져나간다.
@@ -275,15 +276,15 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 짝수 홀수 판별
-description: 정수 n을 입력받아 짝수면 `even`, 홀수면 `odd`를 출력하세요.
+title: 짝수 번째 문제 표시
+description: 문제 번호 n을 입력받아 짝수 번째 문제면 `even`, 홀수 번째 문제면 `odd`를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
       public static void main(String[] args) {
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
-          // 짝수면 even, 홀수면 odd
+          // 문제 번호가 짝수면 even, 홀수면 odd
       }
   }
 testCasesJson: |
@@ -302,8 +303,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 1부터 n까지 합
-description: 정수 n을 입력받아 1부터 n까지의 합을 출력하세요.
+title: 누적 출석 보상 계산
+description: 연속 출석일 n을 입력받아 1일부터 n일까지 매일 1점씩 늘어나는 보상의 총합을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -311,7 +312,7 @@ codeTemplate: |
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
           int sum = 0;
-          // 1부터 n까지 더하세요
+          // 1일부터 n일까지 보상을 더하세요
           System.out.println(sum);
       }
   }
@@ -331,8 +332,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 배수 개수 세기
-description: 두 정수 n, k를 입력받아 1부터 n까지의 정수 중 k의 배수 개수를 출력하세요.
+title: 이벤트 문제 개수 세기
+description: 1번부터 n번 문제 중 k의 배수 번호마다 이벤트 보상을 준다고 할 때, 보상 대상 문제 수를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -340,7 +341,7 @@ codeTemplate: |
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
           int k = sc.nextInt();
-          // 배수 개수를 출력하세요
+          // 이벤트 대상 문제 수를 출력하세요
       }
   }
 testCasesJson: |
@@ -359,8 +360,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 구구단 출력
-description: 정수 n을 입력받아 n단의 결과를 1부터 9까지 한 줄씩 출력하세요. 형식은 `n x i = 값`입니다.
+title: 반복 출력 형식 맞추기
+description: 정수 n을 입력받아 n단 결과를 1부터 9까지 한 줄씩 출력하세요. 형식은 `n x i = 값`입니다.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -386,8 +387,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: while과 for 비교
-description: Java에서 `for`문과 `while`문을 각각 어떤 상황에서 쓰면 좋은지 설명하세요.
+title: 반복문 선택 기준 설명하기
+description: Java에서 문제 수가 정해진 경우와 목표를 찾을 때까지 반복하는 경우에 `for`문과 `while`문을 각각 어떻게 선택하면 좋은지 설명하세요.
 rubric: |
   - 반복 횟수가 명확할 때 for문이 적합하다고 설명하면 40점
   - 조건이 만족되는 동안 반복할 때 while문이 적합하다고 설명하면 40점
@@ -405,8 +406,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 배열 선언
-description: Java에서 정수 배열 `arr`을 길이 5로 생성하는 올바른 코드는?
+title: 점수 배열 만들기
+description: 5개의 퀴즈 점수를 저장할 정수 배열 `arr`을 만들려고 합니다. Java에서 올바른 코드는?
 optionsJson: ["int[] arr = new int[5];", "int arr = new int[5];", "arr = [5]int", "int[] arr = 5;"]
 answer: "int[] arr = new int[5];"
 hint: 배열은 `new`로 생성합니다.
@@ -419,8 +420,8 @@ tagsJson: ["배열"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 배열 인덱스
-description: Java 배열의 첫 번째 원소 인덱스는?
+title: 첫 번째 점수 위치 찾기
+description: 점수 배열에서 첫 번째 원소에 접근하려고 합니다. Java 배열의 첫 번째 원소 인덱스는?
 optionsJson: ["0", "1", "-1", "배열마다 다름"]
 answer: "0"
 hint: 대부분의 프로그래밍 언어 배열은 0부터 시작합니다.
@@ -433,8 +434,8 @@ tagsJson: ["배열"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 배열 길이
-description: Java 배열 `arr`의 길이를 구하려면 빈칸에 들어갈 속성은?
+title: 저장된 점수 개수 확인하기
+description: Java 배열 `arr`에 저장할 수 있는 원소 개수를 구하려면 빈칸에 들어갈 속성은?
 codeTemplate: |
   int[] arr = {1, 2, 3};
   System.out.println(arr.____);
@@ -449,8 +450,8 @@ tagsJson: ["배열"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 마지막 인덱스
-description: 길이가 `n`인 Java 배열의 마지막 인덱스를 식으로 쓰세요.
+title: 마지막 점수 인덱스
+description: 길이가 `n`인 Java 배열에서 마지막 점수의 인덱스를 식으로 쓰세요.
 answer: n - 1
 hint: 첫 인덱스가 0입니다.
 explanation: 길이가 n이면 인덱스 범위는 0부터 n-1까지다.
@@ -462,16 +463,17 @@ tagsJson: ["배열"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 배열 합계
-description: 정수 n과 n개의 정수를 입력받아 모든 원소의 합을 출력하세요.
+title: 점수 배열 합계
+description: 정수 n과 n개의 점수를 입력받아 배열에 저장한 뒤 모든 점수의 합을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
       public static void main(String[] args) {
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
+          int[] scores = new int[n];
           int sum = 0;
-          // n개의 정수를 읽고 더하세요
+          // 점수를 배열에 저장하고 합계를 구하세요
           System.out.println(sum);
       }
   }
@@ -481,8 +483,8 @@ testCasesJson: |
     { "input": "3\n10 -2 5", "expected": "13" },
     { "input": "1\n7", "expected": "7" }
   ]
-hint: 반복문 안에서 `sc.nextInt()`를 읽으며 더할 수 있습니다.
-explanation: n번 반복하며 입력값을 `sum`에 누적한다.
+hint: 먼저 `scores[i]`에 저장한 뒤 `sum`에 더하세요.
+explanation: n번 반복하며 점수를 배열에 저장하고, 같은 반복 안에서 sum에 누적할 수 있다.
 tagsJson: ["배열"]
 ```
 
@@ -491,15 +493,16 @@ tagsJson: ["배열"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 최댓값 찾기
-description: 정수 n과 n개의 정수를 입력받아 가장 큰 값을 출력하세요.
+title: 최고 점수 찾기
+description: 정수 n과 n개의 점수를 입력받아 배열에 저장한 뒤 가장 높은 점수를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
       public static void main(String[] args) {
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
-          // 최댓값을 출력하세요
+          int[] scores = new int[n];
+          // 점수를 배열에 저장하고 최고 점수를 출력하세요
       }
   }
 testCasesJson: |
@@ -508,8 +511,8 @@ testCasesJson: |
     { "input": "4\n-5 -2 -9 -1", "expected": "-1" },
     { "input": "1\n42", "expected": "42" }
   ]
-hint: 첫 번째 값을 최댓값으로 두고 비교하세요.
-explanation: 입력값을 하나씩 비교하며 현재 최댓값을 갱신한다.
+hint: 첫 번째 원소를 최댓값으로 두고 나머지 원소와 비교하세요.
+explanation: 배열에 점수를 저장한 뒤 모든 원소를 순회하며 현재 최댓값을 갱신한다.
 tagsJson: ["배열"]
 ```
 
@@ -518,16 +521,17 @@ tagsJson: ["배열"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 짝수만 세기
-description: 정수 n과 n개의 정수를 입력받아 짝수의 개수를 출력하세요.
+title: 짝수 번호 문제 세기
+description: 정수 n과 n개의 문제 번호를 입력받아 배열에 저장한 뒤 짝수 번호 문제의 개수를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
       public static void main(String[] args) {
           Scanner sc = new Scanner(System.in);
           int n = sc.nextInt();
+          int[] numbers = new int[n];
           int count = 0;
-          // 짝수 개수를 세세요
+          // 문제 번호를 배열에 저장하고 짝수 개수를 세세요
           System.out.println(count);
       }
   }
@@ -547,8 +551,8 @@ tagsJson: ["배열"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 배열 뒤집기 출력
-description: 정수 n과 n개의 정수를 입력받아 입력된 순서의 반대로 출력하세요.
+title: 최근 풀이 순서로 출력
+description: 정수 n과 n개의 문제 번호를 입력받아 배열에 저장한 뒤 최근에 푼 순서가 되도록 거꾸로 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -575,8 +579,8 @@ tagsJson: ["배열"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 배열과 반복문
-description: 배열을 사용할 때 반복문이 자주 함께 쓰이는 이유를 설명하세요.
+title: 배열과 반복문을 함께 쓰는 이유
+description: 여러 문제 점수를 배열에 저장할 때 반복문이 자주 함께 쓰이는 이유를 설명하세요.
 rubric: |
   - 배열은 여러 값을 인덱스로 관리한다는 점을 설명하면 40점
   - 반복문으로 모든 원소를 순회할 수 있다는 점을 설명하면 40점
@@ -594,8 +598,8 @@ tagsJson: ["배열"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 메서드 반환 타입
-description: 값을 반환하지 않는 Java 메서드의 반환 타입은?
+title: 출력만 하는 메서드 만들기
+description: 안내 문구를 출력만 하고 값을 돌려주지 않는 Java 메서드의 반환 타입은?
 optionsJson: ["void", "null", "none", "empty"]
 answer: void
 hint: `main` 메서드에도 들어가는 단어입니다.
@@ -608,8 +612,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 메서드 호출
-description: `hello()` 메서드를 호출하는 올바른 코드는?
+title: 만든 메서드 실행하기
+description: 미리 정의한 `hello()` 메서드를 실행하는 올바른 코드는?
 optionsJson: ["hello();", "call hello;", "hello:", "run hello()"]
 answer: "hello();"
 hint: Java 문장은 세미콜론으로 끝납니다.
@@ -622,8 +626,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 값 반환 키워드
-description: 메서드에서 값을 돌려줄 때 빈칸에 들어갈 키워드는?
+title: 계산 결과 돌려주기
+description: 메서드에서 계산한 점수를 호출한 곳으로 돌려줄 때 빈칸에 들어갈 키워드는?
 codeTemplate: |
   static int add(int a, int b) {
       ____ a + b;
@@ -639,8 +643,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: main의 static
-description: 객체 생성 없이 호출할 수 있는 메서드에 붙이는 Java 키워드만 쓰세요.
+title: 객체 없이 호출하는 메서드
+description: 객체 생성 없이 호출할 수 있는 Java 메서드에 붙이는 키워드만 쓰세요.
 answer: static
 hint: `public static void main`에 포함됩니다.
 explanation: `static` 메서드는 클래스에 속하며 객체 생성 없이 호출할 수 있다.
@@ -652,8 +656,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: CODE
 difficulty: 2
-title: add 메서드 만들기
-description: 두 정수를 더해 반환하는 `add` 메서드를 작성하고, 입력받은 두 수의 합을 출력하세요.
+title: 점수 합산 메서드
+description: 두 라운드 점수를 더해 반환하는 `add` 메서드를 작성하고, 입력받은 두 점수의 합을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -683,8 +687,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 큰 수 반환 메서드
-description: 두 정수 중 더 큰 값을 반환하는 `max` 메서드를 작성하고 결과를 출력하세요.
+title: 높은 점수 반환 메서드
+description: 두 라운드 점수 중 더 높은 값을 반환하는 `max` 메서드를 작성하고 결과를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -714,8 +718,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 팩토리얼 메서드
-description: 정수 n을 입력받아 n!을 출력하세요. `factorial` 메서드를 작성해 사용하세요.
+title: 단계별 경우의 수 메서드
+description: 단계 수 n을 입력받아 n!을 출력하세요. `factorial` 메서드를 작성해 사용하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -744,8 +748,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 소수 판별 메서드
-description: 정수 n을 입력받아 소수면 `prime`, 아니면 `not prime`을 출력하세요. `isPrime` 메서드를 작성하세요.
+title: 특별 문제 번호 판별 메서드
+description: 문제 번호 n을 입력받아 소수면 `prime`, 아니면 `not prime`을 출력하세요. `isPrime` 메서드를 작성하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -775,8 +779,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 메서드 분리의 장점
-description: 프로그램에서 코드를 메서드로 분리하면 좋은 점을 설명하세요.
+title: 메서드로 코드를 나누는 이유
+description: 점수 계산, 등급 판정처럼 반복되는 로직을 메서드로 분리하면 좋은 점을 설명하세요.
 rubric: |
   - 같은 코드를 재사용할 수 있다는 점을 설명하면 35점
   - 기능 단위로 읽기 쉬워진다는 점을 설명하면 35점
@@ -794,8 +798,8 @@ tagsJson: ["메서드"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 객체 생성
-description: `Person` 클래스의 객체를 생성하는 올바른 코드는?
+title: 사용자 객체 만들기
+description: `Person` 클래스의 사용자 객체를 생성하는 올바른 코드는?
 optionsJson: ["Person p = new Person();", "Person p = Person();", "new p Person;", "p = class Person"]
 answer: "Person p = new Person();"
 hint: Java 객체 생성에는 `new` 키워드를 사용합니다.
@@ -808,8 +812,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 필드 의미
-description: 클래스 안에서 객체의 상태를 저장하는 변수는 보통 무엇이라고 부르나요?
+title: 객체 상태 저장하기
+description: 클래스 안에서 사용자 이름이나 점수처럼 객체의 상태를 저장하는 변수는 보통 무엇이라고 부르나요?
 optionsJson: ["필드", "패키지", "컴파일러", "예외"]
 answer: 필드
 hint: 멤버 변수라고도 부릅니다.
@@ -822,8 +826,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 생성자 이름
-description: `Student` 클래스의 생성자가 되도록 빈칸에 들어갈 이름을 쓰세요.
+title: 생성자 이름 맞추기
+description: `Student` 클래스 객체가 만들어질 때 호출되는 생성자가 되도록 빈칸에 들어갈 이름을 쓰세요.
 codeTemplate: |
   class Student {
       ____() {
@@ -840,7 +844,7 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 현재 객체 키워드
+title: 현재 사용자 객체 가리키기
 description: Java에서 현재 객체 자신을 가리키는 키워드만 쓰세요.
 answer: this
 hint: 필드와 매개변수 이름이 같을 때 자주 사용합니다.
@@ -853,8 +857,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: Student 클래스
-description: 이름을 저장하는 `Student` 클래스를 완성하고 입력받은 이름을 출력하세요.
+title: 학습자 이름 저장 클래스
+description: 이름을 저장하는 `Student` 클래스를 완성하고 입력받은 학습자 이름을 출력하세요.
 codeTemplate: |
   import java.util.*;
   class Student {
@@ -887,8 +891,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: Rectangle 넓이
-description: 가로와 세로를 저장하는 `Rectangle` 클래스를 완성하고 넓이를 출력하세요.
+title: 카드 영역 계산 클래스
+description: 가로와 세로를 저장하는 `Rectangle` 클래스를 완성하고 카드 영역의 넓이를 출력하세요.
 codeTemplate: |
   import java.util.*;
   class Rectangle {
@@ -925,8 +929,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 3
-title: Counter 클래스
-description: `Counter` 클래스의 `increase` 메서드를 완성하고 n번 증가시킨 값을 출력하세요.
+title: 풀이 횟수 카운터 클래스
+description: `Counter` 클래스의 `increase` 메서드를 완성하고 n번 문제를 푼 뒤의 값을 출력하세요.
 codeTemplate: |
   import java.util.*;
   class Counter {
@@ -962,8 +966,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 3
-title: BankAccount 입금
-description: 계좌 잔액을 저장하는 `BankAccount` 클래스를 완성하세요. 초기 잔액과 입금액을 입력받아 입금 후 잔액을 출력하세요.
+title: XP 지갑 입금 처리
+description: XP 잔액을 저장하는 `BankAccount` 클래스를 완성하세요. 초기 XP와 추가 XP를 입력받아 입금 후 잔액을 출력하세요.
 codeTemplate: |
   import java.util.*;
   class BankAccount {
@@ -999,8 +1003,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 클래스와 객체 차이
-description: Java에서 클래스와 객체의 차이를 설명하세요.
+title: 클래스와 객체 차이 설명하기
+description: Java에서 `User` 설계도와 실제 사용자 객체의 차이를 예로 들어 클래스와 객체의 차이를 설명하세요.
 rubric: |
   - 클래스가 객체를 만들기 위한 설계도라는 점을 설명하면 40점
   - 객체가 클래스로부터 생성된 실제 데이터라는 점을 설명하면 40점
@@ -1018,8 +1022,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: ArrayList 추가
-description: Java `ArrayList`에 값을 추가할 때 사용하는 메서드는?
+title: 풀이 기록 추가하기
+description: Java `ArrayList`에 새 풀이 기록을 추가할 때 사용하는 메서드는?
 optionsJson: ["add", "push", "append", "insertLast"]
 answer: add
 hint: `list.add(value)` 형태입니다.
@@ -1032,8 +1036,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: HashMap 역할
-description: Java `HashMap`은 주로 어떤 형태의 데이터를 저장하나요?
+title: 사용자별 점수 저장하기
+description: Java `HashMap`은 사용자 이름과 점수처럼 주로 어떤 형태의 데이터를 저장하나요?
 optionsJson: ["키-값 쌍", "한 글자", "고정 길이 숫자 배열", "예외 메시지"]
 answer: 키-값 쌍
 hint: 사전처럼 값을 찾을 수 있습니다.
@@ -1046,8 +1050,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: ArrayList 크기
-description: `ArrayList`의 원소 개수를 구하려면 빈칸에 들어갈 메서드는?
+title: 풀이 기록 개수 확인하기
+description: `ArrayList`에 저장된 풀이 기록 개수를 구하려면 빈칸에 들어갈 메서드는?
 codeTemplate: |
   ArrayList<Integer> list = new ArrayList<>();
   System.out.println(list.____());
@@ -1062,7 +1066,7 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 컬렉션 import 패키지
+title: 컬렉션 패키지 쓰기
 description: `ArrayList`, `HashMap`, `Scanner` 등이 들어 있는 대표 패키지를 `java.`까지 포함해 쓰세요.
 answer: java.util
 hint: `import java.util.*;`에서 별표 앞 부분입니다.
@@ -1075,8 +1079,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: CODE
 difficulty: 2
-title: ArrayList 합계
-description: 정수 n과 n개의 정수를 입력받아 `ArrayList`에 저장한 뒤 합계를 출력하세요.
+title: ArrayList 점수 합계
+description: 정수 n과 n개의 점수를 입력받아 `ArrayList`에 저장한 뒤 합계를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1103,8 +1107,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 이름 존재 여부
-description: 정수 n, n개의 이름, 찾을 이름 target을 입력받아 리스트에 target이 있으면 `yes`, 없으면 `no`를 출력하세요.
+title: 친구 이름 찾기
+description: 정수 n, n개의 친구 이름, 찾을 이름 target을 입력받아 리스트에 target이 있으면 `yes`, 없으면 `no`를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1131,8 +1135,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 단어 빈도수
-description: 정수 n과 n개의 단어를 입력받아 마지막으로 입력된 단어가 전체에서 몇 번 등장했는지 출력하세요.
+title: 오답 유형 빈도수
+description: 정수 n과 n개의 오답 유형을 입력받아 마지막으로 입력된 유형이 전체에서 몇 번 등장했는지 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1160,8 +1164,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 중복 제거 개수
-description: 정수 n과 n개의 정수를 입력받아 서로 다른 숫자의 개수를 출력하세요.
+title: 서로 다른 문제 수 세기
+description: 정수 n과 n개의 문제 번호를 입력받아 서로 다른 문제 번호의 개수를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1188,8 +1192,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 배열과 ArrayList 비교
-description: Java 배열과 `ArrayList`의 차이를 설명하세요.
+title: 배열과 ArrayList 선택 기준
+description: Java에서 문제 수가 고정된 경우와 계속 추가되는 풀이 기록을 저장하는 경우에 배열과 `ArrayList`를 어떻게 선택하면 좋은지 설명하세요.
 rubric: |
   - 배열은 길이가 고정된다는 점을 설명하면 35점
   - ArrayList는 크기를 동적으로 늘릴 수 있다는 점을 설명하면 35점
@@ -1207,8 +1211,8 @@ tagsJson: ["컬렉션"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 예외 처리 키워드
-description: Java에서 예외가 발생할 수 있는 코드를 감싸는 키워드는?
+title: 위험한 코드 감싸기
+description: 나눗셈이나 숫자 변환처럼 예외가 발생할 수 있는 Java 코드를 감싸는 키워드는?
 optionsJson: ["try", "catch", "error", "throwing"]
 answer: try
 hint: `catch`와 함께 자주 사용됩니다.
@@ -1221,8 +1225,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 예외 잡기
-description: Java에서 발생한 예외를 처리하는 블록에 쓰는 키워드는?
+title: 예외 상황 처리하기
+description: Java에서 발생한 예외를 받아서 처리하는 블록에 쓰는 키워드는?
 optionsJson: ["catch", "grab", "except", "rescue"]
 answer: catch
 hint: Python의 `except`와 비슷한 역할입니다.
@@ -1235,8 +1239,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: finally 빈칸
-description: 예외 발생 여부와 관계없이 실행되는 블록의 키워드는?
+title: 항상 실행되는 정리 코드
+description: 예외 발생 여부와 관계없이 실행되는 정리 블록의 키워드는?
 codeTemplate: |
   try {
       System.out.println("run");
@@ -1254,7 +1258,7 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 0으로 나누기 예외
+title: 0점 기준 나눗셈 예외
 description: Java에서 정수를 0으로 나눌 때 발생하는 대표 예외 클래스 이름을 쓰세요.
 answer: ArithmeticException
 hint: 산술 연산과 관련된 예외입니다.
@@ -1267,8 +1271,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 안전한 나눗셈
-description: 두 정수 a, b를 입력받아 a / b를 출력하세요. b가 0이면 `error`를 출력하세요.
+title: 안전한 평균 계산
+description: 총점 a와 문제 수 b를 입력받아 a / b를 출력하세요. b가 0이면 `error`를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1295,8 +1299,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: CODE
 difficulty: 2
-title: try-catch 나눗셈
-description: 두 정수 a, b를 입력받아 a / b를 출력하세요. 예외가 발생하면 `error`를 출력하세요.
+title: try-catch 평균 계산
+description: 총점 a와 문제 수 b를 입력받아 a / b를 출력하세요. 예외가 발생하면 `error`를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1327,8 +1331,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 숫자 변환 예외
-description: 문자열 s를 입력받아 정수로 바꿔 출력하세요. 정수로 바꿀 수 없으면 `invalid`를 출력하세요.
+title: 점수 문자열 변환 예외
+description: 문자열 s를 입력받아 정수 점수로 바꿔 출력하세요. 정수로 바꿀 수 없으면 `invalid`를 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1354,8 +1358,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 배열 인덱스 안전 접근
-description: 정수 n, n개의 정수, 인덱스 idx를 입력받아 해당 원소를 출력하세요. 범위를 벗어나면 `out`을 출력하세요.
+title: 풀이 기록 안전 접근
+description: 정수 n, n개의 점수, 인덱스 idx를 입력받아 해당 점수를 출력하세요. 범위를 벗어나면 `out`을 출력하세요.
 codeTemplate: |
   import java.util.*;
   public class Main {
@@ -1386,8 +1390,8 @@ tagsJson: ["예외 처리"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 예외 처리의 필요성
-description: 프로그램에서 예외 처리가 필요한 이유를 설명하세요.
+title: 예외 처리가 필요한 이유
+description: 사용자 입력이나 배열 접근에서 예상하지 못한 값이 들어올 때 예외 처리가 필요한 이유를 설명하세요.
 rubric: |
   - 예상 가능한 오류 상황을 다룰 수 있다는 점을 설명하면 35점
   - 프로그램이 비정상 종료되는 것을 줄인다는 점을 설명하면 35점

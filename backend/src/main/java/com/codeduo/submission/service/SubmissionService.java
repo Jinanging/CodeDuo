@@ -132,12 +132,29 @@ public class SubmissionService {
     }
 
     private Grade simple(Problem problem, String answer) {
-        requireConfigured(problem.getAnswer());
-        boolean correct = normalize(problem.getAnswer()).equals(normalize(answer));
+        boolean correct = problem.getType() == ProblemType.MULTIPLE_CHOICE
+                ? multipleChoice(problem, answer)
+                : textAnswer(problem, answer);
         String wrongMessage = problem.getType() == ProblemType.SHORT_ANSWER
                 ? "정답과 일치하지 않습니다."
                 : "다시 선택해보세요.";
         return new Grade(correct, correct ? 100 : 0, correct ? "정답입니다!" : wrongMessage, null, null, null);
+    }
+
+    private boolean multipleChoice(Problem problem, String answer) {
+        if (problem.getCorrectOptionIndex() == null) {
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "객관식 정답 보기가 설정되지 않았습니다.");
+        }
+        try {
+            return Integer.parseInt(answer.strip()) == problem.getCorrectOptionIndex();
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean textAnswer(Problem problem, String answer) {
+        requireConfigured(problem.getAnswer());
+        return normalize(problem.getAnswer()).equals(normalize(answer));
     }
 
     private Grade judge(Problem problem, String sourceCode) {

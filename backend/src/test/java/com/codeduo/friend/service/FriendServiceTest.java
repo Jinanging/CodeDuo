@@ -5,6 +5,7 @@ import com.codeduo.friend.dto.FriendDtos.FriendRequestsResponse;
 import com.codeduo.friend.dto.FriendDtos.FriendsResponse;
 import com.codeduo.friend.entity.Friendship;
 import com.codeduo.friend.repository.FriendshipRepository;
+import com.codeduo.friend.repository.StudyGroupJoinRequestRepository;
 import com.codeduo.friend.repository.StudyGroupMemberRepository;
 import com.codeduo.friend.repository.StudyGroupRepository;
 import com.codeduo.friend.type.FriendshipStatus;
@@ -30,6 +31,7 @@ class FriendServiceTest {
     @Mock private FriendshipRepository friendshipRepository;
     @Mock private StudyGroupRepository studyGroupRepository;
     @Mock private StudyGroupMemberRepository studyGroupMemberRepository;
+    @Mock private StudyGroupJoinRequestRepository studyGroupJoinRequestRepository;
     @Mock private SubmissionRepository submissionRepository;
 
     private FriendService service;
@@ -43,6 +45,7 @@ class FriendServiceTest {
                 friendshipRepository,
                 studyGroupRepository,
                 studyGroupMemberRepository,
+                studyGroupJoinRequestRepository,
                 submissionRepository
         );
         requester = User.builder()
