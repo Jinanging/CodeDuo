@@ -1,6 +1,7 @@
 package com.codeduo.analytics.controller;
 
 import com.codeduo.analytics.dto.AnalyticsDtos.AnalyticsResponse;
+import com.codeduo.analytics.dto.AnalyticsDtos.AiLearningReport;
 import com.codeduo.analytics.service.AnalyticsService;
 import com.codeduo.global.response.ApiResponse;
 import com.codeduo.global.security.CurrentUser;
@@ -21,5 +22,10 @@ public class AnalyticsController {
     @GetMapping
     public ApiResponse<AnalyticsResponse> analytics(@CurrentUser User user) {
         return ApiResponse.ok("분석 데이터를 조회했습니다.", analyticsService.getAnalytics(user));
+    }
+
+    @GetMapping("/ai-report")
+    public ApiResponse<AiLearningReport> aiReport(@CurrentUser User user) {
+        return ApiResponse.ok("AI 학습 리포트를 생성했습니다.", analyticsService.getAiReport(user));
     }
 }

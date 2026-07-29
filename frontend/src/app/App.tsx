@@ -14,13 +14,16 @@ import {
 import {
   login as apiLogin, signup as apiSignup, submitAnswer, getAiHint, updateProfile as apiUpdateProfile,
   upgradeToPremium as apiUpgradeToPremium, heartbeat as apiHeartbeat, getMe, hasToken, clearToken, fetchAnalytics, getProblems, getLanguageXp, getWrongAnswers,
+  fetchAiLearningReport,
   getLearningActivity, getFriends as apiGetFriends, addFriend as apiAddFriend, removeFriend as apiRemoveFriend,
   acceptFriend as apiAcceptFriend, rejectFriendRequest as apiRejectFriendRequest, getFriendRequests as apiGetFriendRequests,
   joinGroup as apiJoinGroup, leaveGroup as apiLeaveGroup, getGroupDetail as apiGetGroupDetail, searchFriends as apiSearchFriends,
+  searchGroups as apiSearchGroups, createGroup as apiCreateGroup, acceptGroupRequest as apiAcceptGroupRequest, rejectGroupRequest as apiRejectGroupRequest,
   getAdminLessons, getAdminProblems, createAdminProblem, updateAdminProblem, deleteAdminProblem,
   startInterview, submitInterviewAnswer, getInterviewHistory,
   type BackendProblem, type BackendWrongAnswer, type BackendAnalytics, type BackendActivity, type BackendUser,
-  type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail,
+  type AiLearningReport,
+  type BackendFriend, type BackendFriendsResponse, type BackendGroupDetail, type BackendStudyGroup,
   type InterviewSession, type InterviewTurn,
   type AdminLesson, type AdminProblem, type AdminProblemPayload,
 } from "./api";
@@ -88,6 +91,15 @@ const languageFromSubject = (subject: string): Language => {
   if (normalized === "c" || normalized.includes("c ")) return "c";
   if (normalized.includes("java")) return "java";
   return "python";
+};
+
+const languageFromText = (text: string): Language | null => {
+  const normalized = text.toLowerCase();
+  if (normalized.includes("c++") || normalized.includes("cpp")) return "cpp";
+  if (normalized.includes("java")) return "java";
+  if (normalized.includes("python") || normalized.includes("파이썬")) return "python";
+  if (/(^|[^a-z])c([^a-z]|$)/i.test(text)) return "c";
+  return null;
 };
 
 const parseRouteQuery = () => {
@@ -167,7 +179,21 @@ interface WrongAnswer {
 
 type RelationStatus = "none" | "sent" | "received" | "friends";
 interface FriendUser { id: string; username: string; avatar: string; xp: number; level: number; isFriend: boolean; relationStatus: RelationStatus; }
-interface StudyGroupView { id: string; name: string; memberCount: number; language: Language; avatar: string; joined: boolean; }
+interface StudyGroupView {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  maxMembers: number;
+  language: Language;
+  avatar: string;
+  imageUrl: string;
+  ownerId: string;
+  ownerName: string;
+  joined: boolean;
+  pendingRequest: boolean;
+  ownedByMe: boolean;
+}
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -558,9 +584,10 @@ function languageLevelProgress(totalXp: number, maxXp: number) {
 
 function Avatar({ initials, color, size = "md" }: { initials: string; color?: string; size?: "sm" | "md" | "lg" }) {
   const sz = size === "sm" ? "w-8 h-8 text-xs" : size === "lg" ? "w-14 h-14 text-lg" : "w-10 h-10 text-sm";
+  const isImage = initials.startsWith("data:image/") || initials.startsWith("http://") || initials.startsWith("https://");
   return (
     <div className={`${sz} rounded-full flex items-center justify-center font-bold text-white shrink-0`} style={{ background: color ?? "var(--primary)" }}>
-      {initials}
+      {isImage ? <img src={initials} alt="" className="w-full h-full rounded-full object-cover" /> : initials}
     </div>
   );
 }
@@ -1687,7 +1714,11 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
 
 // ─── ANALYTICS (PREMIUM) ─────────────────────────────────────────────────────
 
-function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () => void }) {
+function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
+  user: UserProfile;
+  onUpgrade: () => void;
+  onStartLearning: (language: Language, difficulty: Difficulty) => void;
+}) {
   const isPremium = user.tier === "premium";
   const fallbackAnalytics: BackendAnalytics = {
     weakness: EMPTY_WEAKNESS_DATA,
@@ -1696,6 +1727,10 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
   };
   const [analytics, setAnalytics] = useState<BackendAnalytics>(fallbackAnalytics);
   const [analyticsStatus, setAnalyticsStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [aiReport, setAiReport] = useState<AiLearningReport | null>(null);
+  const [aiReportStatus, setAiReportStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [nextQuestions, setNextQuestions] = useState<Question[]>([]);
+  const [nextQuestionsStatus, setNextQuestionsStatus] = useState<"idle" | "loading" | "error">("idle");
 
   useEffect(() => {
     if (!isPremium) return;
@@ -1721,16 +1756,84 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
     return () => { alive = false; };
   }, [isPremium, user.totalSolved, user.streak]);
 
-  const recommendedAreas = [...analytics.weakness]
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 3);
+  useEffect(() => {
+    if (!isPremium) return;
+
+    let alive = true;
+    setAiReportStatus("loading");
+    fetchAiLearningReport()
+      .then(report => {
+        if (!alive) return;
+        setAiReport(report);
+        setAiReportStatus("idle");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setAiReport(null);
+        setAiReportStatus("error");
+      });
+
+    return () => { alive = false; };
+  }, [isPremium, user.totalSolved, user.streak]);
+
+  const learningFlow = analytics.weakness.filter(area => area.score > 0);
+  const aiReportText = aiReport
+    ? [aiReport.summary, ...aiReport.patterns, ...aiReport.focusAreas, ...aiReport.nextActions].join(" ")
+    : "";
+  const reportLanguage = aiReportText ? languageFromText(aiReportText) : null;
+  const nextLanguage = reportLanguage ?? (learningFlow[0] ? languageFromSubject(learningFlow[0].subject) : "python");
+  const reportSections = aiReport
+    ? [
+        { title: "좋았던 점", items: aiReport.strengths, color: "#10B981" },
+        { title: "최근 흐름", items: aiReport.patterns, color: "var(--primary)" },
+        { title: "다시 볼 부분", items: aiReport.focusAreas, color: "#F59E0B" },
+        { title: "다음 학습 제안", items: aiReport.nextActions, color: "#3B82F6" },
+      ]
+    : [];
+
+  useEffect(() => {
+    if (!isPremium) return;
+
+    let alive = true;
+    setNextQuestionsStatus("loading");
+    getProblems(nextLanguage)
+      .then(problems => {
+        if (!alive) return;
+        const sorted = problems
+          .map(mapProblem)
+          .sort((a, b) => DIFF_NUM[a.difficulty] - DIFF_NUM[b.difficulty] || a.id - b.id)
+          .slice(0, 3);
+        setNextQuestions(sorted);
+        setNextQuestionsStatus("idle");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setNextQuestions([]);
+        setNextQuestionsStatus("error");
+      });
+
+    return () => { alive = false; };
+  }, [isPremium, nextLanguage]);
+
+  const recommendationReason = (question: Question, index: number) => {
+    const languageLabel = LANG_META[question.language].label;
+    const focusText = aiReport?.focusAreas.join(" ") ?? "";
+    const actionText = aiReport?.nextActions.join(" ") ?? "";
+    const mentionedInReport = `${focusText} ${actionText}`.toLowerCase().includes(languageLabel.toLowerCase());
+
+    if (mentionedInReport) return `AI 리포트에서 ${languageLabel} 학습 흐름과 연결된 문제예요.`;
+    if (learningFlow.length > 0 && question.language === nextLanguage && index === 0) return `최근 풀이 기록을 기준으로 먼저 이어서 볼 문제예요.`;
+    if (question.difficulty === "beginner") return "기초 개념을 가볍게 점검하기 좋아요.";
+    if (question.difficulty === "intermediate") return "기초 다음 단계로 넘어가기 좋은 연습 문제예요.";
+    return "학습 흐름을 이어가기 좋은 문제예요.";
+  };
 
   return (
     <div className="px-6 py-8 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-extrabold" style={{ color: "var(--foreground)" }}>성적 분석</h1>
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>나의 취약점과 강점을 확인하세요</p>
+          <h1 className="text-xl font-extrabold" style={{ color: "var(--foreground)" }}>AI 학습 리포트</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>최근 풀이 기록을 바탕으로 다음 학습 방향을 정리했어요</p>
         </div>
         <PremiumBadge />
       </div>
@@ -1742,8 +1845,8 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: "총 풀이", value: analytics.summary.totalSolved },
-              { label: "이번 주", value: analytics.summary.weeklySolved },
-              { label: "정확도", value: `${analytics.summary.accuracy}%` },
+              { label: "이번 주 풀이", value: analytics.summary.weeklySolved },
+              { label: "연속 학습", value: `${analytics.summary.streak}일` },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white rounded-2xl border border-border p-4">
                 <p className="text-xs mb-1" style={{ color: "var(--muted-foreground)" }}>{label}</p>
@@ -1758,19 +1861,39 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
             </div>
           )}
 
-          {/* Radar chart */}
           <div className="bg-white rounded-2xl border border-border p-5 mb-4">
-            <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
-              <TrendingUp size={16} style={{ color: "var(--primary)" }} />취약 영역 분석
-              {analyticsStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>불러오는 중</span>}
+            <h3 className="font-bold mb-2 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+              <Sparkles size={16} style={{ color: "var(--primary)" }} />AI 학습 요약
+              {aiReportStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>생성 중</span>}
             </h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <RadarChart data={analytics.weakness}>
-                <PolarGrid stroke="var(--border)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "Outfit" }} />
-                <Radar name="점수" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} strokeWidth={2} />
-              </RadarChart>
-            </ResponsiveContainer>
+            {aiReportStatus === "error" ? (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold" style={{ color: "#EF4444" }}>
+                AI 리포트를 불러오지 못했어요.
+              </div>
+            ) : aiReport ? (
+              <div className="space-y-4">
+                <p className="text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>{aiReport.summary}</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {reportSections.map(section => (
+                    <div key={section.title} className="rounded-xl border border-border bg-muted/20 p-4">
+                      <p className="mb-2 text-sm font-extrabold" style={{ color: "var(--foreground)" }}>{section.title}</p>
+                      <ul className="space-y-2">
+                        {section.items.slice(0, 3).map(item => (
+                          <li key={item} className="flex gap-2 text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
+                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: section.color }} />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                최근 풀이 기록을 분석하고 있어요.
+              </div>
+            )}
           </div>
 
           {/* Bar chart */}
@@ -1790,28 +1913,72 @@ function AnalyticsPage({ user, onUpgrade }: { user: UserProfile; onUpgrade: () =
             </ResponsiveContainer>
           </div>
 
-          {/* Recommended problems */}
           <div className="bg-white rounded-2xl border border-border p-5">
             <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
-              <Sparkles size={16} style={{ color: "#F59E0B" }} />추천 문제
+              <TrendingUp size={16} style={{ color: "var(--primary)" }} />언어별 풀이 흐름
+              {analyticsStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>불러오는 중</span>}
             </h3>
-            <div className="space-y-2.5">
-              {(recommendedAreas.length > 0 ? recommendedAreas : fallbackAnalytics.weakness.slice(0, 3)).map((area, index) => {
-                const lang = languageFromSubject(area.subject);
-                const type = (index === 0 ? "mcq" : index === 1 ? "code" : "fill-blank") as QuestionType;
-                const title = `${area.subject} 복습`;
-                const reason = `${area.subject} 영역 정확도 ${area.score}%`;
-                return (
-                <div key={title} className="flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/40 transition-colors cursor-pointer">
-                  <LanguageIcon language={lang} size={24} className="shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate" style={{ color: "var(--foreground)" }}>{title}</p>
-                    <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{reason}</p>
-                  </div>
-                  <Badge type={type} />
-                </div>
-              )})}
+            {learningFlow.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <RadarChart data={learningFlow}>
+                  <PolarGrid stroke="var(--border)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "Outfit" }} />
+                  <Radar name="평균 점수" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} strokeWidth={2} />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                문제를 풀면 학습 흐름이 여기에 표시돼요.
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-border p-5 mt-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-bold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                  <BookOpen size={16} style={{ color: "#F59E0B" }} />다음 학습 문제
+                </h3>
+                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+                  최근 풀이 흐름을 기준으로 이어서 풀 문제를 골랐어요.
+                </p>
+              </div>
+              {nextQuestionsStatus === "loading" && <Loader2 size={16} className="animate-spin shrink-0" style={{ color: "var(--muted-foreground)" }} />}
             </div>
+            {nextQuestionsStatus === "error" ? (
+              <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                다음 학습 문제를 불러오지 못했어요.
+              </div>
+            ) : nextQuestions.length > 0 ? (
+              <div className="space-y-2.5">
+                {nextQuestions.map((question, index) => {
+                  const typeMeta = TYPE_META[question.type];
+                  const diffMeta = DIFFICULTY_META[question.difficulty];
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => onStartLearning(question.language, question.difficulty)}
+                      className="w-full text-left p-3 rounded-xl border border-border flex items-center gap-3 hover:bg-muted/40 transition-colors"
+                    >
+                      <LanguageIcon language={question.language} size={24} className="shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate" style={{ color: "var(--foreground)" }}>{question.title}</p>
+                        <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--muted-foreground)" }}>{recommendationReason(question, index)}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${typeMeta.color}14`, color: typeMeta.color }}>{typeMeta.label}</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: diffMeta.light, color: diffMeta.color }}>{diffMeta.label}</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} style={{ color: "var(--muted-foreground)" }} />
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm" style={{ color: "var(--muted-foreground)" }}>
+                아직 추천할 문제가 부족해요. 레슨에서 원하는 언어를 선택해 먼저 풀어보세요.
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -2586,6 +2753,19 @@ function FriendsPage({ user }: { user: UserProfile }) {
   const [searchError, setSearchError] = useState("");
   const [receivedRequests, setReceivedRequests] = useState<FriendUser[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendUser[]>([]);
+  const [groupSearchQuery, setGroupSearchQuery] = useState("");
+  const [groupSearchResults, setGroupSearchResults] = useState<StudyGroupView[]>([]);
+  const [groupSearchLoading, setGroupSearchLoading] = useState(false);
+  const [groupSearchError, setGroupSearchError] = useState("");
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [createGroupForm, setCreateGroupForm] = useState({
+    name: "",
+    description: "",
+    maxMembers: 10,
+    language: "python" as Language,
+    imageUrl: "",
+  });
+  const [createGroupError, setCreateGroupError] = useState("");
 
   const toFriendUser = (u: BackendFriend): FriendUser => ({
     id: u.id,
@@ -2597,18 +2777,27 @@ function FriendsPage({ user }: { user: UserProfile }) {
     relationStatus: u.relationStatus,
   });
 
+  const toStudyGroupView = (g: BackendStudyGroup): StudyGroupView => ({
+    id: g.id,
+    name: g.name,
+    description: g.description ?? "",
+    memberCount: g.memberCount,
+    maxMembers: g.maxMembers || 20,
+    language: g.language as Language,
+    avatar: g.name.slice(0, 2).toUpperCase(),
+    imageUrl: g.imageUrl ?? "",
+    ownerId: g.ownerId ?? "",
+    ownerName: g.ownerName ?? "",
+    joined: g.joined,
+    pendingRequest: g.pendingRequest,
+    ownedByMe: g.ownedByMe,
+  });
+
   const applyFriendsData = (data: BackendFriendsResponse) => {
     const nextUsers = data.users.map(toFriendUser);
     const nextGroups = data.groups
       .filter(g => isLanguage(g.language))
-      .map(g => ({
-          id: g.id,
-          name: g.name,
-          memberCount: g.memberCount,
-          language: g.language as Language,
-          avatar: g.name.slice(0, 2).toUpperCase(),
-          joined: g.joined,
-        }));
+      .map(toStudyGroupView);
     setUsers(nextUsers);
     setGroups(nextGroups);
     setSelectedGroupId(current => {
@@ -2664,6 +2853,33 @@ function FriendsPage({ user }: { user: UserProfile }) {
   }, [searchQuery]);
 
   useEffect(() => {
+    const query = groupSearchQuery.trim();
+    if (query.length < 2) {
+      setGroupSearchResults([]);
+      setGroupSearchError("");
+      setGroupSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setGroupSearchLoading(true);
+    setGroupSearchError("");
+    const timer = window.setTimeout(async () => {
+      try {
+        const results = await apiSearchGroups(query);
+        if (!cancelled) setGroupSearchResults(results.filter(g => isLanguage(g.language)).map(toStudyGroupView));
+      } catch (error) {
+        if (!cancelled) setGroupSearchError(error instanceof Error ? error.message : "그룹을 검색하지 못했습니다.");
+      } finally {
+        if (!cancelled) setGroupSearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [groupSearchQuery]);
+
+  useEffect(() => {
     if (!selectedGroupId) {
       setGroupDetail(null);
       return;
@@ -2686,6 +2902,7 @@ function FriendsPage({ user }: { user: UserProfile }) {
   const friends = users.filter(u => u.isFriend);
   const selectedGroup = groups.find(g => g.id === selectedGroupId) ?? groups[0];
   const selectedGroupMembers = groupDetail?.members ?? [];
+  const visibleGroups = groupSearchQuery.trim().length >= 2 ? groupSearchResults : groups;
 
   const nextRelationAfterFriendAction = (target: FriendUser): RelationStatus => {
     if (target.relationStatus === "none") return "sent";
@@ -2737,6 +2954,61 @@ function FriendsPage({ user }: { user: UserProfile }) {
       }
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "그룹 상태를 변경하지 못했습니다.");
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    setActionId("group-create");
+    setCreateGroupError("");
+    try {
+      applyFriendsData(await apiCreateGroup({
+        name: createGroupForm.name,
+        description: createGroupForm.description,
+        maxMembers: createGroupForm.maxMembers,
+        language: createGroupForm.language,
+        imageUrl: createGroupForm.imageUrl,
+      }));
+      setShowCreateGroup(false);
+      setCreateGroupForm({ name: "", description: "", maxMembers: 10, language: "python", imageUrl: "" });
+    } catch (error) {
+      setCreateGroupError(error instanceof Error ? error.message : "그룹을 생성하지 못했습니다.");
+    } finally {
+      setActionId("");
+    }
+  };
+
+  const handleGroupImage = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setCreateGroupError("이미지 파일만 첨부할 수 있습니다.");
+      return;
+    }
+    if (file.size > 700_000) {
+      setCreateGroupError("그룹 사진은 700KB 이하로 첨부해주세요.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCreateGroupError("");
+      setCreateGroupForm(prev => ({ ...prev, imageUrl: String(reader.result ?? "") }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const respondGroupRequest = async (requestUserId: string, accept: boolean) => {
+    if (!selectedGroupId) return;
+    setActionId(`group-request-${requestUserId}`);
+    setGroupDetailError("");
+    try {
+      const detail = accept
+        ? await apiAcceptGroupRequest(selectedGroupId, requestUserId)
+        : await apiRejectGroupRequest(selectedGroupId, requestUserId);
+      setGroupDetail(detail);
+      applyFriendsData(await apiGetFriends());
+    } catch (error) {
+      setGroupDetailError(error instanceof Error ? error.message : "그룹 참가 신청을 처리하지 못했습니다.");
     } finally {
       setActionId("");
     }
@@ -2848,6 +3120,111 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
       {tab === "groups" && (
         <div className="space-y-4">
+          <section className="bg-white rounded-2xl border border-border p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted-foreground)" }} />
+                <input
+                  value={groupSearchQuery}
+                  onChange={event => setGroupSearchQuery(event.target.value)}
+                  placeholder="그룹 이름으로 검색"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border-2 text-sm focus:outline-none"
+                  style={{ borderColor: "var(--border)", background: "var(--input-background)", color: "var(--foreground)" }}
+                />
+              </div>
+              <button
+                onClick={() => setShowCreateGroup(value => !value)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: "var(--primary)" }}
+              >
+                <UserPlus size={16} />그룹 만들기
+              </button>
+            </div>
+            {groupSearchLoading && <p className="text-xs mt-2" style={{ color: "var(--muted-foreground)" }}>그룹을 검색하는 중...</p>}
+            {groupSearchError && <p className="text-xs font-bold mt-2" style={{ color: "#EF4444" }}>{groupSearchError}</p>}
+
+            {showCreateGroup && (
+              <div className="mt-4 rounded-2xl border border-border p-4" style={{ background: "var(--secondary)" }}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="text-xs font-bold" style={{ color: "var(--foreground)" }}>
+                    그룹 이름
+                    <input
+                      value={createGroupForm.name}
+                      onChange={event => setCreateGroupForm(prev => ({ ...prev, name: event.target.value }))}
+                      className="mt-1 w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none"
+                      style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+                      placeholder="예: Java 면접 준비반"
+                    />
+                  </label>
+                  <label className="text-xs font-bold" style={{ color: "var(--foreground)" }}>
+                    언어
+                    <select
+                      value={createGroupForm.language}
+                      onChange={event => setCreateGroupForm(prev => ({ ...prev, language: event.target.value as Language }))}
+                      className="mt-1 w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none"
+                      style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+                    >
+                      {(Object.entries(LANG_META) as [Language, typeof LANG_META[Language]][]).map(([lang, meta]) => (
+                        <option key={lang} value={lang}>{meta.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-bold md:col-span-2" style={{ color: "var(--foreground)" }}>
+                    그룹 설명
+                    <textarea
+                      value={createGroupForm.description}
+                      onChange={event => setCreateGroupForm(prev => ({ ...prev, description: event.target.value }))}
+                      rows={3}
+                      className="mt-1 w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none resize-none"
+                      style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+                      placeholder="어떤 사람들이 함께 공부하는 그룹인지 적어주세요."
+                    />
+                  </label>
+                  <label className="text-xs font-bold" style={{ color: "var(--foreground)" }}>
+                    인원 제한
+                    <input
+                      type="number"
+                      min={2}
+                      max={50}
+                      value={createGroupForm.maxMembers}
+                      onChange={event => setCreateGroupForm(prev => ({ ...prev, maxMembers: Number(event.target.value) }))}
+                      className="mt-1 w-full px-3 py-2.5 rounded-xl border-2 text-sm focus:outline-none"
+                      style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
+                    />
+                  </label>
+                  <label className="text-xs font-bold" style={{ color: "var(--foreground)" }}>
+                    그룹 사진
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={event => handleGroupImage(event.target.files?.[0])}
+                      className="mt-1 w-full text-xs"
+                      style={{ color: "var(--muted-foreground)" }}
+                    />
+                  </label>
+                </div>
+                {createGroupForm.imageUrl && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <img src={createGroupForm.imageUrl} alt="그룹 사진 미리보기" className="w-14 h-14 rounded-2xl object-cover border border-border" />
+                    <button onClick={() => setCreateGroupForm(prev => ({ ...prev, imageUrl: "" }))} className="text-xs font-bold" style={{ color: "#EF4444" }}>사진 제거</button>
+                  </div>
+                )}
+                {createGroupError && <p className="text-xs font-bold mt-3" style={{ color: "#EF4444" }}>{createGroupError}</p>}
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={handleCreateGroup}
+                    disabled={actionId === "group-create" || createGroupForm.name.trim().length < 2}
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                    style={{ background: "var(--primary)" }}
+                  >
+                    {actionId === "group-create" ? "생성 중" : "그룹 생성"}
+                  </button>
+                  <button onClick={() => setShowCreateGroup(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold border-2" style={{ borderColor: "var(--border)", color: "var(--muted-foreground)" }}>취소</button>
+                </div>
+              </div>
+            )}
+          </section>
+
           {groups.length === 0 && (
             <div className="text-center py-16 px-4">
               <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--secondary)" }}>
@@ -2859,24 +3236,39 @@ function FriendsPage({ user }: { user: UserProfile }) {
           {selectedGroup && (
           <>
           <div className="grid gap-2">
-            {groups.map(g => {
+            {visibleGroups.length === 0 && (
+              <div className="bg-white rounded-2xl border border-border p-6 text-center text-sm" style={{ color: "var(--muted-foreground)" }}>
+                검색 결과가 없어요.
+              </div>
+            )}
+            {visibleGroups.map(g => {
               const selected = selectedGroup.id === g.id;
+              const full = g.memberCount >= g.maxMembers;
               return (
                 <button key={g.id} onClick={() => setSelectedGroupId(g.id)} className="bg-white rounded-2xl border p-4 flex items-center gap-3 text-left transition-all"
                   style={{ borderColor: selected ? LANG_META[g.language].color : "var(--border)", boxShadow: selected ? `0 6px 18px ${LANG_META[g.language].color}18` : "none" }}>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white border border-border">
-                    <LanguageIcon language={g.language} size={32} />
-                  </div>
+                  {g.imageUrl ? (
+                    <img src={g.imageUrl} alt="" className="w-12 h-12 rounded-2xl object-cover border border-border" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-white border border-border">
+                      <LanguageIcon language={g.language} size={32} />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="font-bold text-sm truncate" style={{ color: "var(--foreground)" }}>{g.name}</div>
                       {g.joined && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: LANG_META[g.language].light, color: LANG_META[g.language].color }}>참여중</span>}
+                      {g.pendingRequest && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FEF3C7", color: "#B45309" }}>신청중</span>}
+                      {g.ownedByMe && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#ECFDF5", color: "#047857" }}>그룹장</span>}
                     </div>
-                    <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>멤버 {g.memberCount}명 · {LANG_META[g.language].label}</div>
+                    <div className="text-xs mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                      멤버 {g.memberCount}/{g.maxMembers}명 · {LANG_META[g.language].label}{g.ownerName ? ` · 그룹장 ${g.ownerName}` : ""}
+                    </div>
+                    {g.description && <div className="text-xs mt-1 truncate" style={{ color: "var(--muted-foreground)" }}>{g.description}</div>}
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); void syncGroup(g); }} disabled={actionId === `group-${g.id}`} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all disabled:opacity-50"
+                  <button onClick={(e) => { e.stopPropagation(); void syncGroup(g); }} disabled={actionId === `group-${g.id}` || g.pendingRequest || g.ownedByMe || full} className="px-4 py-1.5 rounded-xl text-xs font-bold border-2 transition-all disabled:opacity-50"
                     style={{ borderColor: g.joined ? "#EF4444" : "var(--primary)", background: g.joined ? "#FEF2F2" : "var(--secondary)", color: g.joined ? "#EF4444" : "var(--primary)" }}>
-                    {actionId === `group-${g.id}` ? "처리중" : g.joined ? "탈퇴" : "참여"}
+                    {actionId === `group-${g.id}` ? "처리중" : g.joined ? "탈퇴" : g.pendingRequest ? "신청중" : full ? "마감" : "가입 신청"}
                   </button>
                 </button>
               );
@@ -2885,9 +3277,21 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
           <section className="bg-white rounded-2xl border border-border p-5">
             <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{selectedGroup.name}</h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>그룹원 진행 상황과 주간 학습량</p>
+              <div className="flex items-start gap-3 min-w-0">
+                {selectedGroup.imageUrl ? (
+                  <img src={selectedGroup.imageUrl} alt="" className="w-14 h-14 rounded-2xl object-cover border border-border shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white border border-border shrink-0">
+                    <LanguageIcon language={selectedGroup.language} size={34} />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-base truncate" style={{ color: "var(--foreground)" }}>{selectedGroup.name}</h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    {selectedGroup.ownerName ? `그룹장 ${selectedGroup.ownerName} · ` : ""}정원 {selectedGroup.memberCount}/{selectedGroup.maxMembers}명
+                  </p>
+                  {selectedGroup.description && <p className="text-xs mt-1 leading-5" style={{ color: "var(--muted-foreground)" }}>{selectedGroup.description}</p>}
+                </div>
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: LANG_META[selectedGroup.language].light, color: LANG_META[selectedGroup.language].color }}>
                 {LANG_META[selectedGroup.language].label}
@@ -2909,6 +3313,39 @@ function FriendsPage({ user }: { user: UserProfile }) {
 
             {!groupDetailLoading && !groupDetailError && groupDetail && (
             <>
+            {groupDetail.ownedByMe && groupDetail.pendingRequests.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 p-4 mb-5" style={{ background: "#FFFBEB" }}>
+                <h3 className="text-sm font-extrabold mb-3" style={{ color: "#92400E" }}>참가 신청</h3>
+                <div className="space-y-2">
+                  {groupDetail.pendingRequests.map(request => (
+                    <div key={request.id} className="flex items-center gap-3">
+                      <Avatar initials={request.user.avatar} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{request.user.username}</div>
+                        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lv.{request.user.level} · {request.user.xp.toLocaleString()} XP</div>
+                      </div>
+                      <button
+                        onClick={() => void respondGroupRequest(request.user.id, true)}
+                        disabled={actionId === `group-request-${request.user.id}`}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold text-white disabled:opacity-50"
+                        style={{ background: "var(--primary)" }}
+                      >
+                        수락
+                      </button>
+                      <button
+                        onClick={() => void respondGroupRequest(request.user.id, false)}
+                        disabled={actionId === `group-request-${request.user.id}`}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold border-2 disabled:opacity-50"
+                        style={{ borderColor: "#EF4444", color: "#EF4444", background: "#FEF2F2" }}
+                      >
+                        거절
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-3 mb-5">
               {[
                 { label: "주간 풀이", value: `${groupDetail.weeklySolved}/${groupDetail.weeklyGoal}`, icon: <CheckCircle2 size={16} />, color: "#10B981" },
@@ -3072,10 +3509,31 @@ function ProfilePage({ user, onUpgrade, onSave }: {
     setSaved(false);
   };
 
+  const handleProfileImage = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("이미지 파일만 첨부할 수 있습니다.");
+      return;
+    }
+    if (file.size > 700_000) {
+      setError("프로필 사진은 700KB 이하로 첨부해주세요.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setError("");
+      setAvatar(String(reader.result ?? ""));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const saveProfile = async () => {
     const cleanUsername = username.trim() || user.username;
     const cleanEmail = email.trim() || user.email;
-    const cleanAvatar = (avatar.trim() || cleanUsername.slice(0, 2)).slice(0, 2).toUpperCase();
+    const avatarValue = avatar.trim();
+    const cleanAvatar = avatarValue.startsWith("data:image/") || avatarValue.startsWith("http://") || avatarValue.startsWith("https://")
+      ? avatarValue
+      : (avatarValue || cleanUsername.slice(0, 2)).slice(0, 2).toUpperCase();
     setSaving(true);
     setError("");
     try {
@@ -3121,8 +3579,27 @@ function ProfilePage({ user, onUpgrade, onSave }: {
           <div className="rounded-2xl border border-border p-4 mb-5" style={{ background: "var(--input-background)" }}>
             <div className="grid gap-3 md:grid-cols-[0.7fr_1.3fr]">
               <div>
-                <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>아바타 이니셜</label>
-                <input value={avatar} onChange={e => setAvatar(e.target.value.slice(0, 2).toUpperCase())} maxLength={2} className="w-full px-3 py-2.5 rounded-xl border-2 text-sm font-bold uppercase focus:outline-none" style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }} />
+                <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>프로필 사진</label>
+                <div className="flex items-center gap-3">
+                  <Avatar initials={avatar || username.slice(0, 2).toUpperCase()} />
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={event => handleProfileImage(event.target.files?.[0])}
+                      className="w-full text-xs"
+                      style={{ color: "var(--muted-foreground)" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAvatar(username.slice(0, 2).toUpperCase())}
+                      className="text-xs font-bold mt-1"
+                      style={{ color: "var(--primary)" }}
+                    >
+                      이니셜로 사용
+                    </button>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold mb-1.5" style={{ color: "var(--muted-foreground)" }}>닉네임</label>
@@ -3826,7 +4303,16 @@ export default function App() {
       case "lessonSelect": return <LessonSelectPage selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
       case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
-      case "analytics":return <AnalyticsPage user={user} onUpgrade={() => openUpgrade("analytics")} />;
+      case "analytics":return <AnalyticsPage
+        user={user}
+        onUpgrade={() => openUpgrade("analytics")}
+        onStartLearning={(language, difficulty) => {
+          setSelectedLang(language);
+          setSelectedDifficulty(difficulty);
+          setSelectedTopic(null);
+          navigate("lesson", false, { lang: language, difficulty, topic: null });
+        }}
+      />;
       case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onReview={() => navigate("wrongReview")} onInterview={() => navigate("interview")} onUpgrade={() => openUpgrade("errors")} />;
       case "wrongReview": return <WrongAnswerReviewPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onResolve={handleResolveWrong} onBack={() => navigate("errors")} />;
       case "interview": return <AIInterviewPage user={user} onBack={() => navigate("errors")} />;

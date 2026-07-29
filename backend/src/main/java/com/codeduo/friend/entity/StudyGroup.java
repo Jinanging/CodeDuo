@@ -1,6 +1,7 @@
 package com.codeduo.friend.entity;
 
 import com.codeduo.problem.type.Language;
+import com.codeduo.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -22,6 +23,17 @@ public class StudyGroup {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(length = 1000)
+    private String description;
+
+    private int maxMembers;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User owner;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

@@ -4,6 +4,7 @@ import com.codeduo.ai.dto.EssayGradeResult;
 import com.codeduo.ai.dto.InterviewEvaluation;
 import com.codeduo.ai.dto.InterviewFinalReview;
 import com.codeduo.ai.dto.InterviewQuestion;
+import com.codeduo.analytics.dto.AnalyticsDtos.AiLearningReport;
 import com.codeduo.problem.entity.Problem;
 import com.codeduo.submission.entity.Submission;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -70,6 +71,17 @@ public class MockAiClient implements AiClient {
                         ? "기초 역량과 성장 가능성이 확인되어 다음 전형을 추천합니다."
                         : "핵심 개념을 코드와 연결해 설명하는 연습 후 재면접을 권합니다.",
                 List.of("개념을 실제 코드 예시로 설명하기", "경계값과 예외 상황 검증하기", "기술 선택의 장단점 비교하기")
+        );
+    }
+
+    @Override
+    public AiLearningReport createLearningReport(String learningContext) {
+        return new AiLearningReport(
+                "최근 풀이 기록을 기준으로 학습 흐름을 정리했습니다. 아직 데이터가 많지 않다면 꾸준히 문제를 풀수록 더 구체적인 리포트를 받을 수 있습니다.",
+                List.of("최근 학습을 이어가며 풀이 기록을 쌓고 있습니다.", "오답 기록을 통해 다시 볼 문제를 남기고 있습니다."),
+                List.of("풀이 기록이 쌓이면 언어, 난이도, 문제 유형별 흐름을 더 자세히 볼 수 있습니다."),
+                List.of("최근 틀린 문제", "풀이 기록이 적은 유형"),
+                List.of("오답노트에서 최근 오답 1~2개를 다시 확인하기", "선택한 언어의 기초 문제를 짧게 이어서 풀기")
         );
     }
 }

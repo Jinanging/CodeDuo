@@ -80,10 +80,14 @@ public class UserService {
         if (!user.getEmail().equals(email) && userRepository.existsByEmail(email)) {
             throw new BusinessException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
         }
+        String nickname = request.nickname().trim();
+        if (!user.getNickname().equalsIgnoreCase(nickname) && userRepository.existsByNicknameIgnoreCaseAndIdNot(nickname, user.getId())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다.");
+        }
 
-        user.setNickname(request.nickname().trim());
+        user.setNickname(nickname);
         user.setEmail(email);
-        user.setAvatar(request.avatar().trim().toUpperCase());
+        user.setAvatar(request.avatar().trim());
         return user;
     }
 
