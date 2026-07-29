@@ -178,6 +178,18 @@ def build_payload(problem, lesson_id):
         if value not in (None, ""):
             payload[field] = str(value)
 
+    if payload["type"] == "MULTIPLE_CHOICE":
+        options = normalize_json_field(problem.get("optionsJson"))
+        if options:
+            option_list = json.loads(options)
+            answer = str(problem.get("answer", "")).strip()
+            if answer:
+                try:
+                    payload["correctOptionIndex"] = option_list.index(answer)
+                except ValueError as exc:
+                    raise ValueError(f"{payload['title']} answer is not in optionsJson: {answer}") from exc
+        payload.pop("answer", None)
+
     if payload["type"] == "CODE" and ("testInput" not in payload or "expectedOutput" not in payload):
         test_case = first_test_case(problem)
         if test_case:

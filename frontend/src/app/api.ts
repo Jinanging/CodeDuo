@@ -169,12 +169,12 @@ export interface AdminLesson {
 export interface AdminProblem {
   id: number; lessonId: number; type: string; language: string; title: string; description: string;
   difficulty: number; answer?: string; codeTemplate?: string; testInput?: string; expectedOutput?: string;
-  rubric?: string; optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string;
+  correctOptionIndex?: number; rubric?: string; optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string;
   testCasesJson?: string; orderIndex: number; createdAt?: string; updatedAt?: string;
 }
 export interface AdminProblemPayload {
   lessonId: number; type: string; language: string; title: string; description: string; difficulty: number;
-  answer?: string; codeTemplate?: string; testInput?: string; expectedOutput?: string; rubric?: string;
+  answer?: string; correctOptionIndex?: number; codeTemplate?: string; testInput?: string; expectedOutput?: string; rubric?: string;
   optionsJson?: string; hint?: string; explanation?: string; tagsJson?: string; testCasesJson?: string; orderIndex?: number;
 }
 

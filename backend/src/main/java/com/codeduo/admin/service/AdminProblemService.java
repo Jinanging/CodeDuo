@@ -106,6 +106,7 @@ public class AdminProblemService {
         problem.setTitle(request.title());
         problem.setDescription(request.description());
         problem.setAnswer(blankToNull(request.answer()));
+        problem.setCorrectOptionIndex(request.correctOptionIndex());
         problem.setCodeTemplate(blankToNull(request.codeTemplate()));
         problem.setTestInput(blankToNull(request.testInput()));
         problem.setExpectedOutput(blankToNull(request.expectedOutput()));

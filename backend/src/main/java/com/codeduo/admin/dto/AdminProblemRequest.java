@@ -15,6 +15,7 @@ public record AdminProblemRequest(
         @NotBlank String title,
         @NotBlank String description,
         String answer,
+        Integer correctOptionIndex,
         String codeTemplate,
         String testInput,
         String expectedOutput,

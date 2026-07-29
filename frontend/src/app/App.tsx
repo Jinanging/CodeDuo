@@ -8,8 +8,7 @@ import {
   Loader2, ShieldCheck, CircleStop,
 } from "lucide-react";
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import {
   login as apiLogin, signup as apiSignup, submitAnswer, getAiHint, updateProfile as apiUpdateProfile,
@@ -75,6 +74,16 @@ const TOPICS_BY_LANGUAGE: Record<Language, string[]> = {
   c: ["기본 문법", "조건문과 반복문", "배열", "함수", "포인터", "문자열 처리", "구조체와 알고리즘 기초"],
   cpp: ["기본 문법", "조건문과 반복문", "배열과 문자열", "함수", "클래스와 객체", "STL", "알고리즘 기초"],
 };
+
+const firstTopicFor = (language: Language) => TOPICS_BY_LANGUAGE[language][0];
+
+const topicForQuestion = (question: Question) => {
+  const knownTopics = TOPICS_BY_LANGUAGE[question.language];
+  return question.tags.find(tag => knownTopics.includes(tag)) ?? firstTopicFor(question.language);
+};
+
+const hasKnownTopic = (question: Question) =>
+  question.tags.some(tag => TOPICS_BY_LANGUAGE[question.language].includes(tag));
 
 const ADMIN_EMAILS = new Set(
   ((import.meta.env.VITE_ADMIN_EMAILS as string | undefined) ?? "admin@codeduo.dev")
@@ -811,7 +820,7 @@ function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, onNav }:
     return () => { cancelled = true; };
   }, [selectedLang]);
   const langMeta = LANG_META[selectedLang];
-  const selectedQuestions = langProblems;
+  const selectedQuestions = langProblems.filter(hasKnownTopic);
   const recommended = selectedQuestions.slice(0, 3);
   const todayLabel = ["일", "월", "화", "수", "목", "금", "토"][new Date().getDay()];
   const todaySolved = user.weeklyActivity.find(item => item.day === todayLabel)?.solved ?? 0;
@@ -1039,8 +1048,8 @@ function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSel
   }, [selectedLang]);
   const langMeta = LANG_META[selectedLang];
   const topics = TOPICS_BY_LANGUAGE[selectedLang];
-  const activeTopic = selectedTopic && topics.includes(selectedTopic) ? selectedTopic : null;
-  const activeCounts = activeTopic ? (topicCounts[activeTopic] ?? { beginner: 0, intermediate: 0, advanced: 0 }) : counts;
+  const activeTopic = selectedTopic && topics.includes(selectedTopic) ? selectedTopic : topics[0];
+  const activeCounts = topicCounts[activeTopic] ?? { beginner: 0, intermediate: 0, advanced: 0 };
   return (
     <div className="px-6 py-8 max-w-5xl mx-auto">
       <button onClick={onBack} className="flex items-center gap-1 text-sm font-semibold mb-5" style={{ color: "var(--muted-foreground)" }}>
@@ -1068,9 +1077,7 @@ function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSel
       <div className="mb-7">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>목차</h2>
-          <button onClick={() => setSelectedTopic(null)} className="text-xs font-bold" style={{ color: activeTopic ? "var(--primary)" : "var(--muted-foreground)" }}>
-            전체 보기
-          </button>
+          <span className="text-xs font-bold" style={{ color: "var(--muted-foreground)" }}>목차별 3문제 구성</span>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {topics.map((topic, idx) => {
@@ -1107,7 +1114,7 @@ function LessonSelectPage({ selectedLang, setSelectedLang, selectedTopic, setSel
                   <span className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>{meta.label}</span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: meta.light, color: meta.color }}><LanguageIcon language={selectedLang} size={14} />{langMeta.label}</span>
                 </div>
-                <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activeTopic ? `${activeTopic} · ${meta.desc}` : meta.desc}</p>
+                <p className="text-sm mt-0.5" style={{ color: "var(--muted-foreground)" }}>{activeTopic} · {meta.desc}</p>
               </div>
               <div className="text-right shrink-0">
                 <div className="font-extrabold text-base" style={{ color: meta.color }}>{count}문제</div>
@@ -1202,6 +1209,9 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   const [feedbackExplanation, setFeedbackExplanation] = useState("");
   const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
+  const activeTopic = selectedTopic && TOPICS_BY_LANGUAGE[selectedLang].includes(selectedTopic)
+    ? selectedTopic
+    : firstTopicFor(selectedLang);
 
   useEffect(() => {
     let cancelled = false;
@@ -1211,7 +1221,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
         if (cancelled) return;
         const mapped = list
           .map(mapProblem)
-          .filter(question => !selectedTopic || question.tags.includes(selectedTopic));
+          .filter(question => question.tags.includes(activeTopic));
         setLessonQuestions(mapped);
         setCurrentQ(0);
         setCodeValue(mapped[0]?.template ?? "");
@@ -1219,7 +1229,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
       })
       .catch(() => { if (!cancelled) { setLoadError(true); setLoading(false); } });
     return () => { cancelled = true; };
-  }, [selectedLang, difficulty, selectedTopic]);
+  }, [selectedLang, difficulty, activeTopic]);
 
   const question = lessonQuestions[currentQ];
 
@@ -1228,7 +1238,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   );
   if (loadError || !question) return (
     <div className="flex flex-col items-center justify-center gap-4" style={{ minHeight: "100dvh" }}>
-      <p style={{ color: "var(--muted-foreground)" }}>{loadError ? "문제를 불러오지 못했습니다. 백엔드 연결을 확인하세요." : "이 난이도에 등록된 문제가 없습니다."}</p>
+      <p style={{ color: "var(--muted-foreground)" }}>{loadError ? "문제를 불러오지 못했습니다. 백엔드 연결을 확인하세요." : `${activeTopic} 목차의 ${DIFFICULTY_META[difficulty].label} 문제가 없습니다.`}</p>
       <button onClick={onBack} className="px-4 py-2 rounded-xl font-bold text-white" style={{ background: "var(--primary)" }}>돌아가기</button>
     </div>
   );
@@ -1314,7 +1324,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
 
     // 정답은 브라우저에 두지 않고 백엔드에서만 채점합니다.
     const submitted = question.type === "mcq"
-      ? (selectedOption === null ? "" : question.options?.[selectedOption] ?? "")
+      ? (selectedOption === null ? "" : String(selectedOption))
       : userAnswer;
     setSubmissionError("");
     let backend: Awaited<ReturnType<typeof submitAnswer>>;
@@ -1717,7 +1727,7 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
 function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
   user: UserProfile;
   onUpgrade: () => void;
-  onStartLearning: (language: Language, difficulty: Difficulty) => void;
+  onStartLearning: (language: Language, difficulty: Difficulty, topic?: string) => void;
 }) {
   const isPremium = user.tier === "premium";
   const fallbackAnalytics: BackendAnalytics = {
@@ -1776,7 +1786,9 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
     return () => { alive = false; };
   }, [isPremium, user.totalSolved, user.streak]);
 
-  const learningFlow = analytics.weakness.filter(area => area.score > 0);
+  const learningFlow = analytics.weakness
+    .filter(area => area.score > 0)
+    .sort((a, b) => b.score - a.score);
   const aiReportText = aiReport
     ? [aiReport.summary, ...aiReport.patterns, ...aiReport.focusAreas, ...aiReport.nextActions].join(" ")
     : "";
@@ -1784,10 +1796,17 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
   const nextLanguage = reportLanguage ?? (learningFlow[0] ? languageFromSubject(learningFlow[0].subject) : "python");
   const reportSections = aiReport
     ? [
-        { title: "좋았던 점", items: aiReport.strengths, color: "#10B981" },
-        { title: "최근 흐름", items: aiReport.patterns, color: "var(--primary)" },
-        { title: "다시 볼 부분", items: aiReport.focusAreas, color: "#F59E0B" },
-        { title: "다음 학습 제안", items: aiReport.nextActions, color: "#3B82F6" },
+        { title: "강점", items: aiReport.strengths, color: "#10B981", icon: CheckCircle2 },
+        { title: "흐름", items: aiReport.patterns, color: "var(--primary)", icon: TrendingUp },
+        { title: "다시 볼 것", items: aiReport.focusAreas, color: "#F59E0B", icon: AlertTriangle },
+        { title: "다음 액션", items: aiReport.nextActions, color: "#3B82F6", icon: Lightbulb },
+      ]
+    : [];
+  const headlineCards = aiReport
+    ? [
+        { label: "최근 흐름", value: aiReport.patterns[0] ?? "풀이 기록을 모으는 중이에요.", color: "var(--primary)" },
+        { label: "다시 볼 것", value: aiReport.focusAreas[0] ?? "아직 뚜렷한 복습 지점이 없어요.", color: "#F59E0B" },
+        { label: "다음 액션", value: aiReport.nextActions[0] ?? "가벼운 문제부터 이어서 풀어보세요.", color: "#3B82F6" },
       ]
     : [];
 
@@ -1801,6 +1820,7 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
         if (!alive) return;
         const sorted = problems
           .map(mapProblem)
+          .filter(hasKnownTopic)
           .sort((a, b) => DIFF_NUM[a.difficulty] - DIFF_NUM[b.difficulty] || a.id - b.id)
           .slice(0, 3);
         setNextQuestions(sorted);
@@ -1862,7 +1882,7 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
           )}
 
           <div className="bg-white rounded-2xl border border-border p-5 mb-4">
-            <h3 className="font-bold mb-2 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+            <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
               <Sparkles size={16} style={{ color: "var(--primary)" }} />AI 학습 요약
               {aiReportStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>생성 중</span>}
             </h3>
@@ -1872,14 +1892,30 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
               </div>
             ) : aiReport ? (
               <div className="space-y-4">
-                <p className="text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>{aiReport.summary}</p>
+                <div className="rounded-2xl px-4 py-4" style={{ background: "linear-gradient(135deg, #F5F3FF, #EEF2FF)" }}>
+                  <p className="text-[15px] leading-7 font-semibold" style={{ color: "var(--foreground)" }}>{aiReport.summary}</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {headlineCards.map(card => (
+                    <div key={card.label} className="rounded-2xl border border-border bg-white p-4">
+                      <div className="mb-2 h-1.5 w-8 rounded-full" style={{ background: card.color }} />
+                      <p className="text-xs font-extrabold mb-1" style={{ color: "var(--muted-foreground)" }}>{card.label}</p>
+                      <p className="text-sm leading-6 font-semibold line-clamp-3" style={{ color: "var(--foreground)" }}>{card.value}</p>
+                    </div>
+                  ))}
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {reportSections.map(section => (
-                    <div key={section.title} className="rounded-xl border border-border bg-muted/20 p-4">
-                      <p className="mb-2 text-sm font-extrabold" style={{ color: "var(--foreground)" }}>{section.title}</p>
+                    <div key={section.title} className="rounded-2xl border border-border bg-muted/20 p-4">
+                      <p className="mb-3 flex items-center gap-2 text-sm font-extrabold" style={{ color: "var(--foreground)" }}>
+                        <span className="grid h-7 w-7 place-items-center rounded-full bg-white">
+                          <section.icon size={15} style={{ color: section.color }} />
+                        </span>
+                        {section.title}
+                      </p>
                       <ul className="space-y-2">
-                        {section.items.slice(0, 3).map(item => (
-                          <li key={item} className="flex gap-2 text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
+                        {section.items.slice(0, 2).map(item => (
+                          <li key={item} className="flex gap-2 text-sm leading-6" style={{ color: "var(--muted-foreground)" }}>
                             <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: section.color }} />
                             <span>{item}</span>
                           </li>
@@ -1915,17 +1951,42 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
 
           <div className="bg-white rounded-2xl border border-border p-5">
             <h3 className="font-bold mb-4 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
-              <TrendingUp size={16} style={{ color: "var(--primary)" }} />언어별 풀이 흐름
+              <TrendingUp size={16} style={{ color: "var(--primary)" }} />최근 학습 흐름
               {analyticsStatus === "loading" && <span className="text-xs font-normal" style={{ color: "var(--muted-foreground)" }}>불러오는 중</span>}
             </h3>
             {learningFlow.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <RadarChart data={learningFlow}>
-                  <PolarGrid stroke="var(--border)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--muted-foreground)", fontFamily: "Outfit" }} />
-                  <Radar name="평균 점수" dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} strokeWidth={2} />
-                </RadarChart>
-              </ResponsiveContainer>
+              <div className="space-y-3">
+                <p className="text-xs leading-5" style={{ color: "var(--muted-foreground)" }}>
+                  최근 풀이 기록이 있는 언어만 표시해요. 모든 언어를 비교하기보다 지금 이어서 학습할 흐름을 보여줍니다.
+                </p>
+                {learningFlow.map(area => {
+                  const language = languageFromSubject(area.subject);
+                  const meta = LANG_META[language];
+                  return (
+                    <div key={area.subject} className="rounded-2xl border border-border bg-muted/20 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <LanguageIcon language={language} size={28} />
+                          <div>
+                            <p className="text-sm font-extrabold" style={{ color: "var(--foreground)" }}>{area.subject}</p>
+                            <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>최근 제출 기록 기반</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => onStartLearning(language, "beginner", firstTopicFor(language))}
+                          className="px-3 py-2 rounded-xl text-xs font-bold border border-border bg-white"
+                          style={{ color: meta.color }}
+                        >
+                          이어 풀기
+                        </button>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(12, area.score))}%`, background: meta.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="rounded-xl border border-border bg-muted/20 px-4 py-5 text-sm" style={{ color: "var(--muted-foreground)" }}>
                 문제를 풀면 학습 흐름이 여기에 표시돼요.
@@ -1957,7 +2018,7 @@ function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
                   return (
                     <button
                       key={question.id}
-                      onClick={() => onStartLearning(question.language, question.difficulty)}
+                      onClick={() => onStartLearning(question.language, question.difficulty, topicForQuestion(question))}
                       className="w-full text-left p-3 rounded-xl border border-border flex items-center gap-3 hover:bg-muted/40 transition-colors"
                     >
                       <LanguageIcon language={question.language} size={24} className="shrink-0" />
@@ -3728,6 +3789,7 @@ type AdminForm = {
   title: string;
   description: string;
   answer: string;
+  correctOptionIndex: string;
   codeTemplate: string;
   testInput: string;
   expectedOutput: string;
@@ -3748,6 +3810,7 @@ const emptyAdminForm = (lessonId = 1): AdminForm => ({
   title: "",
   description: "",
   answer: "",
+  correctOptionIndex: "",
   codeTemplate: "",
   testInput: "",
   expectedOutput: "",
@@ -3782,6 +3845,7 @@ function AdminPage({ user }: { user: UserProfile }) {
       title: problem.title ?? "",
       description: problem.description ?? "",
       answer: problem.answer ?? "",
+      correctOptionIndex: problem.correctOptionIndex === undefined || problem.correctOptionIndex === null ? "" : String(problem.correctOptionIndex),
       codeTemplate: problem.codeTemplate ?? "",
       testInput: problem.testInput ?? "",
       expectedOutput: problem.expectedOutput ?? "",
@@ -3838,7 +3902,8 @@ function AdminPage({ user }: { user: UserProfile }) {
       difficulty: form.difficulty,
       title: form.title.trim(),
       description: form.description.trim(),
-      answer: form.answer.trim(),
+      answer: form.type === "MULTIPLE_CHOICE" ? "" : form.answer.trim(),
+      correctOptionIndex: form.type === "MULTIPLE_CHOICE" && form.correctOptionIndex.trim() ? Number(form.correctOptionIndex) : undefined,
       codeTemplate: form.codeTemplate,
       testInput: form.testInput,
       expectedOutput: form.expectedOutput,
@@ -3860,6 +3925,10 @@ function AdminPage({ user }: { user: UserProfile }) {
       const payload = toPayload();
       if (!payload.title || !payload.description) {
         setError("제목과 문제 설명은 필수입니다.");
+        return;
+      }
+      if (payload.type === "MULTIPLE_CHOICE" && payload.correctOptionIndex === undefined) {
+        setError("객관식 문제는 정답 보기 번호를 선택해야 합니다.");
         return;
       }
       const saved = selectedId ? await updateAdminProblem(selectedId, payload) : await createAdminProblem(payload);
@@ -3959,8 +4028,18 @@ function AdminPage({ user }: { user: UserProfile }) {
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>정답</label>
-                  <input className={inputClass} value={form.answer} onChange={e => updateField("answer", e.target.value)} placeholder="객관식은 정답 보기 텍스트, 단답형은 정답 문자열" />
+                  <label className={labelClass}>{form.type === "MULTIPLE_CHOICE" ? "정답 보기 번호" : "정답"}</label>
+                  {form.type === "MULTIPLE_CHOICE" ? (
+                    <select className={inputClass} value={form.correctOptionIndex} onChange={e => updateField("correctOptionIndex", e.target.value)}>
+                      <option value="">선택</option>
+                      <option value="0">A / 0번</option>
+                      <option value="1">B / 1번</option>
+                      <option value="2">C / 2번</option>
+                      <option value="3">D / 3번</option>
+                    </select>
+                  ) : (
+                    <input className={inputClass} value={form.answer} onChange={e => updateField("answer", e.target.value)} placeholder="단답형/빈칸형 정답 문자열" />
+                  )}
                 </div>
               </div>
 
@@ -4302,15 +4381,16 @@ export default function App() {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
       case "lessonSelect": return <LessonSelectPage selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
-      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty })} onUpgrade={() => openUpgrade("result")} />;
+      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty, topic: selectedTopic ?? firstTopicFor(selectedLang) })} onUpgrade={() => openUpgrade("result")} />;
       case "analytics":return <AnalyticsPage
         user={user}
         onUpgrade={() => openUpgrade("analytics")}
-        onStartLearning={(language, difficulty) => {
+        onStartLearning={(language, difficulty, topic) => {
+          const nextTopic = topic ?? firstTopicFor(language);
           setSelectedLang(language);
           setSelectedDifficulty(difficulty);
-          setSelectedTopic(null);
-          navigate("lesson", false, { lang: language, difficulty, topic: null });
+          setSelectedTopic(nextTopic);
+          navigate("lesson", false, { lang: language, difficulty, topic: nextTopic });
         }}
       />;
       case "errors":   return <ErrorNotebookPage user={user} sessionWrongs={sessionWrongs} resolvedIds={resolvedWrongIds} onReview={() => navigate("wrongReview")} onInterview={() => navigate("interview")} onUpgrade={() => openUpgrade("errors")} />;

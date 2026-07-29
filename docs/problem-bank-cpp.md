@@ -23,8 +23,8 @@
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: C++ 출력 객체
-description: C++에서 화면 출력에 주로 사용하는 객체는?
+title: 결과를 화면에 출력하기
+description: 채점 결과를 콘솔에 보여주려 합니다. C++에서 화면 출력에 주로 사용하는 객체는?
 optionsJson: ["cout", "printf", "System.out", "print"]
 answer: cout
 hint: iostream에 포함됩니다.
@@ -37,8 +37,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 네임스페이스
-description: `cout`을 `std::cout` 없이 쓰기 위해 자주 작성하는 문장은?
+title: std 접두어 줄이기
+description: 예제 코드에서 `std::cout` 대신 `cout`처럼 짧게 쓰고 싶습니다. 이를 위해 자주 작성하는 문장은?
 optionsJson: ["using namespace std;", "include std;", "namespace using std;", "use std;"]
 answer: using namespace std;
 hint: using으로 시작합니다.
@@ -51,8 +51,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: iostream 포함
-description: `cout`, `cin`을 사용하기 위해 빈칸에 들어갈 헤더는?
+title: 입출력 헤더 연결하기
+description: `cout`과 `cin`으로 입출력을 처리하려면 어떤 헤더를 포함해야 할까요? 빈칸에 들어갈 헤더는?
 answer: iostream
 codeTemplate: |
   #include <____>
@@ -67,8 +67,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 입력 객체
-description: C++에서 표준 입력을 받을 때 사용하는 객체 이름만 쓰세요.
+title: 사용자 입력 읽기
+description: 사용자가 입력한 값을 표준 입력에서 읽어올 때 사용하는 C++ 객체 이름만 쓰세요.
 answer: cin
 hint: cout과 짝입니다.
 explanation: `cin`은 키보드 입력을 읽는 표준 입력 스트림이다.
@@ -80,15 +80,15 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 두 수의 합
-description: 두 정수 a, b를 입력받아 합을 출력하세요.
+title: 두 라운드 점수 합산
+description: 두 라운드에서 얻은 정수 점수 a, b를 입력받아 총점을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int a, b;
       cin >> a >> b;
-      // 합을 출력하세요
+      // 총점을 출력하세요
       return 0;
   }
 testCasesJson: |
@@ -107,7 +107,7 @@ testCasesJson: |
     }
   ]
 hint: `cout << a + b;`를 사용하세요.
-explanation: 입력받은 두 정수의 합을 출력한다.
+explanation: 입력받은 두 정수 점수를 더해 총점을 출력한다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -116,15 +116,15 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 두 줄 출력
-description: 정수 n을 입력받아 n과 n의 제곱을 각각 한 줄에 출력하세요.
+title: 기본 점수와 제곱 점수 출력
+description: 정수 n을 입력받아 첫 줄에는 기본 점수 n, 둘째 줄에는 난이도 보정 점수 `n * n`을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int n;
       cin >> n;
-      // n과 n의 제곱을 출력하세요
+      // 기본 점수와 난이도 보정 점수를 출력하세요
       return 0;
   }
 testCasesJson: |
@@ -152,8 +152,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 평균 계산
-description: 세 정수를 입력받아 정수 나눗셈으로 평균을 출력하세요.
+title: 세 문제 평균 점수
+description: 세 문제의 점수를 입력받아 정수 나눗셈으로 평균을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -188,15 +188,15 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 몫과 나머지
-description: 두 양의 정수 a, b를 입력받아 몫과 나머지를 공백으로 출력하세요.
+title: 스터디 그룹 나누기
+description: 전체 인원 a명과 한 그룹 인원 b명을 입력받아 만들 수 있는 그룹 수와 남는 인원을 공백으로 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int a, b;
       cin >> a >> b;
-      // 몫과 나머지를 출력하세요
+      // 그룹 수와 남는 인원을 출력하세요
       return 0;
   }
 testCasesJson: |
@@ -214,8 +214,8 @@ testCasesJson: |
       "expected": "3 2"
     }
   ]
-hint: `/`와 `%`를 사용하세요.
-explanation: 몫은 `/`, 나머지는 `%`로 구한다.
+hint: 그룹 수는 몫, 남는 인원은 나머지입니다.
+explanation: `a / b`는 만들 수 있는 그룹 수, `a % b`는 남는 인원이다.
 tagsJson: ["기본 문법"]
 ```
 
@@ -224,8 +224,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: C와 C++ 차이
-description: C++이 C에 비해 추가로 제공하는 주요 특징을 설명하세요.
+title: C++이 C를 확장하는 방향
+description: C++이 C의 문법을 바탕으로 어떤 기능을 추가했는지, 객체지향이나 표준 라이브러리 관점에서 설명하세요.
 rubric: |
   - 객체지향 문법을 설명하면 40점
   - STL 같은 표준 라이브러리를 설명하면 30점
@@ -243,8 +243,8 @@ tagsJson: ["기본 문법"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: if 조건식
-description: C++에서 `x`가 10보다 큰지 검사하는 올바른 코드는?
+title: 보상 지급 조건 작성하기
+description: 풀이 점수 `x`가 10보다 큰 경우에만 보상을 주려고 합니다. C++에서 올바른 조건식은?
 optionsJson: ["if (x > 10)", "if x > 10:", "when x > 10", "if [x > 10]"]
 answer: if (x > 10)
 hint: C++ 조건식은 괄호 안에 씁니다.
@@ -257,8 +257,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: for 반복문
-description: C++에서 0부터 4까지 반복하는 올바른 코드는?
+title: 5문제 반복 처리하기
+description: 오늘의 미션 5문제를 0번부터 4번까지 차례로 처리하려고 합니다. 올바른 C++ 반복문은?
 optionsJson: ["for (int i = 0; i < 5; i++)", "for i in range(5):", "repeat i 5", "loop i in 5"]
 answer: for (int i = 0; i < 5; i++)
 hint: 초기식, 조건식, 증감식이 있습니다.
@@ -271,8 +271,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: else 빈칸
-description: 조건이 거짓일 때 실행되는 블록의 키워드는?
+title: 실패 메시지 처리하기
+description: 60점 이상이면 통과, 그렇지 않으면 실패 메시지를 출력하려고 합니다. 빈칸에 들어갈 키워드는?
 answer: else
 codeTemplate: |
   if (score >= 60) {
@@ -290,8 +290,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 반복 건너뛰기
-description: 반복문의 현재 회차만 건너뛰고 다음 반복으로 넘어가는 키워드는?
+title: 이미 푼 문제 건너뛰기
+description: 반복 중 이미 푼 문제는 현재 회차만 건너뛰고 다음 문제로 넘어가려고 합니다. 사용하는 키워드는?
 answer: continue
 hint: 계속한다는 뜻입니다.
 explanation: `continue`는 현재 반복의 남은 코드를 건너뛰고 다음 반복으로 간다.
@@ -303,15 +303,15 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 짝수 홀수 판별
-description: 정수 n을 입력받아 짝수면 `even`, 홀수면 `odd`를 출력하세요.
+title: 짝수 번째 문제 표시
+description: 문제 번호 n을 입력받아 짝수 번째 문제면 `even`, 홀수 번째 문제면 `odd`를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int n;
       cin >> n;
-      // 짝수면 even, 홀수면 odd
+      // 문제 번호가 짝수면 even, 홀수면 odd
       return 0;
   }
 testCasesJson: |
@@ -339,15 +339,15 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 1부터 n까지 합
-description: 정수 n을 입력받아 1부터 n까지의 합을 출력하세요.
+title: 누적 출석 보상 계산
+description: 연속 출석일 n을 입력받아 1일부터 n일까지 매일 1점씩 늘어나는 보상의 총합을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int n, sum = 0;
       cin >> n;
-      // 1부터 n까지 더하세요
+      // 1일부터 n일까지 보상을 더하세요
       cout << sum;
       return 0;
   }
@@ -376,15 +376,15 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 배수 개수
-description: n과 k를 입력받아 1부터 n까지 k의 배수 개수를 출력하세요.
+title: 이벤트 문제 개수 세기
+description: 1번부터 n번 문제 중 k의 배수 번호마다 이벤트 보상을 준다고 할 때, 보상 대상 문제 수를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int n, k, count = 0;
       cin >> n >> k;
-      // 배수 개수를 세세요
+      // 이벤트 대상 문제 수를 세세요
       cout << count;
       return 0;
   }
@@ -413,15 +413,15 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 별 출력
-description: 정수 n을 입력받아 별을 n개 출력하세요.
+title: 완료 배지 출력
+description: 오늘 완료한 문제 수 n을 입력받아 완료 배지 `*`을 n개 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
   int main() {
       int n;
       cin >> n;
-      // 별을 n개 출력하세요
+      // 완료 배지를 n개 출력하세요
       return 0;
   }
 testCasesJson: |
@@ -449,8 +449,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 반복문 선택
-description: for문과 while문을 각각 어떤 상황에서 쓰면 좋은지 설명하세요.
+title: 반복문 선택 기준 설명하기
+description: C++에서 문제 수가 정해진 경우와 목표를 찾을 때까지 반복하는 경우에 for문과 while문을 각각 어떻게 선택하면 좋은지 설명하세요.
 rubric: |
   - 횟수가 명확하면 for문이 적합하다고 설명하면 40점
   - 조건 중심 반복이면 while문이 적합하다고 설명하면 40점
@@ -468,8 +468,8 @@ tagsJson: ["조건문과 반복문"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: vector 추가
-description: C++ vector에 원소를 뒤에 추가하는 함수는?
+title: 동적으로 점수 추가하기
+description: 풀이 점수를 C++ `vector`의 맨 뒤에 하나 더 추가하려고 합니다. 사용하는 함수는?
 optionsJson: ["push_back", "add", "append", "insertLast"]
 answer: push_back
 hint: 뒤에 밀어 넣는다는 뜻입니다.
@@ -482,8 +482,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: string 길이
-description: C++ string `s`의 길이를 구하는 올바른 코드는?
+title: 닉네임 길이 확인하기
+description: C++ `string s`에 저장된 닉네임의 길이를 구하려고 합니다. 올바른 코드는?
 optionsJson: ["s.size()", "len(s)", "s.length", "strlen(s) only"]
 answer: s.size()
 hint: vector 크기도 같은 함수로 구합니다.
@@ -496,8 +496,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: vector 헤더
-description: vector를 사용하기 위해 포함하는 헤더는?
+title: vector 헤더 연결하기
+description: 여러 점수를 담는 `vector`를 사용하기 위해 포함하는 헤더는?
 answer: vector
 codeTemplate: |
   #include <____>
@@ -511,8 +511,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 문자열 자료형
-description: C++에서 문자열을 편하게 다루는 표준 클래스 이름만 쓰세요.
+title: 문자열 클래스 이름
+description: C++에서 닉네임이나 문제 제목 같은 문자열을 편하게 다루는 표준 클래스 이름만 쓰세요.
 answer: string
 hint: "`#include <string>`으로 사용할 수 있습니다."
 explanation: C++의 `string`은 문자열을 객체로 다룬다.
@@ -524,8 +524,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: CODE
 difficulty: 2
-title: vector 합계
-description: 정수 n과 n개의 정수를 입력받아 vector에 저장한 뒤 합계를 출력하세요.
+title: vector 점수 합계
+description: 정수 n과 n개의 점수를 입력받아 vector에 저장한 뒤 합계를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -534,7 +534,7 @@ codeTemplate: |
       int n, sum = 0;
       cin >> n;
       vector<int> v(n);
-      // 값을 읽고 합계를 출력하세요
+      // 점수를 읽고 합계를 출력하세요
       cout << sum;
       return 0;
   }
@@ -563,8 +563,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 문자열 길이
-description: 문자열 s를 입력받아 길이를 출력하세요.
+title: 닉네임 길이 출력
+description: 공백 없는 닉네임 문자열 s를 입력받아 길이를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <string>
@@ -600,8 +600,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 최댓값 찾기
-description: 정수 n과 n개의 정수를 입력받아 가장 큰 값을 출력하세요.
+title: 최고 점수 찾기
+description: 정수 n과 n개의 점수를 입력받아 vector에 저장한 뒤 가장 높은 점수를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -610,7 +610,7 @@ codeTemplate: |
       int n;
       cin >> n;
       vector<int> v(n);
-      // 최댓값을 구하세요
+      // 최고 점수를 구하세요
       return 0;
   }
 testCasesJson: |
@@ -638,8 +638,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 문자열 뒤집기
-description: 문자열 s를 입력받아 거꾸로 출력하세요.
+title: 코드 역순 출력
+description: 공백 없는 코드 문자열 s를 입력받아 마지막 문자부터 거꾸로 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <string>
@@ -675,8 +675,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 배열과 vector 비교
-description: C++ 배열과 vector의 차이를 설명하세요.
+title: 배열과 vector 선택 기준
+description: C++에서 크기가 고정된 배열과 크기를 바꿀 수 있는 vector를 각각 어떤 상황에서 선택하면 좋은지 설명하세요.
 rubric: |
   - 배열은 크기가 고정적이라는 점을 설명하면 35점
   - vector는 동적으로 크기를 바꿀 수 있다는 점을 설명하면 35점
@@ -694,8 +694,8 @@ tagsJson: ["배열과 문자열"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 함수 반환형
-description: 값을 반환하지 않는 함수의 반환형은?
+title: 출력만 하는 함수 만들기
+description: 안내 문구를 출력만 하고 값을 돌려주지 않는 C++ 함수의 반환형은?
 optionsJson: ["void", "null", "none", "empty"]
 answer: void
 hint: 반환값이 없다는 뜻의 C++ 키워드입니다.
@@ -708,8 +708,8 @@ tagsJson: ["함수"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 함수 선언
-description: 두 정수를 받아 정수를 반환하는 `add` 함수의 올바른 선언은?
+title: 점수 합산 함수 선언
+description: 두 정수 점수를 받아 정수를 반환하는 `add` 함수의 올바른 선언은?
 optionsJson: ["int add(int a, int b);", "add int(a, b);", "void add = int a, int b;", "function add(int, int);"]
 answer: int add(int a, int b);
 hint: 반환형, 함수 이름, 매개변수 목록 순서로 작성합니다.
@@ -722,8 +722,8 @@ tagsJson: ["함수"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 함수 결과 반환
-description: 두 수의 합을 호출한 곳으로 돌려주도록 빈칸을 완성하세요.
+title: 계산 결과 돌려주기
+description: 두 점수의 합을 호출한 곳으로 돌려주도록 빈칸을 완성하세요.
 answer: return
 codeTemplate: |
   int add(int a, int b) {
@@ -739,8 +739,8 @@ tagsJson: ["함수"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 참조 매개변수 기호
-description: 함수에서 인수를 복사하지 않고 원본을 참조하도록 매개변수 자료형 뒤에 붙이는 기호 하나를 쓰세요.
+title: 원본 점수 참조하기
+description: 함수에서 인수를 복사하지 않고 원본 점수를 참조하도록 매개변수 자료형 뒤에 붙이는 기호 하나를 쓰세요.
 answer: "&"
 hint: 주소 연산자와 같은 모양의 기호입니다.
 explanation: `int& value`처럼 `&`를 붙이면 원본 객체를 참조하는 매개변수가 된다.
@@ -752,8 +752,8 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 절댓값 함수
-description: 정수 n의 절댓값을 반환하는 `absoluteValue` 함수를 완성하고 결과를 출력하세요.
+title: 점수 변화량 절댓값 함수
+description: 정수 n의 절댓값을 반환하는 `absoluteValue` 함수를 완성하고 점수 변화량의 크기를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -791,8 +791,8 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 벡터 합계 함수
-description: 정수 벡터를 참조로 받아 모든 원소의 합을 반환하는 `sumValues` 함수를 완성하세요.
+title: vector 점수 합계 함수
+description: 정수 벡터를 참조로 받아 모든 점수의 합을 반환하는 `sumValues` 함수를 완성하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -835,8 +835,8 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 재귀 팩토리얼 함수
-description: 0 이상 10 이하의 정수 n을 입력받아 재귀 함수 `factorial`로 n!을 출력하세요.
+title: 단계별 경우의 수 재귀 함수
+description: 0 이상 10 이하의 단계 수 n을 입력받아 재귀 함수 `factorial`로 n!을 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -875,8 +875,8 @@ tagsJson: ["함수"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 참조 매개변수로 최솟값과 최댓값 구하기
-description: 1 이상인 정수 n과 정수 벡터를 입력받아 최솟값과 최댓값을 참조 매개변수에 저장하는 `findMinMax` 함수를 완성하세요.
+title: 참조 매개변수로 최저/최고 점수 구하기
+description: 1 이상인 정수 n과 점수 벡터를 입력받아 최솟값과 최댓값을 참조 매개변수에 저장하는 `findMinMax` 함수를 완성하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -921,7 +921,7 @@ tagsJson: ["함수"]
 type: ESSAY
 difficulty: 3
 title: 함수 재사용 장점
-description: 함수를 사용하면 좋은 점을 설명하세요.
+description: 점수 계산이나 벡터 처리 로직을 함수로 분리하면 좋은 점을 설명하세요.
 rubric: |
   - 중복 코드를 줄여 재사용할 수 있다는 점을 설명하면 35점
   - 기능별로 분리해 가독성이 좋아진다는 점을 설명하면 35점
@@ -939,8 +939,8 @@ tagsJson: ["함수"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 객체 생성
-description: `Person` 클래스 객체 생성으로 올바른 것은?
+title: 사용자 객체 만들기
+description: `Person` 클래스의 사용자 객체를 생성하는 올바른 코드는?
 optionsJson: ["Person p;", "new p Person;", "class Person p;", "make Person p"]
 answer: Person p;
 hint: 가장 기본 개념을 고르세요.
@@ -953,8 +953,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: class의 기본 접근 수준
-description: C++에서 `class` 내부 멤버의 기본 접근 수준은?
+title: class 기본 접근 수준
+description: C++에서 `class` 내부 멤버가 별도 지정 없이 갖는 기본 접근 수준은?
 optionsJson: ["private", "public", "protected", "package"]
 answer: private
 hint: `struct`의 기본 접근 수준과 다릅니다.
@@ -967,8 +967,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: public 접근 지정자
-description: 클래스 외부에서 `age`에 접근할 수 있도록 빈칸을 완성하세요.
+title: 외부에서 점수 접근 허용하기
+description: 클래스 외부에서 `score`에 접근할 수 있도록 빈칸을 완성하세요.
 answer: public
 codeTemplate: |
   class Person {
@@ -986,7 +986,7 @@ tagsJson: ["클래스와 객체"]
 type: SHORT_ANSWER
 difficulty: 2
 title: 객체 초기화 함수
-description: 객체가 생성될 때 자동으로 호출되며 클래스와 같은 이름을 갖는 특별한 멤버 함수를 무엇이라고 하나요?
+description: 사용자 객체가 생성될 때 자동으로 호출되며 클래스와 같은 이름을 갖는 특별한 멤버 함수를 무엇이라고 하나요?
 answer: 생성자
 hint: 영어로 constructor입니다.
 explanation: 생성자는 객체가 만들어질 때 필드의 초기값을 설정하는 특별한 멤버 함수다.
@@ -998,8 +998,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: Rectangle 클래스 넓이
-description: 0 이상의 가로와 세로를 저장하는 `Rectangle` 클래스의 `area` 메서드를 완성해 넓이를 출력하세요.
+title: 카드 영역 계산 클래스
+description: 0 이상의 가로와 세로를 저장하는 `Rectangle` 클래스의 `area` 메서드를 완성해 카드 영역의 넓이를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -1045,7 +1045,7 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 2
-title: Counter 클래스
+title: 풀이 횟수 카운터 클래스
 description: 초기값과 증가 횟수 n을 입력받아 `Counter` 객체의 값을 n번 증가시킨 뒤 출력하세요.
 codeTemplate: |
   #include <iostream>
@@ -1095,8 +1095,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: CODE
 difficulty: 3
-title: BankAccount 입출금
-description: 0 이상의 초기 잔액, 입금액, 출금액을 입력받아 `BankAccount` 객체로 처리하세요. 잔액이 부족하면 `error`, 아니면 최종 잔액을 출력하세요.
+title: XP 지갑 입출금
+description: 0 이상의 초기 XP, 추가 XP, 사용 XP를 입력받아 `BankAccount` 객체로 처리하세요. XP가 부족하면 `error`, 아니면 최종 XP를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -1150,7 +1150,7 @@ tagsJson: ["클래스와 객체"]
 type: CODE
 difficulty: 3
 title: 가상 함수 오버라이딩
-description: `Shape`를 상속한 `Rectangle` 클래스의 `area` 가상 함수를 재정의해 사각형 넓이를 출력하세요.
+description: `Shape`를 상속한 `Rectangle` 클래스의 `area` 가상 함수를 재정의해 카드 영역의 넓이를 출력하세요.
 codeTemplate: |
   #include <iostream>
   using namespace std;
@@ -1202,8 +1202,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 객체지향 장점
-description: 클래스와 객체를 사용하면 좋은 점을 설명하세요.
+title: 객체지향 장점 설명하기
+description: 사용자, 점수 지갑, 카운터처럼 상태와 동작을 함께 묶을 때 클래스와 객체를 사용하면 좋은 점을 설명하세요.
 rubric: |
   - 데이터와 관련 동작을 하나로 묶는 캡슐화를 설명하면 35점
   - 상속이나 다형성을 통한 확장과 재사용을 설명하면 35점
@@ -1221,8 +1221,8 @@ tagsJson: ["클래스와 객체"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: STL 의미
-description: C++ STL이 제공하는 것은?
+title: STL이 제공하는 도구
+description: C++ STL이 문제 풀이에서 제공하는 대표 도구는?
 optionsJson: ["컨테이너와 알고리즘", "운영체제", "컴파일러만", "네트워크 장비"]
 answer: 컨테이너와 알고리즘
 hint: 가장 기본 개념을 고르세요.
@@ -1235,8 +1235,8 @@ tagsJson: ["STL"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: vector 원소 개수
-description: `vector<int> values`에 저장된 원소 개수를 구하는 올바른 표현은?
+title: vector 점수 개수 확인하기
+description: `vector<int> values`에 저장된 점수 개수를 구하는 올바른 표현은?
 optionsJson: ["values.size()", "values.length", "size(values)", "values.count"]
 answer: values.size()
 hint: vector가 제공하는 멤버 함수를 호출합니다.
@@ -1249,8 +1249,8 @@ tagsJson: ["STL"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: vector 원소 추가
-description: vector의 맨 뒤에 정수 3을 추가하도록 빈칸을 완성하세요.
+title: vector에 새 점수 추가하기
+description: vector의 맨 뒤에 새 점수 3을 추가하도록 빈칸을 완성하세요.
 answer: push_back
 codeTemplate: |
   vector<int> v;
@@ -1265,8 +1265,8 @@ tagsJson: ["STL"]
 ```yaml
 type: SHORT_ANSWER
 difficulty: 2
-title: 중복 없는 정렬 컨테이너
-description: 원소를 자동으로 정렬하며 중복 값을 저장하지 않는 STL 컨테이너 이름만 쓰세요.
+title: 중복 없는 문제 번호 저장
+description: 원소를 자동으로 정렬하며 중복 문제 번호를 저장하지 않는 STL 컨테이너 이름만 쓰세요.
 answer: set
 hint: 수학의 집합과 같은 이름입니다.
 explanation: `set`은 원소를 정렬된 상태로 저장하며 같은 값을 한 번만 보관한다.
@@ -1278,8 +1278,8 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 2
-title: set으로 중복 제거
-description: 정수 n과 n개의 정수를 입력받아 `set`에 저장한 서로 다른 값의 개수를 출력하세요.
+title: set으로 중복 문제 제거
+description: 정수 n과 n개의 문제 번호를 입력받아 `set`에 저장한 서로 다른 문제 번호의 개수를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <set>
@@ -1317,8 +1317,8 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 2
-title: map으로 단어 빈도 세기
-description: 정수 n, n개의 단어, 찾을 단어 target을 입력받아 `map`으로 target의 등장 횟수를 출력하세요.
+title: map으로 오답 유형 빈도 세기
+description: 정수 n, n개의 오답 유형, 찾을 유형 target을 입력받아 `map`으로 target의 등장 횟수를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <map>
@@ -1359,8 +1359,8 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 3
-title: sort로 내림차순 정렬
-description: 정수 n과 n개의 정수를 입력받아 STL `sort`로 내림차순 정렬해 공백으로 출력하세요.
+title: sort로 점수 내림차순 정렬
+description: 정수 n과 n개의 점수를 입력받아 STL `sort`로 높은 점수부터 내림차순 정렬해 공백으로 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -1404,8 +1404,8 @@ tagsJson: ["STL"]
 ```yaml
 type: CODE
 difficulty: 3
-title: priority_queue로 k번째 큰 수
-description: 정수 n, k와 n개의 정수를 입력받아 `priority_queue`를 사용해 k번째로 큰 값을 출력하세요.
+title: priority_queue로 k번째 높은 점수
+description: 정수 n, k와 n개의 점수를 입력받아 `priority_queue`를 사용해 k번째로 높은 점수를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <queue>
@@ -1443,7 +1443,7 @@ tagsJson: ["STL"]
 type: ESSAY
 difficulty: 3
 title: STL 사용 장점
-description: STL을 사용하면 좋은 점을 설명하세요.
+description: vector, set, map, priority_queue 같은 STL을 사용하면 자료구조를 직접 구현하지 않아도 되는 이유와 장점을 설명하세요.
 rubric: |
   - 검증된 컨테이너와 알고리즘을 재사용할 수 있다는 점을 설명하면 35점
   - 구현 시간과 오류 가능성을 줄인다는 점을 설명하면 35점
@@ -1461,8 +1461,8 @@ tagsJson: ["STL"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 선형 탐색
-description: 처음부터 끝까지 차례로 찾는 알고리즘은?
+title: 문제 번호 차례대로 찾기
+description: 배열의 처음부터 끝까지 차례로 문제 번호를 찾는 알고리즘은?
 optionsJson: ["선형 탐색", "이진 탐색", "퀵 정렬", "해시"]
 answer: 선형 탐색
 hint: 가장 기본 개념을 고르세요.
@@ -1475,8 +1475,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: MULTIPLE_CHOICE
 difficulty: 1
-title: 이진 탐색 조건
-description: 일반적인 이진 탐색을 적용하기 전에 데이터가 만족해야 하는 조건은?
+title: 이진 탐색 전제 조건
+description: 일반적인 이진 탐색으로 문제 번호를 빠르게 찾기 전에 데이터가 만족해야 하는 조건은?
 optionsJson: ["정렬되어 있어야 한다", "모두 양수여야 한다", "중복이 없어야 한다", "배열 길이가 짝수여야 한다"]
 answer: 정렬되어 있어야 한다
 hint: 탐색 범위를 절반씩 줄이려면 값의 순서를 알아야 합니다.
@@ -1489,8 +1489,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: FILL_BLANK
 difficulty: 1
-title: 이진 탐색 중간 인덱스
-description: 이진 탐색에서 구간의 중간 인덱스를 계산하도록 빈칸을 완성하세요.
+title: 이진 탐색 중간 위치 계산
+description: 이진 탐색에서 현재 검색 구간의 중간 인덱스를 계산하도록 빈칸을 완성하세요.
 answer: 2
 codeTemplate: |
   int mid = left + (right - left) / ____;
@@ -1505,7 +1505,7 @@ tagsJson: ["알고리즘 기초"]
 type: SHORT_ANSWER
 difficulty: 2
 title: 선형 탐색 시간 복잡도
-description: 길이가 n인 배열에서 선형 탐색의 최악 시간 복잡도를 Big-O 표기법으로 쓰세요.
+description: 길이가 n인 풀이 기록 배열에서 선형 탐색의 최악 시간 복잡도를 Big-O 표기법으로 쓰세요.
 answer: O(n)
 hint: 최악의 경우 모든 원소를 한 번씩 확인합니다.
 explanation: 선형 탐색은 최악의 경우 n개 원소 전체를 확인하므로 시간 복잡도는 O(n)이다.
@@ -1517,8 +1517,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 선형 탐색 첫 위치
-description: 정수 n, n개의 정수, target을 입력받아 target이 처음 나타나는 인덱스를 출력하세요. 없으면 -1을 출력하세요.
+title: 문제 번호 첫 위치 찾기
+description: 정수 n, n개의 문제 번호, target을 입력받아 target이 처음 나타나는 인덱스를 출력하세요. 없으면 -1을 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -1560,8 +1560,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 2
-title: 선택 정렬
-description: 정수 n과 n개의 정수를 입력받아 선택 정렬로 오름차순 정렬한 결과를 공백으로 출력하세요.
+title: 선택 정렬로 점수 정리
+description: 정수 n과 n개의 점수를 입력받아 선택 정렬로 오름차순 정렬한 결과를 공백으로 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -1607,8 +1607,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 이진 탐색
-description: 오름차순으로 정렬된 n개의 정수와 target을 입력받아 이진 탐색으로 찾으면 `found`, 없으면 `not found`를 출력하세요.
+title: 이진 탐색으로 문제 번호 찾기
+description: 오름차순으로 정렬된 n개의 문제 번호와 target을 입력받아 이진 탐색으로 찾으면 `found`, 없으면 `not found`를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -1651,8 +1651,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: CODE
 difficulty: 3
-title: 투 포인터로 두 수의 합 찾기
-description: 오름차순으로 정렬된 n개의 정수와 target을 입력받아 서로 다른 두 원소의 합이 target이면 `YES`, 없으면 `NO`를 출력하세요.
+title: 투 포인터로 목표 점수 조합 찾기
+description: 오름차순으로 정렬된 n개의 점수와 target을 입력받아 서로 다른 두 점수의 합이 target이면 `YES`, 없으면 `NO`를 출력하세요.
 codeTemplate: |
   #include <iostream>
   #include <vector>
@@ -1693,8 +1693,8 @@ tagsJson: ["알고리즘 기초"]
 ```yaml
 type: ESSAY
 difficulty: 3
-title: 알고리즘 복잡도
-description: 같은 문제를 해결하는 O(n) 알고리즘과 O(n²) 알고리즘이 있을 때 입력 크기가 커질수록 성능 차이가 커지는 이유를 설명하세요.
+title: 알고리즘 복잡도 차이
+description: 같은 추천 문제 탐색을 해결하는 O(n) 알고리즘과 O(n²) 알고리즘이 있을 때 입력 크기가 커질수록 성능 차이가 커지는 이유를 설명하세요.
 rubric: |
   - O(n)은 입력 크기에 비례하고 O(n²)은 입력 크기의 제곱에 비례해 연산량이 증가한다고 설명하면 40점
   - 입력이 커질수록 증가율 차이가 커진다고 설명하면 35점

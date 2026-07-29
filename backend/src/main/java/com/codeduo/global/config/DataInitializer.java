@@ -31,6 +31,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -80,6 +81,7 @@ public class DataInitializer {
             seedPublicCatalogIfEmpty(mapper);
             seedSocialDataIfEmpty();
             applyPrivateGradingData(mapper);
+            normalizeMultipleChoiceAnswers(mapper);
         };
     }
 
@@ -227,6 +229,7 @@ public class DataInitializer {
             GradingSecret secret = secrets.get(problemKey(problem));
             if (secret == null) continue;
             if (secret.answer() != null) problem.setAnswer(secret.answer());
+            if (secret.correctOptionIndex() != null) problem.setCorrectOptionIndex(secret.correctOptionIndex());
             if (secret.rubric() != null) problem.setRubric(secret.rubric());
             if (secret.explanation() != null) problem.setExplanation(secret.explanation());
             if (secret.testCases() != null && !secret.testCases().isEmpty()) {
@@ -270,8 +273,75 @@ public class DataInitializer {
         return problem.getLanguage().name() + "-" + problem.getDifficulty() + "-" + problem.getOrderIndex();
     }
 
+    private void normalizeMultipleChoiceAnswers(ObjectMapper mapper) {
+        List<Problem> changed = problemRepository.findAll().stream()
+                .filter(problem -> problem.getType() == ProblemType.MULTIPLE_CHOICE)
+                .filter(problem -> migrateCorrectOptionIndex(problem, mapper))
+                .toList();
+
+        if (!changed.isEmpty()) {
+            problemRepository.saveAll(changed);
+            log.info("객관식 정답 인덱스 {}개를 기존 answer 값에서 마이그레이션했습니다.", changed.size());
+        }
+    }
+
+    private boolean migrateCorrectOptionIndex(Problem problem, ObjectMapper mapper) {
+        boolean changed = false;
+
+        if (problem.getCorrectOptionIndex() == null) {
+            Optional<List<String>> options = parseOptions(problem, mapper);
+            Optional<Integer> index = parseAnswerIndex(problem.getAnswer(), options.map(List::size).orElse(0))
+                    .or(() -> findAnswerTextIndex(problem, options));
+            if (index.isPresent()) {
+                problem.setCorrectOptionIndex(index.get());
+                changed = true;
+            }
+        }
+
+        if (problem.getAnswer() != null) {
+            problem.setAnswer(null);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private Optional<Integer> parseAnswerIndex(String answer, int optionCount) {
+        if (answer == null || answer.isBlank()) return Optional.empty();
+        try {
+            int index = Integer.parseInt(answer.strip());
+            return index >= 0 && index < optionCount ? Optional.of(index) : Optional.empty();
+        } catch (NumberFormatException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Integer> findAnswerTextIndex(Problem problem, Optional<List<String>> options) {
+        if (problem.getAnswer() == null || options.isEmpty()) {
+            return Optional.empty();
+        }
+        String expected = problem.getAnswer().strip();
+        List<String> optionList = options.get();
+        for (int i = 0; i < optionList.size(); i++) {
+            if (optionList.get(i) != null && optionList.get(i).strip().equals(expected)) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<List<String>> parseOptions(Problem problem, ObjectMapper mapper) {
+        if (problem.getOptionsJson() == null || problem.getOptionsJson().isBlank()) return Optional.empty();
+        try {
+            return Optional.of(mapper.readValue(problem.getOptionsJson(), new TypeReference<>() {}));
+        } catch (Exception ignored) {
+            return Optional.empty();
+        }
+    }
+
     private record GradingSecret(
             String answer,
+            Integer correctOptionIndex,
             String rubric,
             String explanation,
             List<JudgeTestCase> testCases
