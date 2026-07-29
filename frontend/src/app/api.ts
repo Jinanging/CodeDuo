@@ -1,5 +1,6 @@
 // CodeDuo(Spring) 백엔드 API 클라이언트.
-// 배포 시 VITE_API_BASE 로 실제 도메인 지정. 로컬은 8080 직접 호출(백엔드 CORS가 5173 허용).
+// 배포 시 VITE_API_BASE로 백엔드 주소를 지정한다.
+// 기본값은 로컬 백엔드 http://localhost:8080이며, 백엔드는 로컬 Vite origin(5173)을 CORS로 허용한다.
 type ViteImportMeta = ImportMeta & {
   env?: {
     VITE_API_BASE?: string;
@@ -7,8 +8,21 @@ type ViteImportMeta = ImportMeta & {
 };
 
 const API_BASE = (import.meta as ViteImportMeta).env?.VITE_API_BASE ?? "http://localhost:8080";
+const TOKEN_STORAGE_KEY = "codeduo.accessToken";
 
-let token = "";
+const readStoredToken = () => {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? "";
+};
+
+const persistToken = (nextToken: string) => {
+  token = nextToken;
+  if (typeof window === "undefined") return;
+  if (nextToken) window.localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
+  else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+};
+
+let token = readStoredToken();
 
 async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   let res: Response;
@@ -131,12 +145,12 @@ export interface AdminProblemPayload {
 
 export async function login(email: string, password: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
-  token = d.accessToken;
+  persistToken(d.accessToken);
   return d.user;
 }
 export async function signup(email: string, password: string, nickname: string): Promise<BackendUser> {
   const d = await req<{ accessToken: string; user: BackendUser }>("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password, nickname }) });
-  token = d.accessToken;
+  persistToken(d.accessToken);
   return d.user;
 }
 
@@ -327,5 +341,5 @@ export function hasToken(): boolean {
 
 /** 로그아웃: 토큰 제거. */
 export function clearToken(): void {
-  token = "";
+  persistToken("");
 }
