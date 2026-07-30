@@ -218,7 +218,7 @@ public class SubmissionService {
     }
 
     private String normalize(String value) {
-        return value == null ? "" : value.strip();
+        return value == null ? "" : value.strip().replaceAll("\\s+", "");
     }
 
     private List<JudgeTestCase> loadTestCases(Problem problem) {
