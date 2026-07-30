@@ -29,7 +29,7 @@ import codeduoLogo from "../../assets/codeduo-logo.svg";
 import interviewerMascot from "../../assets/interviewer-mascot.png";
 import type { Difficulty, FriendUser, Language, Question, QuestionType, Screen, StudyGroupView, TestCase, UserProfile, WrongAnswer } from "../types";
 import {
-  DIFFICULTY_META, EMPTY_WEAKNESS_DATA, LANG_META, TOPICS_BY_LANGUAGE,
+  DIFFICULTY_META, EMPTY_WEAKNESS_DATA, EMPTY_WEEKLY_ACTIVITY, LANG_META, TOPICS_BY_LANGUAGE,
   TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
   languageFromSubject, languageFromText, topicForQuestion,
 } from "../constants";
