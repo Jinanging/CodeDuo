@@ -154,7 +154,11 @@ public class SubmissionService {
 
     private boolean textAnswer(Problem problem, String answer) {
         requireConfigured(problem.getAnswer());
-        return normalize(problem.getAnswer()).equals(normalize(answer));
+        String normalizedAnswer = normalize(answer);
+        return List.of(problem.getAnswer().split("\\|"))
+                .stream()
+                .map(this::normalize)
+                .anyMatch(expected -> expected.equalsIgnoreCase(normalizedAnswer));
     }
 
     private Grade judge(Problem problem, String sourceCode) {

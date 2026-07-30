@@ -722,7 +722,7 @@ type: SHORT_ANSWER
 difficulty: 2
 title: 함수 입력값 이름
 description: 함수가 점수나 문제 번호 같은 입력값을 받기 위해 괄호 안에 정의하는 이름을 무엇이라고 하나요?
-answer: 매개변수
+answer: 매개변수|파라미터|parameter
 hint: 영어로 parameter입니다.
 explanation: 매개변수는 함수가 호출될 때 전달받는 값을 담는 변수다.
 tagsJson: ["함수"]
