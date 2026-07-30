@@ -43,6 +43,36 @@ Python, Java, C, C++ 학습을 목차와 난이도에 따라 진행하고, 오�
 - Judge0
 - Gemini API
 
+## 시스템 아키텍처
+
+CodeDuo는 AWS EC2 기반으로 배포되어 있습니다. 애플리케이션 서버와 코드 채점 서버를 분리해, 웹 서비스와 코드 실행 환경이 서로 독립적으로 동작하도록 구성했습니다.
+
+```text
+사용자 브라우저
+    ↓
+Nginx
+    ├── React 정적 파일 제공
+    └── /api 요청을 Spring Boot 백엔드로 프록시
+            ↓
+        Spring Boot Backend
+            ├── MySQL
+            ├── Gemini API
+            └── Judge0 Server
+```
+
+### App Server EC2
+
+- Nginx로 프론트엔드 정적 파일을 서빙합니다.
+- Spring Boot 백엔드를 Docker Compose로 실행합니다.
+- MySQL을 Docker 컨테이너로 실행합니다.
+- `/api` 요청은 Nginx reverse proxy를 통해 백엔드로 전달됩니다.
+
+### Judge Server EC2
+
+- Judge0를 별도 EC2 인스턴스에서 실행합니다.
+- 백엔드는 코드 제출 요청이 들어오면 Judge0 API를 호출해 코드를 실행하고 테스트케이스 결과를 받아옵니다.
+- 코드 실행 환경을 애플리케이션 서버와 분리해 운영 안정성을 높입니다.
+
 ## 프로젝트 구조
 
 ```text
@@ -211,4 +241,3 @@ docker compose ps
 - `docs/curriculum-plan.md`: 커리큘럼 설계
 - `docs/operation-notes.md`: 운영 메모
 - `config/grading-secrets.example.json`: 코드 채점 secret 예시
-
