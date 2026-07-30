@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,14 +48,20 @@ public class UserService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "조회 시작일이 종료일보다 늦을 수 없습니다.");
         }
 
-        LocalDateTime start = safeFrom.atStartOfDay();
-        LocalDateTime end = safeTo.plusDays(1).atStartOfDay().minusNanos(1);
-        Map<LocalDate, Long> counts = submissionRepository
-                .findByUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(userId, start, end)
-                .stream()
-                .filter(submission -> submission.getCreatedAt() != null)
+        Map<Long, LocalDateTime> firstSolvedByProblem = new HashMap<>();
+        submissionRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
+                .filter(submission -> submission.isCorrect() && submission.getCreatedAt() != null)
+                .forEach(submission -> firstSolvedByProblem.merge(
+                        submission.getProblem().getId(),
+                        submission.getCreatedAt(),
+                        (left, right) -> left.isBefore(right) ? left : right
+                ));
+
+        Map<LocalDate, Long> counts = firstSolvedByProblem.values().stream()
+                .filter(solvedAt -> !solvedAt.toLocalDate().isBefore(safeFrom))
+                .filter(solvedAt -> !solvedAt.toLocalDate().isAfter(safeTo))
                 .collect(Collectors.groupingBy(
-                        submission -> submission.getCreatedAt().toLocalDate(),
+                        solvedAt -> solvedAt.toLocalDate(),
                         LinkedHashMap::new,
                         Collectors.counting()
                 ));

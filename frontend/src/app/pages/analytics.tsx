@@ -179,8 +179,8 @@ export function AnalyticsPage({ user, onUpgrade, onStartLearning }: {
         <div className={isPremium ? "" : "opacity-30 pointer-events-none"}>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
-              { label: "총 풀이", value: analytics.summary.totalSolved },
-              { label: "이번 주 풀이", value: analytics.summary.weeklySolved },
+              { label: "해결한 문제", value: analytics.summary.totalSolved },
+              { label: "이번 주 해결", value: analytics.summary.weeklySolved },
               { label: "연속 학습", value: `${analytics.summary.streak}일` },
             ].map(({ label, value }) => (
               <div key={label} className="bg-white rounded-2xl border border-border p-4">

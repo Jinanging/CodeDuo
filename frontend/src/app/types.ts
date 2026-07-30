@@ -70,6 +70,7 @@ export interface WrongAnswer {
   explanation?: string;
   options?: string[];
   codeTemplate?: string;
+  testcases?: TestCase[];
   solvedAt: string;
 }
 

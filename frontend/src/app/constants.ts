@@ -102,6 +102,7 @@ export const TYPE_META: Record<QuestionType, { label: string; color: string }> =
 export const TYPE_XP: Record<QuestionType, number> = {
   mcq: 10, "fill-blank": 10, "short-answer": 10, code: 10,
 };
+export const MAX_CODE_ATTEMPTS = 3;
 
 export const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light: string; icon: string; desc: string }> = {
   beginner:     { label: "초급", color: "#10B981", light: "#ECFDF5", icon: "🌱", desc: "기초 문법과 개념 익히기" },

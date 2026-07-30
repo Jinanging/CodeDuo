@@ -27,10 +27,10 @@ import {
 } from "../api";
 import codeduoLogo from "../../assets/codeduo-logo.svg";
 import interviewerMascot from "../../assets/interviewer-mascot.png";
-import type { Difficulty, FriendUser, Language, Question, QuestionType, Screen, StudyGroupView, TestCase, UserProfile, WrongAnswer } from "../types";
+import type { Difficulty, FriendUser, Language, MockResult, Question, QuestionType, Screen, StudyGroupView, TestCase, UserProfile, WrongAnswer } from "../types";
 import {
   DIFFICULTY_META, EMPTY_WEAKNESS_DATA, LANG_META, TOPICS_BY_LANGUAGE,
-  TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
+  MAX_CODE_ATTEMPTS, TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
   languageFromSubject, languageFromText, topicForQuestion,
 } from "../constants";
 import { Avatar, Badge, CodeEditor, LanguageIcon, LockOverlay, PremiumBadge, PublicExamples, TestResultPanel, XpBar, languageLevelProgress } from "../components/shared";
@@ -212,32 +212,63 @@ export function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onReso
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
+  const [testResults, setTestResults] = useState<MockResult[] | null>(null);
+  const [resultMessage, setResultMessage] = useState("");
+  const [attemptCounts, setAttemptCounts] = useState<Record<number, number>>({});
   const active = reviewWrongs.find(w => w.qId === activeId) ?? reviewWrongs[0] ?? null;
-  const answer = active ? answers[active.qId] ?? "" : "";
+  const answer = active
+    ? answers[active.qId] ?? (active.type === "code" ? active.codeTemplate ?? "" : "")
+    : "";
 
   const setAnswer = (value: string) => {
     if (!active) return;
     setAnswers(prev => ({ ...prev, [active.qId]: value }));
     setFeedback(null);
+    setSubmissionError("");
+    setTestResults(null);
+    setResultMessage("");
+  };
+
+  const selectProblem = (qId: number | null) => {
+    setActiveId(qId);
+    setFeedback(null);
+    setSubmissionError("");
+    setTestResults(null);
+    setResultMessage("");
   };
 
   const submit = async () => {
     if (!active) return;
+    if (active.type === "code" && (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS) return;
     setSubmitting(true);
-    let correct = false;
+    setSubmissionError("");
+    setTestResults(null);
+    setResultMessage("");
+    let result: Awaited<ReturnType<typeof submitAnswer>>;
     try {
-      correct = (await submitAnswer(active.qId, answer)).correct;
-    } catch {
-      setFeedback("wrong");
+      result = await submitAnswer(active.qId, answer);
+    } catch (error) {
+      setSubmissionError(error instanceof Error ? error.message : "채점 요청에 실패했습니다.");
       setSubmitting(false);
       return;
     }
     setSubmitting(false);
-    if (!correct) { setFeedback("wrong"); return; }
+    setResultMessage(result.resultMessage ?? "");
+    if (active.type === "code") {
+      setAttemptCounts(counts => ({ ...counts, [active.qId]: (counts[active.qId] ?? 0) + 1 }));
+      let parsed: MockResult[] | null = null;
+      if (result.testResultsJson) {
+        try { parsed = JSON.parse(result.testResultsJson) as MockResult[]; } catch { parsed = null; }
+      }
+      setTestResults(parsed?.length ? parsed : null);
+    }
+    if (!result.correct) { setFeedback("wrong"); return; }
     onResolve(active.qId);
     setFeedback("correct");
     const next = reviewWrongs.find(w => w.qId !== active.qId);
     setActiveId(next?.qId ?? null);
+    setTestResults(null);
   };
 
   const renderInput = () => {
@@ -245,11 +276,14 @@ export function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onReso
     if (active.type === "mcq" && active.options) {
       return (
         <div className="grid gap-2">
-          {active.options.map((option) => {
-            const selected = answer === option;
+          {active.options.map((option, index) => {
+            const selected = answer === String(index);
             return (
-              <button key={option} onClick={() => setAnswer(option)} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
+              <button key={option} onClick={() => setAnswer(String(index))} className="text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all"
                 style={{ borderColor: selected ? "var(--primary)" : "var(--border)", background: selected ? "var(--secondary)" : "#fff", color: selected ? "var(--primary)" : "var(--foreground)" }}>
+                <span className="inline-flex w-6 font-extrabold" style={{ color: selected ? "var(--primary)" : "var(--muted-foreground)" }}>
+                  {String.fromCharCode(65 + index)}
+                </span>
                 {option}
               </button>
             );
@@ -259,10 +293,48 @@ export function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onReso
     }
     if (active.type === "code") {
       return (
-        <textarea value={answer} onChange={e => setAnswer(e.target.value)} rows={8} spellCheck={false}
-          className="w-full px-4 py-3 rounded-xl border-2 text-sm font-mono focus:outline-none resize-none"
-          style={{ borderColor: "var(--border)", background: "#fff", color: "var(--foreground)" }}
-          placeholder="정답 코드를 다시 작성해보세요." />
+        <div>
+          <PublicExamples testcases={active.testcases} />
+          <CodeEditor
+            value={answer}
+            onChange={setAnswer}
+            language={active.language}
+            disabled={submitting || (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS}
+          />
+          <div
+            className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold"
+            style={{ color: (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS && feedback === "wrong" ? "#B91C1C" : "var(--muted-foreground)" }}
+          >
+            <span>시도 {attemptCounts[active.qId] ?? 0}/{MAX_CODE_ATTEMPTS}회</span>
+            <span>
+              {(attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS && feedback === "wrong"
+                ? "기회를 모두 사용했어요"
+                : `남은 기회 ${MAX_CODE_ATTEMPTS - (attemptCounts[active.qId] ?? 0)}회`}
+            </span>
+          </div>
+          {testResults && (
+            <div className="mt-4 space-y-2">
+              <div
+                className="px-4 py-3 rounded-xl text-sm font-bold"
+                style={{
+                  background: testResults.every(result => result.pass) ? "#ECFDF5" : "#FEF2F2",
+                  color: testResults.every(result => result.pass) ? "#065F46" : "#991B1B",
+                }}
+              >
+                {!testResults.every(result => result.pass) && "오답 · "}
+                {testResults.filter(result => result.pass).length} / {testResults.length} 테스트케이스 통과
+                {resultMessage && <span className="block mt-1 font-semibold">{resultMessage}</span>}
+              </div>
+              {testResults.map(result => (
+                <div key={result.caseNumber} className="flex items-start gap-2 px-3 py-2 rounded-xl text-xs" style={{ background: result.pass ? "#F0FDF4" : "#FEF2F2", color: result.pass ? "#166534" : "#991B1B" }}>
+                  {result.pass ? <CheckCircle2 size={15} className="shrink-0" /> : <XCircle size={15} className="shrink-0" />}
+                  <span className="font-bold">숨김 테스트 #{result.caseNumber} · {result.pass ? "통과" : "실패"}</span>
+                  {!result.pass && result.error && <span className="break-words">{result.error}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       );
     }
     return (
@@ -305,12 +377,25 @@ export function WrongAnswerReviewPage({ user, sessionWrongs, resolvedIds, onReso
               <span className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: LANG_META[active.language].color }}><LanguageIcon language={active.language} size={15} />{LANG_META[active.language].label}</span>
             </div>
             {renderInput()}
-            {feedback === "wrong" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>아직 아니에요. 정답 방향을 다시 떠올려보세요.</div>}
+            {submissionError && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>{submissionError}</div>}
+            {feedback === "wrong" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>{resultMessage || "아직 아니에요. 정답 방향을 다시 떠올려보세요."}</div>}
+            {active.type === "code" && feedback === "wrong" && (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS && (
+              <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#FFF7ED", color: "#9A3412" }}>
+                3회 기회를 모두 사용했습니다. 이 문제는 오답으로 유지되며 다른 문제를 선택할 수 있어요.
+              </div>
+            )}
             {feedback === "correct" && <div className="mt-3 px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#ECFDF5", color: "#065F46" }}>좋아요. 해결한 문제로 이동했습니다.</div>}
             <div className="flex flex-wrap gap-2 mt-5">
-              <button onClick={submit} disabled={!answer.trim() || submitting} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>{submitting ? "채점 중..." : "답변 제출"}</button>
+              <button
+                onClick={submit}
+                disabled={!answer.trim() || submitting || (active.type === "code" && (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                style={{ background: "var(--primary)" }}
+              >
+                {submitting ? "채점 중..." : active.type === "code" && (attemptCounts[active.qId] ?? 0) >= MAX_CODE_ATTEMPTS ? "제출 기회 소진" : "답변 제출"}
+              </button>
               {reviewWrongs.map(w => (
-                <button key={w.qId} onClick={() => { setActiveId(w.qId); setFeedback(null); }} className="px-3 py-2 rounded-xl text-xs font-bold border-2"
+                <button key={w.qId} onClick={() => selectProblem(w.qId)} className="px-3 py-2 rounded-xl text-xs font-bold border-2"
                   style={{ borderColor: active.qId === w.qId ? "var(--primary)" : "var(--border)", color: active.qId === w.qId ? "var(--primary)" : "var(--muted-foreground)", background: active.qId === w.qId ? "var(--secondary)" : "#fff" }}>
                   #{w.qId}
                 </button>

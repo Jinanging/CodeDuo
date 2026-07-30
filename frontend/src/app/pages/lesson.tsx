@@ -27,10 +27,10 @@ import {
 } from "../api";
 import codeduoLogo from "../../assets/codeduo-logo.svg";
 import interviewerMascot from "../../assets/interviewer-mascot.png";
-import type { Difficulty, FriendUser, Language, Question, QuestionType, Screen, StudyGroupView, TestCase, UserProfile, WrongAnswer } from "../types";
+import type { Difficulty, FriendUser, Language, MockResult, Question, QuestionType, Screen, StudyGroupView, TestCase, UserProfile, WrongAnswer } from "../types";
 import {
   DIFFICULTY_META, EMPTY_WEAKNESS_DATA, LANG_META, TOPICS_BY_LANGUAGE,
-  TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
+  MAX_CODE_ATTEMPTS, TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
   languageFromSubject, languageFromText, nextDifficulty, topicForQuestion,
 } from "../constants";
 import { Avatar, Badge, CodeEditor, LanguageIcon, LockOverlay, PremiumBadge, PublicExamples, TestResultPanel, XpBar, languageLevelProgress } from "../components/shared";
@@ -69,6 +69,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
   const [codeWrongRecorded, setCodeWrongRecorded] = useState(false);
+  const [codeAttemptCount, setCodeAttemptCount] = useState(0);
   const activeTopic = selectedTopic && TOPICS_BY_LANGUAGE[selectedLang].includes(selectedTopic)
     ? selectedTopic
     : firstTopicFor(selectedLang);
@@ -85,6 +86,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
         setLessonQuestions(mapped);
         setCurrentQ(0);
         setCodeValue(mapped[0]?.template ?? "");
+        setCodeAttemptCount(0);
         setLoading(false);
       })
       .catch(() => { if (!cancelled) { setLoadError(true); setLoading(false); } });
@@ -109,10 +111,11 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const resetQ = (idx: number) => {
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
-    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false);
+    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false); setCodeAttemptCount(0);
   };
 
   const runCode = async () => {
+    if (codeAttemptCount >= MAX_CODE_ATTEMPTS) return;
     setIsRunning(true);
     setTestResults(null);
     setBackendSubmissionId(null);
@@ -136,6 +139,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
       setIsRunning(false);
       return;
     }
+    setCodeAttemptCount(count => count + 1);
     let parsed: MockResult[] | null = null;
     if (backend?.testResultsJson) { try { parsed = JSON.parse(backend.testResultsJson); } catch { parsed = null; } }
     const results = parsed?.length ? parsed : [{
@@ -217,7 +221,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
 
   const canCheck =
     question.type === "code"
-      ? codeValue.trim().length > 0 && !isRunning
+      ? codeValue.trim().length > 0 && !isRunning && codeAttemptCount < MAX_CODE_ATTEMPTS
       : question.type === "mcq"
         ? selectedOption !== null
         : userAnswer.trim().length > 0;
@@ -380,8 +384,12 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                 value={codeValue}
                 onChange={setCodeValue}
                 language={question.language}
-                disabled={isRunning}
+                disabled={isRunning || (codeAttemptCount >= MAX_CODE_ATTEMPTS && feedback === "wrong")}
               />
+              <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold" style={{ color: codeAttemptCount >= MAX_CODE_ATTEMPTS && feedback === "wrong" ? "#B91C1C" : "var(--muted-foreground)" }}>
+                <span>시도 {codeAttemptCount}/{MAX_CODE_ATTEMPTS}회</span>
+                <span>{codeAttemptCount >= MAX_CODE_ATTEMPTS && feedback === "wrong" ? "기회를 모두 사용했어요" : `남은 기회 ${MAX_CODE_ATTEMPTS - codeAttemptCount}회`}</span>
+              </div>
               {testResults && (
                 <TestResultPanel
                   results={testResults}
@@ -439,6 +447,14 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                 >
                   {currentQ < lessonQuestions.length - 1 ? <>다음 문제 <ChevronRight size={20} /></> : <>결과 보기 <Trophy size={20} /></>}
                 </button>
+              ) : testResults && feedback === "wrong" && codeAttemptCount >= MAX_CODE_ATTEMPTS ? (
+                <button
+                  onClick={next}
+                  className="w-full py-4 rounded-2xl font-extrabold text-base text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                  style={{ background: "#EF4444" }}
+                >
+                  {currentQ < lessonQuestions.length - 1 ? <>오답으로 다음 문제 <ChevronRight size={20} /></> : <>오답으로 결과 보기 <Trophy size={20} /></>}
+                </button>
               ) : testResults && feedback === "wrong" ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
@@ -467,7 +483,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                     className="py-4 rounded-2xl font-extrabold text-base border-2 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ borderColor: "var(--primary)", color: "var(--primary)", background: "#fff" }}
                   >
-                    {currentQ < lessonQuestions.length - 1 ? <>다음 문제 <ChevronRight size={20} /></> : <>결과 보기 <Trophy size={20} /></>}
+                    {currentQ < lessonQuestions.length - 1 ? <>오답으로 다음 문제 <ChevronRight size={20} /></> : <>오답으로 결과 보기 <Trophy size={20} /></>}
                   </button>
                 </div>
               ) : (

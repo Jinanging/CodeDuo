@@ -15,6 +15,9 @@ export function mapWrongAnswer(w: BackendWrongAnswer): WrongAnswer {
     explanation: w.explanation,
     options: parseOptions(),
     codeTemplate: w.codeTemplate,
+    testcases: w.sampleInput != null || w.sampleOutput != null
+      ? [{ input: w.sampleInput ?? "", expected: w.sampleOutput ?? "" }]
+      : undefined,
     solvedAt: (w.updatedAt ?? "").slice(0, 10),
   };
 }
