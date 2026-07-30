@@ -57,7 +57,7 @@ export function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, o
   const weeklySolved = user.weeklyActivity.reduce((sum, item) => sum + item.solved, 0);
   const maxDailySolved = Math.max(1, ...user.weeklyActivity.map(item => item.solved));
   const todayMissions = [
-    { label: "오늘 문제 3개 풀기", done: Math.min(todaySolved, 3), total: 3, icon: <BookOpen size={16} />, color: langMeta.color },
+    { label: "오늘 문제 3개 풀기", done: Math.min(todaySolved, 3), total: 3, icon: <BookOpen size={16} />, color: "var(--primary)" },
     { label: "이번 주 문제 5개 풀기", done: Math.min(weeklySolved, 5), total: 5, icon: <Terminal size={16} />, color: "#10B981" },
     { label: "연속 학습 유지", done: user.streak > 0 ? 1 : 0, total: 1, icon: <Flame size={16} />, color: "#EF4444" },
   ];
@@ -208,7 +208,7 @@ export function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, o
               {user.weeklyActivity.map(item => (
                 <div key={item.day} className="flex flex-col items-center gap-2 h-full justify-end">
                   <span className="text-[10px] font-semibold" style={{ color: item.solved > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.solved}</span>
-                  <div className="w-full rounded-t-lg min-h-[10px]" style={{ height: `${Math.max(10, (item.solved / maxDailySolved) * 72)}px`, background: item.solved > 0 ? langMeta.color : "var(--muted)" }} />
+                  <div className="w-full rounded-t-lg min-h-[10px]" style={{ height: `${Math.max(10, (item.solved / maxDailySolved) * 72)}px`, background: item.solved > 0 ? "var(--primary)" : "var(--muted)" }} />
                   <span className="text-xs font-semibold" style={{ color: item.solved > 0 ? "var(--foreground)" : "var(--muted-foreground)" }}>{item.day}</span>
                 </div>
               ))}
