@@ -31,7 +31,7 @@ import type { Difficulty, FriendUser, Language, Question, QuestionType, Screen, 
 import {
   DIFFICULTY_META, EMPTY_WEAKNESS_DATA, LANG_META, TOPICS_BY_LANGUAGE,
   TYPE_META, TYPE_XP, firstTopicFor, hasKnownTopic, isAdminUser, isLanguage,
-  languageFromSubject, languageFromText, topicForQuestion,
+  languageFromSubject, languageFromText, nextDifficulty, topicForQuestion,
 } from "../constants";
 import { Avatar, Badge, CodeEditor, LanguageIcon, LockOverlay, PremiumBadge, PublicExamples, TestResultPanel, XpBar, languageLevelProgress } from "../components/shared";
 
