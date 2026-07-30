@@ -70,6 +70,8 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const [earnedXp, setEarnedXp] = useState(0);
   const [codeWrongRecorded, setCodeWrongRecorded] = useState(false);
   const [codeAttemptCount, setCodeAttemptCount] = useState(0);
+  const submissionLockRef = useRef(false);
+  const nextLockRef = useRef(false);
   const activeTopic = selectedTopic && TOPICS_BY_LANGUAGE[selectedLang].includes(selectedTopic)
     ? selectedTopic
     : firstTopicFor(selectedLang);
@@ -93,6 +95,10 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     return () => { cancelled = true; };
   }, [selectedLang, difficulty, activeTopic]);
 
+  useEffect(() => {
+    nextLockRef.current = false;
+  }, [currentQ]);
+
   const question = lessonQuestions[currentQ];
 
   if (loading) return (
@@ -115,7 +121,8 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   };
 
   const runCode = async () => {
-    if (codeAttemptCount >= MAX_CODE_ATTEMPTS) return;
+    if (submissionLockRef.current || codeAttemptCount >= MAX_CODE_ATTEMPTS) return;
+    submissionLockRef.current = true;
     setIsRunning(true);
     setTestResults(null);
     setBackendSubmissionId(null);
@@ -137,6 +144,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
       setBackendSubmissionId(null);
       setFeedback("wrong");
       setIsRunning(false);
+      submissionLockRef.current = false;
       return;
     }
     setCodeAttemptCount(count => count + 1);
@@ -154,11 +162,14 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     setBackendSubmissionId(backend.id ?? null);
     setFeedbackExplanation(backend.explanation ?? "");
     setIsRunning(false);
+    submissionLockRef.current = false;
     const allPassed = backend.correct;
     setFeedback(allPassed ? "correct" : "wrong");
     if (allPassed) {
       setCorrectCount(p => p + 1);
       setEarnedXp(p => p + TYPE_XP.code);
+      // 재시도 끝에 정답을 맞힌 경우 첫 실패 때 추가한 세션 오답을 제거한다.
+      setWrongs(prev => prev.filter(wrong => wrong.qId !== question.id));
     } else if (!codeWrongRecorded) {
       setWrongs(prev => [...prev, {
         qId: question.id, question: question.question, type: question.type,
@@ -186,35 +197,53 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
 
   const checkAnswer = async () => {
     if (question.type === "code") { runCode(); return; }
+    if (submissionLockRef.current) return;
 
     // 정답은 브라우저에 두지 않고 백엔드에서만 채점합니다.
-    const submitted = question.type === "mcq"
-      ? (selectedOption === null ? "" : String(selectedOption))
-      : userAnswer;
+    const activeQuestion = question;
+    const selectedIndex = selectedOption;
+    const textAnswer = userAnswer;
+    const submitted = activeQuestion.type === "mcq"
+      ? (selectedIndex === null ? "" : String(selectedIndex))
+      : textAnswer;
+    submissionLockRef.current = true;
+    setIsRunning(true);
     setSubmissionError("");
     let backend: Awaited<ReturnType<typeof submitAnswer>>;
     try {
-      backend = await submitAnswer(question.id, submitted);
+      backend = await submitAnswer(activeQuestion.id, submitted);
     } catch (error) {
       setSubmissionError(error instanceof Error ? error.message : "채점 요청에 실패했습니다.");
       return;
+    } finally {
+      submissionLockRef.current = false;
+      setIsRunning(false);
     }
     const correct = backend.correct;
     setFeedbackExplanation(backend.explanation ?? "");
 
     setFeedback(correct ? "correct" : "wrong");
-    if (correct) { setCorrectCount(p => p + 1); setEarnedXp(p => p + TYPE_XP[question.type]); }
+    if (correct) {
+      setCorrectCount(p => p + 1);
+      setEarnedXp(p => p + TYPE_XP[activeQuestion.type]);
+      setWrongs(prev => prev.filter(wrong => wrong.qId !== activeQuestion.id));
+    }
     else {
-      setWrongs(prev => [...prev, {
-        qId: question.id, question: question.question, type: question.type,
-        language: question.language,
-        userAnswer: question.type === "mcq" ? (question.options?.[selectedOption ?? 0] ?? "") : userAnswer,
+      const wrongAnswer: WrongAnswer = {
+        qId: activeQuestion.id, question: activeQuestion.question, type: activeQuestion.type,
+        language: activeQuestion.language,
+        userAnswer: activeQuestion.type === "mcq" && selectedIndex !== null
+          ? (activeQuestion.options?.[selectedIndex] ?? "")
+          : textAnswer,
         solvedAt: new Date().toISOString().slice(0, 10),
-      }]);
+      };
+      setWrongs(prev => [...prev.filter(wrong => wrong.qId !== activeQuestion.id), wrongAnswer]);
     }
   };
 
   const next = () => {
+    if (nextLockRef.current) return;
+    nextLockRef.current = true;
     if (currentQ < lessonQuestions.length - 1) { resetQ(currentQ + 1); setCurrentQ(p => p + 1); }
     else onComplete(correctCount, lessonQuestions.length, wrongs, earnedXp);
   };
@@ -223,8 +252,8 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     question.type === "code"
       ? codeValue.trim().length > 0 && !isRunning && codeAttemptCount < MAX_CODE_ATTEMPTS
       : question.type === "mcq"
-        ? selectedOption !== null
-        : userAnswer.trim().length > 0;
+        ? selectedOption !== null && !isRunning
+        : userAnswer.trim().length > 0 && !isRunning;
 
   const parts = question.question.split("___");
 
@@ -324,7 +353,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                 return (
                   <button
                     key={i}
-                    disabled={!!feedback}
+                    disabled={!!feedback || isRunning}
                     onClick={() => setSelectedOption(i)}
                     className="text-left px-5 py-5 rounded-2xl border-2 font-medium transition-all hover:scale-[1.01] active:scale-[0.99] disabled:cursor-default flex items-center gap-3"
                     style={{
@@ -358,8 +387,8 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
               type="text"
               value={userAnswer}
               onChange={e => setUserAnswer(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && !feedback && canCheck && checkAnswer()}
-              disabled={!!feedback}
+              onKeyDown={e => e.key === "Enter" && !feedback && !isRunning && canCheck && checkAnswer()}
+              disabled={!!feedback || isRunning}
               placeholder="정답을 입력하세요..."
               className="w-full px-5 py-4 rounded-2xl border-2 font-mono font-bold text-base focus:outline-none transition-colors"
               style={{
@@ -519,14 +548,14 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
             ) : (
               <button
                 onClick={checkAnswer}
-                disabled={!canCheck}
+                disabled={!canCheck || isRunning}
                 className="w-full py-4 rounded-2xl font-extrabold text-base transition-all disabled:cursor-not-allowed"
                 style={{
                   background: canCheck ? "var(--primary)" : "#D1C9F0",
                   color: canCheck ? "#fff" : "#6B5B95",
                 }}
               >
-                정답 확인
+                {isRunning ? "채점 중…" : "정답 확인"}
               </button>
             )}
           </div>
@@ -546,6 +575,7 @@ export function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLan
   const langMeta = LANG_META[selectedLang];
   const nextDiff = nextDifficulty(difficulty);
   const isPremium = user.tier === "premium";
+  const resultWrongs = dedupWrongs(wrongs);
 
   return (
     <div className="px-6 py-8 max-w-2xl mx-auto">
@@ -596,14 +626,14 @@ export function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLan
       )}
 
       {/* PREMIUM: Wrong answers summary */}
-      {isPremium && wrongs.length > 0 && (
+      {isPremium && resultWrongs.length > 0 && (
         <div className="bg-white rounded-2xl border border-border p-5 mb-4">
           <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
-            <AlertTriangle size={16} style={{ color: "#F59E0B" }} />틀린 문제 ({wrongs.length}개)
+            <AlertTriangle size={16} style={{ color: "#F59E0B" }} />틀린 문제 ({resultWrongs.length}개)
           </h3>
           <div className="space-y-2">
-            {wrongs.map((w, i) => (
-              <div key={i} className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2" }}>
+            {resultWrongs.map(w => (
+              <div key={w.qId} className="rounded-xl px-4 py-3 text-sm" style={{ background: "#FEF2F2" }}>
                 <div className="flex items-center gap-2 mb-0.5">
                   <Badge type={w.type} />
                   <span className="font-mono text-xs font-semibold" style={{ color: LANG_META[w.language].color }}>{LANG_META[w.language].label}</span>
