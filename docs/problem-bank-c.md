@@ -728,7 +728,7 @@ type: SHORT_ANSWER
 difficulty: 2
 title: 함수 원형이 필요한 이유
 description: 함수를 사용하기 전에 반환형, 이름, 매개변수를 미리 알려주는 선언을 무엇이라고 하나요?
-answer: 함수 원형
+answer: 함수 원형|함수원형|프로토타입|함수 프로토타입|prototype|function prototype
 hint: prototype이라고도 합니다.
 explanation: 함수 원형은 컴파일러에게 함수의 형태를 미리 알려준다.
 tagsJson: ["함수"]
@@ -1404,7 +1404,7 @@ type: SHORT_ANSWER
 difficulty: 2
 title: 점수 순서 정리하기
 description: 데이터를 일정한 기준에 따라 순서대로 배치하는 알고리즘 작업을 무엇이라고 하나요?
-answer: 정렬
+answer: 정렬|sorting|sort
 hint: sorting입니다.
 explanation: 정렬은 데이터를 오름차순이나 내림차순 등으로 재배치하는 작업이다.
 tagsJson: ["구조체와 알고리즘 기초"]

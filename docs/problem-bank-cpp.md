@@ -987,7 +987,7 @@ type: SHORT_ANSWER
 difficulty: 2
 title: 객체 초기화 함수
 description: 사용자 객체가 생성될 때 자동으로 호출되며 클래스와 같은 이름을 갖는 특별한 멤버 함수를 무엇이라고 하나요?
-answer: 생성자
+answer: 생성자|constructor
 hint: 영어로 constructor입니다.
 explanation: 생성자는 객체가 만들어질 때 필드의 초기값을 설정하는 특별한 멤버 함수다.
 tagsJson: ["클래스와 객체"]
