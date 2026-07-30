@@ -70,9 +70,9 @@ public class SubmissionService {
                 .testResultsJson(grade.testResultsJson)
                 .build());
 
-        if (grade.correct) {
-            progressService.markCorrect(managedUser, problem.getLesson());
-        } else {
+        progressService.recordStudy(managedUser, problem.getLesson(), grade.correct);
+
+        if (!grade.correct) {
             WrongAnswer wrongAnswer = wrongAnswerRepository.findByUserIdAndProblemId(managedUser.getId(), problem.getId())
                     .orElseGet(() -> WrongAnswer.builder().user(managedUser).problem(problem).build());
             wrongAnswer.setLastAnswer(request.answer());
