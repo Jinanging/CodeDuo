@@ -230,6 +230,11 @@ const DIFFICULTY_META: Record<Difficulty, { label: string; color: string; light:
   intermediate: { label: "중급", color: "#F59E0B", light: "#FFFBEB", icon: "🔥", desc: "코드 작성과 응용 연습" },
   advanced:     { label: "고급", color: "#EF4444", light: "#FEF2F2", icon: "🚀", desc: "심화 개념 도전" },
 };
+const nextDifficulty = (difficulty: Difficulty): Difficulty | null => {
+  if (difficulty === "beginner") return "intermediate";
+  if (difficulty === "intermediate") return "advanced";
+  return null;
+};
 
 const WEEK_DAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 const EMPTY_WEEKLY_ACTIVITY = (): BackendActivity[] => WEEK_DAYS.map(day => ({ day, solved: 0 }));
@@ -1209,6 +1214,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   const [feedbackExplanation, setFeedbackExplanation] = useState("");
   const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
+  const [codeWrongRecorded, setCodeWrongRecorded] = useState(false);
   const activeTopic = selectedTopic && TOPICS_BY_LANGUAGE[selectedLang].includes(selectedTopic)
     ? selectedTopic
     : firstTopicFor(selectedLang);
@@ -1249,7 +1255,7 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
   const resetQ = (idx: number) => {
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
-    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false);
+    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false);
   };
 
   const runCode = async () => {
@@ -1295,13 +1301,14 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
     if (allPassed) {
       setCorrectCount(p => p + 1);
       setEarnedXp(p => p + TYPE_XP.code);
-    } else {
+    } else if (!codeWrongRecorded) {
       setWrongs(prev => [...prev, {
         qId: question.id, question: question.question, type: question.type,
         language: question.language,
         userAnswer: codeValue.slice(0, 60),
         solvedAt: new Date().toISOString().slice(0, 10),
       }]);
+      setCodeWrongRecorded(true);
     }
   };
 
@@ -1578,6 +1585,37 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
                 >
                   {currentQ < lessonQuestions.length - 1 ? <>다음 문제 <ChevronRight size={20} /></> : <>결과 보기 <Trophy size={20} /></>}
                 </button>
+              ) : testResults && feedback === "wrong" ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    onClick={checkAnswer}
+                    disabled={!canCheck || isRunning}
+                    className="py-4 rounded-2xl font-extrabold text-base text-white flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
+                    style={{
+                      background: isRunning ? "#6D28D9" : canCheck ? "var(--primary)" : "#D1C9F0",
+                      color: canCheck || isRunning ? "#fff" : "#6B5B95",
+                    }}
+                  >
+                    {isRunning ? (
+                      <>
+                        <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                        실행 중…
+                      </>
+                    ) : (
+                      <><RotateCcw size={18} />다시 실행</>
+                    )}
+                  </button>
+                  <button
+                    onClick={next}
+                    disabled={isRunning}
+                    className="py-4 rounded-2xl font-extrabold text-base border-2 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ borderColor: "var(--primary)", color: "var(--primary)", background: "#fff" }}
+                  >
+                    {currentQ < lessonQuestions.length - 1 ? <>다음 문제 <ChevronRight size={20} /></> : <>결과 보기 <Trophy size={20} /></>}
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={checkAnswer}
@@ -1595,8 +1633,6 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
                       </svg>
                       실행 중…
                     </>
-                  ) : testResults && feedback === "wrong" ? (
-                    <><RotateCcw size={18} />다시 실행</>
                   ) : (
                     <><Play size={18} />실행하고 채점</>
                   )}
@@ -1632,13 +1668,14 @@ function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete,
 
 // ─── RESULT ───────────────────────────────────────────────────────────────────
 
-function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHome, onRetry, onUpgrade }: {
+function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, difficulty, onHome, onRetry, onNextDifficulty, onUpgrade }: {
   user: UserProfile; correct: number; total: number; xpEarned: number;
-  wrongs: WrongAnswer[]; selectedLang: Language;
-  onHome: () => void; onRetry: () => void; onUpgrade: () => void;
+  wrongs: WrongAnswer[]; selectedLang: Language; difficulty: Difficulty;
+  onHome: () => void; onRetry: () => void; onNextDifficulty?: () => void; onUpgrade: () => void;
 }) {
   const pct = Math.round((correct / total) * 100);
   const langMeta = LANG_META[selectedLang];
+  const nextDiff = nextDifficulty(difficulty);
   const isPremium = user.tier === "premium";
 
   return (
@@ -1712,9 +1749,14 @@ function ResultPage({ user, correct, total, xpEarned, wrongs, selectedLang, onHo
         </div>
       )}
 
-      <div className="flex gap-3">
-        <button onClick={onHome} className="flex-1 py-3.5 rounded-xl font-bold text-white text-sm" style={{ background: "var(--primary)" }}>홈으로</button>
-        <button onClick={onRetry} className="flex-1 py-3.5 rounded-xl font-bold text-sm border-2" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <button onClick={onHome} className="py-3.5 rounded-xl font-bold text-white text-sm" style={{ background: "var(--primary)" }}>홈으로</button>
+        {nextDiff && onNextDifficulty && (
+          <button onClick={onNextDifficulty} className="py-3.5 rounded-xl font-bold text-white text-sm" style={{ background: DIFFICULTY_META[nextDiff].color }}>
+            {DIFFICULTY_META[nextDiff].label}으로
+          </button>
+        )}
+        <button onClick={onRetry} className="py-3.5 rounded-xl font-bold text-sm border-2" style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
           <RotateCcw size={14} className="inline mr-1" />다시 도전
         </button>
       </div>
@@ -4381,7 +4423,24 @@ export default function App() {
       case "home":     return <HomePage user={user} onStartLesson={() => navigate("lessonSelect")} selectedLang={selectedLang} setSelectedLang={handleLangChange} onNav={navigate} />;
       case "lessonSelect": return <LessonSelectPage selectedLang={selectedLang} setSelectedLang={handleLangChange} selectedTopic={selectedTopic} setSelectedTopic={handleTopicChange} onStart={(d, topic) => { setSelectedDifficulty(d); setSelectedTopic(topic ?? null); navigate("lesson", false, { difficulty: d, topic: topic ?? null }); }} onBack={() => navigate("home")} />;
       case "lesson":   return <LessonPage user={user} selectedLang={selectedLang} difficulty={selectedDifficulty} selectedTopic={selectedTopic} onComplete={handleComplete} onBack={() => navigate("lessonSelect")} />;
-      case "result":   return <ResultPage user={user} correct={lessonResult?.correct ?? 0} total={lessonResult?.total ?? 0} xpEarned={xpEarned} wrongs={lessonResult?.wrongs ?? []} selectedLang={selectedLang} onHome={() => navigate("home")} onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty, topic: selectedTopic ?? firstTopicFor(selectedLang) })} onUpgrade={() => openUpgrade("result")} />;
+      case "result":   return <ResultPage
+        user={user}
+        correct={lessonResult?.correct ?? 0}
+        total={lessonResult?.total ?? 0}
+        xpEarned={xpEarned}
+        wrongs={lessonResult?.wrongs ?? []}
+        selectedLang={selectedLang}
+        difficulty={selectedDifficulty}
+        onHome={() => navigate("home")}
+        onRetry={() => navigate("lesson", false, { difficulty: selectedDifficulty, topic: selectedTopic ?? firstTopicFor(selectedLang) })}
+        onNextDifficulty={() => {
+          const nextDiff = nextDifficulty(selectedDifficulty);
+          if (!nextDiff) return;
+          setSelectedDifficulty(nextDiff);
+          navigate("lesson", false, { difficulty: nextDiff, topic: selectedTopic ?? firstTopicFor(selectedLang) });
+        }}
+        onUpgrade={() => openUpgrade("result")}
+      />;
       case "analytics":return <AnalyticsPage
         user={user}
         onUpgrade={() => openUpgrade("analytics")}
