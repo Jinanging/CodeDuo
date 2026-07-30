@@ -9,16 +9,26 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ProgressService {
+    private static final ZoneId STUDY_ZONE = ZoneId.of("Asia/Seoul");
+
     private final ProgressRepository progressRepository;
 
     public void markCorrect(User user, Lesson lesson) {
+        recordStudy(user, lesson, true);
+    }
+
+    public void recordStudy(User user, Lesson lesson, boolean correct) {
+        updateUserStreak(user);
+
         Progress progress = progressRepository.findByUserIdAndCourseIdAndLessonId(user.getId(), lesson.getCourse().getId(), lesson.getId())
                 .orElseGet(() -> Progress.builder()
                         .user(user)
@@ -27,12 +37,26 @@ public class ProgressService {
                         .completedProblemCount(0)
                         .streakCount(user.getStreakCount())
                         .build());
-        progress.setCompletedProblemCount(progress.getCompletedProblemCount() + 1);
+        if (correct) {
+            progress.setCompletedProblemCount(progress.getCompletedProblemCount() + 1);
+            user.setXp(user.getXp() + 10);
+        }
         progress.setStreakCount(Math.max(progress.getStreakCount(), user.getStreakCount()));
         progress.setLastStudiedAt(LocalDateTime.now());
-        user.setXp(user.getXp() + 10);
-        user.setStreakCount(Math.max(1, user.getStreakCount()));
         progressRepository.save(progress);
+    }
+
+    private void updateUserStreak(User user) {
+        LocalDate today = LocalDate.now(STUDY_ZONE);
+        LocalDate lastStudiedDate = user.getLastStudiedDate();
+        if (today.equals(lastStudiedDate)) return;
+
+        if (today.minusDays(1).equals(lastStudiedDate)) {
+            user.setStreakCount(user.getStreakCount() + 1);
+        } else {
+            user.setStreakCount(1);
+        }
+        user.setLastStudiedDate(today);
     }
 
     @Transactional(readOnly = true)

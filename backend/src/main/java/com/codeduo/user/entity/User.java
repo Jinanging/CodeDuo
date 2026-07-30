@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -36,6 +37,8 @@ public class User {
 
     @Builder.Default
     private int streakCount = 0;
+
+    private LocalDate lastStudiedDate;
 
     @Builder.Default
     private int hearts = 5;

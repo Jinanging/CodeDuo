@@ -11,6 +11,7 @@ import com.codeduo.problem.repository.ProblemRepository;
 import com.codeduo.problem.type.Language;
 import com.codeduo.problem.type.ProblemType;
 import com.codeduo.judge.dto.JudgeTestCase;
+import com.codeduo.submission.repository.SubmissionRepository;
 import com.codeduo.user.entity.User;
 import com.codeduo.user.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -27,11 +28,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.EnumMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -50,6 +56,7 @@ public class DataInitializer {
     private final ProblemRepository problemRepository;
     private final UserRepository userRepository;
     private final StudyGroupRepository studyGroupRepository;
+    private final SubmissionRepository submissionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${grading.secrets-path:}")
@@ -71,6 +78,7 @@ public class DataInitializer {
     private static final String[] DIFF_DESC = {
             "기초 문법과 개념 익히기", "코드 작성과 응용 연습", "심화 개념과 서술형 도전"
     };
+    private static final ZoneId STUDY_ZONE = ZoneId.of("Asia/Seoul");
 
     @Bean
     CommandLineRunner initData() {
@@ -82,7 +90,41 @@ public class DataInitializer {
             seedSocialDataIfEmpty();
             applyPrivateGradingData(mapper);
             normalizeMultipleChoiceAnswers(mapper);
+            recalculateStudyStreaksFromSubmissions();
         };
+    }
+
+    private void recalculateStudyStreaksFromSubmissions() {
+        LocalDate today = LocalDate.now(STUDY_ZONE);
+        List<User> changedUsers = new ArrayList<>();
+        for (User user : userRepository.findAll()) {
+            List<LocalDate> studiedDates = submissionRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                    .filter(submission -> submission.getCreatedAt() != null)
+                    .map(submission -> submission.getCreatedAt().toLocalDate())
+                    .distinct()
+                    .toList();
+            if (studiedDates.isEmpty()) continue;
+
+            LocalDate lastStudiedDate = studiedDates.get(0);
+            user.setLastStudiedDate(lastStudiedDate);
+            user.setStreakCount(countCurrentStreak(studiedDates, today));
+            changedUsers.add(user);
+        }
+        userRepository.saveAll(changedUsers);
+    }
+
+    private int countCurrentStreak(List<LocalDate> studiedDates, LocalDate today) {
+        LocalDate latest = studiedDates.get(0);
+        if (!latest.equals(today) && !latest.equals(today.minusDays(1))) return 0;
+
+        Set<LocalDate> dateSet = new HashSet<>(studiedDates);
+        int streak = 0;
+        LocalDate cursor = latest;
+        while (dateSet.contains(cursor)) {
+            streak += 1;
+            cursor = cursor.minusDays(1);
+        }
+        return streak;
     }
 
     private void seedSocialDataIfEmpty() {
