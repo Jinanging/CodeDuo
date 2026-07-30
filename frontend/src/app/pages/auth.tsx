@@ -73,10 +73,8 @@ export function AuthScreen({
     <div className="min-h-screen flex" style={{ fontFamily: "Outfit, sans-serif", background: "var(--background)" }}>
       {/* Left panel */}
       <div className="hidden md:flex flex-col justify-between w-5/12 p-12 text-white" style={{ background: "var(--primary)" }}>
-        <div className="flex items-center gap-2">
-          <div className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <img src={codeduoLogo} alt="CodeDuo" className="h-11 w-auto object-contain" />
-          </div>
+        <div className="flex items-center">
+          <img src={codeduoLogo} alt="CodeDuo" className="h-16 w-auto object-contain brightness-0 invert" />
         </div>
         <div>
           <h1 className="text-4xl font-extrabold mb-4 leading-tight">코딩 실력을<br />게임처럼 키워보세요</h1>
