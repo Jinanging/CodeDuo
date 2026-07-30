@@ -101,6 +101,7 @@ class SubmissionServiceTest {
             assertThat(result).doesNotContainKeys("input", "expected", "actual");
         });
         verify(judge0Client, times(3)).execute(any());
+        verify(wrongAnswerRepository).deleteByUserIdAndProblemId(1L, 3L);
         verify(progressService).recordStudy(user, problem.getLesson(), true);
     }
 
@@ -122,6 +123,7 @@ class SubmissionServiceTest {
         assertThat(results).extracting(result -> result.get("pass")).containsExactly(true, false, true);
         assertThat(results).allSatisfy(result -> assertThat(result).doesNotContainKeys("input", "expected", "actual"));
         verify(wrongAnswerRepository).save(any());
+        verify(wrongAnswerRepository, never()).deleteByUserIdAndProblemId(anyLong(), anyLong());
         verify(progressService).recordStudy(user, problem.getLesson(), false);
     }
 

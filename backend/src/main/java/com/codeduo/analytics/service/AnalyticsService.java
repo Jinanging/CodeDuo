@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,13 +59,14 @@ public class AnalyticsService {
                 .sorted(Comparator.comparingInt(Weakness::score))
                 .toList();
 
+        int totalSolved = totalSolved(submissions);
         int weeklySolved = weeklySolved(submissions);
         int accuracy = Math.round((float) submissions.stream().filter(Submission::isCorrect).count() * 100 / submissions.size());
 
         return new AnalyticsResponse(
                 weakness,
                 weeklyActivity(submissions),
-                new Summary(submissions.size(), weeklySolved, user.getStreakCount(), accuracy)
+                new Summary(totalSolved, weeklySolved, user.getStreakCount(), accuracy)
         );
     }
 
@@ -143,7 +145,7 @@ public class AnalyticsService {
         return """
                 사용자: %s
                 총 제출 수: %d
-                이번 주 풀이 수: %d
+                이번 주 새로 해결한 문제 수: %d
                 연속 학습일: %d
 
                 언어별 기록:
@@ -171,11 +173,10 @@ public class AnalyticsService {
 
     private List<Activity> weeklyActivity(List<Submission> submissions) {
         LocalDate monday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        Map<DayOfWeek, Long> counts = submissions.stream()
-                .filter(submission -> submission.getCreatedAt() != null)
-                .filter(submission -> !submission.getCreatedAt().toLocalDate().isBefore(monday))
+        Map<DayOfWeek, Long> counts = firstSolvedAtByProblem(submissions).values().stream()
+                .filter(solvedAt -> !solvedAt.toLocalDate().isBefore(monday))
                 .collect(Collectors.groupingBy(
-                        submission -> submission.getCreatedAt().getDayOfWeek(),
+                        solvedAt -> solvedAt.getDayOfWeek(),
                         Collectors.counting()
                 ));
 
@@ -190,12 +191,32 @@ public class AnalyticsService {
         );
     }
 
+    private int totalSolved(List<Submission> submissions) {
+        return (int) submissions.stream()
+                .filter(Submission::isCorrect)
+                .map(submission -> submission.getProblem().getId())
+                .distinct()
+                .count();
+    }
+
     private int weeklySolved(List<Submission> submissions) {
         LocalDateTime mondayStart = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).atStartOfDay();
-        return (int) submissions.stream()
-                .filter(submission -> submission.getCreatedAt() != null)
-                .filter(submission -> !submission.getCreatedAt().isBefore(mondayStart))
+        return (int) firstSolvedAtByProblem(submissions).values().stream()
+                .filter(solvedAt -> !solvedAt.isBefore(mondayStart))
                 .count();
+    }
+
+    private Map<Long, LocalDateTime> firstSolvedAtByProblem(List<Submission> submissions) {
+        Map<Long, LocalDateTime> firstSolved = new HashMap<>();
+        submissions.stream()
+                .filter(Submission::isCorrect)
+                .filter(submission -> submission.getCreatedAt() != null)
+                .forEach(submission -> firstSolved.merge(
+                        submission.getProblem().getId(),
+                        submission.getCreatedAt(),
+                        (left, right) -> left.isBefore(right) ? left : right
+                ));
+        return firstSolved;
     }
 
     private String languageLabel(Language language) {

@@ -23,7 +23,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Object[]> countCorrectByLanguage(@Param("userId") Long userId);
 
     @Query("""
-            SELECT s.user.id, COUNT(s)
+            SELECT s.user.id, COUNT(DISTINCT p.id)
             FROM Submission s JOIN s.problem p
             WHERE s.user.id IN :userIds
               AND p.language = :language

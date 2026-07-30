@@ -175,7 +175,7 @@ export function TestResultPanel({
           ? <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
           : <XCircle size={18} className="text-red-500 shrink-0" />}
         <span>
-          {passCount} / {results.length} 테스트케이스 통과
+          {!allPassed && "오답 · "}{passCount} / {results.length} 테스트케이스 통과
         </span>
         {allPassed && (
           <span className="ml-auto text-emerald-600 font-extrabold">+20 XP 🎉</span>

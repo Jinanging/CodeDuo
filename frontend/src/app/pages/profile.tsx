@@ -220,7 +220,7 @@ export function ProfilePage({ user, onUpgrade, onSave }: {
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          {[{ label: "총 XP", value: user.xp.toLocaleString(), color: "var(--primary)" }, { label: "연속 학습", value: `${user.streak}일`, color: "#F59E0B" }, { label: "총 풀이", value: `${user.totalSolved}`, color: "#10B981" }].map(({ label, value, color }) => (
+          {[{ label: "총 XP", value: user.xp.toLocaleString(), color: "var(--primary)" }, { label: "연속 학습", value: `${user.streak}일`, color: "#F59E0B" }, { label: "해결한 문제", value: `${user.totalSolved}`, color: "#10B981" }].map(({ label, value, color }) => (
             <div key={label} className="rounded-xl p-3 text-center" style={{ background: "var(--secondary)" }}>
               <div className="font-extrabold" style={{ color }}>{value}</div>
               <div className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{label}</div>

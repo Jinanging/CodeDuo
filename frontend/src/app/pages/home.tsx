@@ -181,7 +181,7 @@ export function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, o
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
             {[
-              { label: "총 풀이", value: `${user.totalSolved}`, icon: <Trophy size={18} />, color: "#F59E0B" },
+              { label: "해결한 문제", value: `${user.totalSolved}`, icon: <Trophy size={18} />, color: "#F59E0B" },
               { label: "연속 학습", value: `${user.streak}일`, icon: <Flame size={18} />, color: "#EF4444" },
               { label: "총 XP", value: `${user.xp}`, icon: <Zap size={18} />, color: "var(--primary)" },
             ].map(({ label, value, icon, color }) => (
@@ -200,7 +200,7 @@ export function HomePage({ user, onStartLesson, selectedLang, setSelectedLang, o
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="font-extrabold text-base" style={{ color: "var(--foreground)" }}>주간 학습</h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>이번 주 풀이 수</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>이번 주 새로 해결한 문제</p>
               </div>
               <TrendingUp size={18} style={{ color: "var(--accent)" }} />
             </div>

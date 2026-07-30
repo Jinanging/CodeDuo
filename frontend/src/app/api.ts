@@ -275,7 +275,7 @@ export async function rejectGroupRequest(groupId: string, userId: string): Promi
 /** 오답노트: 백엔드에 저장된 내 오답 목록 (정답/해설 포함). */
 export interface BackendWrongAnswer {
   id: number; problemId: number; question: string; type: string; language: string;
-  optionsJson?: string; codeTemplate?: string; lastAnswer?: string;
+  optionsJson?: string; codeTemplate?: string; sampleInput?: string; sampleOutput?: string; lastAnswer?: string;
   reasonSummary?: string; explanation?: string; updatedAt?: string;
 }
 export async function getWrongAnswers(): Promise<BackendWrongAnswer[]> {

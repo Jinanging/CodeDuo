@@ -72,7 +72,10 @@ public class SubmissionService {
 
         progressService.recordStudy(managedUser, problem.getLesson(), grade.correct);
 
-        if (!grade.correct) {
+        if (grade.correct) {
+            // 어느 화면에서 다시 풀더라도 정답이면 서버의 오답 기록도 해결 처리한다.
+            wrongAnswerRepository.deleteByUserIdAndProblemId(managedUser.getId(), problem.getId());
+        } else {
             WrongAnswer wrongAnswer = wrongAnswerRepository.findByUserIdAndProblemId(managedUser.getId(), problem.getId())
                     .orElseGet(() -> WrongAnswer.builder().user(managedUser).problem(problem).build());
             wrongAnswer.setLastAnswer(request.answer());
