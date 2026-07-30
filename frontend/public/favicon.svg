@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">CodeDuo Logo</title>
+  <desc id="desc">Round glasses with code brackets and rounded CodeDuo wordmark</desc>
+
+  <!-- Transparent background -->
+  <g transform="translate(0,10)">
+    <!-- Glasses -->
+    <g fill="none" stroke="#0B2D6B" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="390" cy="300" r="145"/>
+      <circle cx="810" cy="300" r="145"/>
+      <path d="M535 300 C575 250, 625 250, 665 300"/>
+      <path d="M228 300 H185"/>
+      <path d="M972 300 H1015"/>
+    </g>
+
+    <!-- Code brackets -->
+    <g fill="none" stroke="#2F80ED" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M425 245 L345 300 L425 355"/>
+      <path d="M775 245 L855 300 L775 355"/>
+    </g>
+
+    <!-- Wordmark -->
+    <text x="600" y="650"
+          text-anchor="middle"
+          font-family="Arial Rounded MT Bold, Nunito, Quicksand, Poppins, Arial, sans-serif"
+          font-size="165"
+          font-weight="700"
+          letter-spacing="-7">
+      <tspan fill="#0B2D6B">Code</tspan><tspan fill="#2F80ED">Duo</tspan>
+    </text>
+  </g>
+</svg>
