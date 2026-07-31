@@ -39,6 +39,35 @@ import { DIFF_NUM, NUM_DIFF, dedupWrongs, mapProblem, mapWrongAnswer } from "./p
 
 // ─── LESSON ───────────────────────────────────────────────────────────────────
 
+const cleanAiText = (value: string) =>
+  value
+    .replace(/\*\*/g, "")
+    .replace(/[🎉📝💡]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const hintLines = (value: string) => {
+  const cleaned = cleanAiText(value)
+    .replace(/\?\s*(?=\d+\.)/g, "?\n")
+    .replace(/\.\s*(?=\d+\.)/g, ".\n")
+    .replace(/\s*(\d+\.)\s*/g, "\n$1 ")
+    .replace(/\s*[-•]\s*/g, "\n- ");
+  return cleaned.split(/\n+/).map(line => line.trim()).filter(Boolean);
+};
+
+const essayFeedback = (value: string) => {
+  const scoreMatch = value.match(/score:\s*(\d+)/i);
+  const feedbackMatch = value.match(/feedback:\s*([\s\S]*)/i);
+  const fallback = value
+    .replace(/score:\s*\d+/i, "")
+    .replace(/correct:\s*(true|false)/i, "")
+    .replace(/feedback:\s*/i, "");
+  return {
+    score: scoreMatch ? Number(scoreMatch[1]) : null,
+    message: cleanAiText(feedbackMatch?.[1] ?? fallback),
+  };
+};
+
 export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onComplete, onBack }: {
   user: UserProfile; selectedLang: Language; difficulty: Difficulty; selectedTopic: string | null;
   onComplete: (correct: number, total: number, wrongs: WrongAnswer[], earned: number) => void;
@@ -69,6 +98,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const [aiHintLoading, setAiHintLoading] = useState(false);
   const [aiHintError, setAiHintError] = useState("");
   const [feedbackExplanation, setFeedbackExplanation] = useState("");
+  const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
   const [submissionError, setSubmissionError] = useState("");
   const [earnedXp, setEarnedXp] = useState(0);
   const [codeWrongRecorded, setCodeWrongRecorded] = useState(false);
@@ -121,7 +151,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
     setProblemHint(""); setProblemHintLoading(false); setProblemHintError("");
-    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false); setCodeAttemptCount(0);
+    setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setFeedbackScore(null); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false); setCodeAttemptCount(0);
   };
 
   const runCode = async () => {
@@ -248,6 +278,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
       setIsRunning(false);
     }
     const correct = backend.correct;
+    setFeedbackScore(activeQuestion.type === "essay" ? backend.score : null);
     setFeedbackExplanation(activeQuestion.type === "essay"
       ? (backend.resultMessage ?? backend.explanation ?? "")
       : (backend.explanation ?? backend.resultMessage ?? "")
@@ -287,6 +318,15 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
         : userAnswer.trim().length > 0 && !isRunning;
 
   const parts = question.question.split("___");
+  const visibleHint = question.hint
+    || (problemHintLoading ? "AI 힌트를 불러오는 중..." : "")
+    || problemHintError
+    || problemHint
+    || (question.type === "essay"
+      ? "핵심 개념을 먼저 정의하고, 왜 그런지와 간단한 예시를 함께 적어보세요."
+      : "문제에서 묻는 핵심 키워드를 먼저 떠올리고 답을 간단히 정리해보세요.");
+  const essayResult = essayFeedback(feedbackExplanation);
+  const essayScore = feedbackScore ?? essayResult.score;
 
   return (
     <div className="flex flex-col" style={{ minHeight: "100dvh" }}>
@@ -348,17 +388,17 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
 
           {/* Hint banner */}
           {showHint && (
-            <div className="mb-4 rounded-2xl px-5 py-3.5 text-sm font-medium border-l-4 flex items-start gap-2" style={{ background: "#FFFBEB", color: "#92400E", borderColor: "#F59E0B" }}>
-              <Lightbulb size={15} className="shrink-0 mt-0.5 text-amber-500" />
-              <span>
-                {question.hint
-                  || (problemHintLoading ? "AI 힌트를 불러오는 중..." : "")
-                  || problemHintError
-                  || problemHint
-                  || (question.type === "essay"
-                    ? "핵심 개념을 먼저 정의하고, 왜 그런지와 간단한 예시를 함께 적어보세요."
-                    : "문제에서 묻는 핵심 키워드를 먼저 떠올리고 답을 간단히 정리해보세요.")}
-              </span>
+            <div className="mb-4 rounded-2xl px-5 py-4 text-sm font-semibold border-l-4 flex items-start gap-3 shadow-sm" style={{ background: "#FFFBEB", color: "#92400E", borderColor: "#F59E0B" }}>
+              <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: "#FEF3C7", color: "#D97706" }}>
+                <Lightbulb size={15} />
+              </div>
+              <div className="min-w-0 space-y-2 leading-relaxed">
+                {hintLines(visibleHint).map((line, index) => (
+                  <p key={`${line}-${index}`} className="break-keep">
+                    {line}
+                  </p>
+                ))}
+              </div>
             </div>
           )}
 
@@ -490,7 +530,35 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
           )}
 
           {/* ── Feedback banner (non-code, non-essay) ── */}
-          {feedback && question.type !== "code" && (
+          {feedback && question.type === "essay" && (
+            <div
+              className="mt-5 rounded-3xl border-2 p-5 shadow-sm"
+              style={{
+                background: feedback === "correct" ? "#ECFDF5" : "#FEF2F2",
+                borderColor: feedback === "correct" ? "#10B981" : "#EF4444",
+              }}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div
+                  className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-3xl text-white"
+                  style={{ background: feedback === "correct" ? "#10B981" : "#EF4444" }}
+                >
+                  <span className="text-4xl font-extrabold leading-none">{essayScore ?? 0}</span>
+                  <span className="mt-1 text-sm font-bold">점</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="mb-2 text-lg font-extrabold" style={{ color: feedback === "correct" ? "#065F46" : "#991B1B" }}>
+                    {feedback === "correct" ? "AI 채점 통과" : "조금 더 보완해보세요"}
+                  </div>
+                  <p className="text-sm font-semibold leading-relaxed break-keep" style={{ color: feedback === "correct" ? "#047857" : "#B91C1C" }}>
+                    {essayResult.message || "채점이 완료되었습니다."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {feedback && question.type !== "code" && question.type !== "essay" && (
             <div
               className="mt-5 rounded-2xl px-6 py-5 flex items-start gap-3"
               style={{
