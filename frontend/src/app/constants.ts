@@ -95,12 +95,13 @@ export const TYPE_META: Record<QuestionType, { label: string; color: string }> =
   mcq:            { label: "객관식",    color: "#7C3AED" },
   "fill-blank":   { label: "빈칸 넣기", color: "#3B82F6" },
   "short-answer": { label: "주관식",    color: "#F59E0B" },
+  essay:          { label: "AI 주관식", color: "#F59E0B" },
   code:           { label: "코딩",      color: "#10B981" },
 };
 
 // XP awarded per correct answer, by type
 export const TYPE_XP: Record<QuestionType, number> = {
-  mcq: 10, "fill-blank": 10, "short-answer": 10, code: 10,
+  mcq: 10, "fill-blank": 10, "short-answer": 10, essay: 10, code: 10,
 };
 export const MAX_CODE_ATTEMPTS = 3;
 

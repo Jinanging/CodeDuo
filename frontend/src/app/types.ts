@@ -1,6 +1,6 @@
 import type { BackendActivity } from "./api";
 
-export type QuestionType = "mcq" | "fill-blank" | "short-answer" | "code"; // 객관식, 빈칸, 단답형, 코드
+export type QuestionType = "mcq" | "fill-blank" | "short-answer" | "essay" | "code"; // 객관식, 빈칸, 단답형, 서술형, 코드
 export type Language = "python" | "java" | "c" | "cpp";
 export type Difficulty = "beginner" | "intermediate" | "advanced";
 export type Screen = "login" | "register" | "home" | "lessonSelect" | "lesson" | "result" | "analytics" | "errors" | "wrongReview" | "interview" | "friends" | "profile" | "admin" | "upgrade";

@@ -11,7 +11,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from "recharts";
 import {
-  submitAnswer, getAiHint, fetchAnalytics, getProblems, getWrongAnswers,
+  submitAnswer, getAiHint, getProblemAiHint, fetchAnalytics, getProblems, getWrongAnswers,
   fetchAiLearningReport, getLearningActivity,
   getFriends as apiGetFriends, addFriend as apiAddFriend, removeFriend as apiRemoveFriend,
   acceptFriend as apiAcceptFriend, rejectFriendRequest as apiRejectFriendRequest, getFriendRequests as apiGetFriendRequests,
@@ -54,6 +54,9 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [showHint, setShowHint] = useState(false);
+  const [problemHint, setProblemHint] = useState("");
+  const [problemHintLoading, setProblemHintLoading] = useState(false);
+  const [problemHintError, setProblemHintError] = useState("");
   const [correctCount, setCorrectCount] = useState(0);
   const [codeValue, setCodeValue] = useState("");
   const [wrongs, setWrongs] = useState<WrongAnswer[]>([]);
@@ -117,6 +120,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
   const resetQ = (idx: number) => {
     setUserAnswer(""); setSelectedOption(null); setFeedback(null); setShowHint(false);
     setCodeValue(lessonQuestions[idx]?.template ?? "");
+    setProblemHint(""); setProblemHintLoading(false); setProblemHintError("");
     setTestResults(null); setCodeResultMessage(""); setBackendCodeReview(undefined); setBackendSubmissionId(null); setAiHint(""); setAiHintLoading(false); setAiHintError(""); setFeedbackExplanation(""); setSubmissionError(""); setIsRunning(false); setCodeWrongRecorded(false); setCodeAttemptCount(0);
   };
 
@@ -160,7 +164,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     setCodeResultMessage(backend.resultMessage ?? "");
     setBackendCodeReview(backend.aiReview);
     setBackendSubmissionId(backend.id ?? null);
-    setFeedbackExplanation(backend.explanation ?? "");
+    setFeedbackExplanation(backend.explanation ?? backend.resultMessage ?? "");
     setIsRunning(false);
     submissionLockRef.current = false;
     const allPassed = backend.correct;
@@ -195,6 +199,30 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
     }
   };
 
+  const requestProblemHint = async () => {
+    if (question.hint || problemHint || problemHintLoading) return;
+    if (question.type !== "essay" && question.type !== "short-answer") return;
+    setProblemHintLoading(true);
+    setProblemHintError("");
+    try {
+      const result = await getProblemAiHint(question.id);
+      setProblemHint(result.hint);
+    } catch (error) {
+      setProblemHintError(error instanceof Error ? error.message : "AI 힌트를 불러오지 못했습니다.");
+    } finally {
+      setProblemHintLoading(false);
+    }
+  };
+
+  const toggleHint = () => {
+    if (showHint) {
+      setShowHint(false);
+      return;
+    }
+    setShowHint(true);
+    void requestProblemHint();
+  };
+
   const checkAnswer = async () => {
     if (question.type === "code") { runCode(); return; }
     if (submissionLockRef.current) return;
@@ -220,7 +248,10 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
       setIsRunning(false);
     }
     const correct = backend.correct;
-    setFeedbackExplanation(backend.explanation ?? "");
+    setFeedbackExplanation(activeQuestion.type === "essay"
+      ? (backend.resultMessage ?? backend.explanation ?? "")
+      : (backend.explanation ?? backend.resultMessage ?? "")
+    );
 
     setFeedback(correct ? "correct" : "wrong");
     if (correct) {
@@ -307,7 +338,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
               </span>
             </div>
             <button
-              onClick={() => setShowHint(!showHint)}
+              onClick={toggleHint}
               className="flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full border border-border hover:bg-muted transition-colors"
               style={{ color: "#F59E0B" }}
             >
@@ -316,10 +347,18 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
           </div>
 
           {/* Hint banner */}
-          {showHint && question.hint && (
+          {showHint && (
             <div className="mb-4 rounded-2xl px-5 py-3.5 text-sm font-medium border-l-4 flex items-start gap-2" style={{ background: "#FFFBEB", color: "#92400E", borderColor: "#F59E0B" }}>
               <Lightbulb size={15} className="shrink-0 mt-0.5 text-amber-500" />
-              {question.hint}
+              <span>
+                {question.hint
+                  || (problemHintLoading ? "AI 힌트를 불러오는 중..." : "")
+                  || problemHintError
+                  || problemHint
+                  || (question.type === "essay"
+                    ? "핵심 개념을 먼저 정의하고, 왜 그런지와 간단한 예시를 함께 적어보세요."
+                    : "문제에서 묻는 핵심 키워드를 먼저 떠올리고 답을 간단히 정리해보세요.")}
+              </span>
             </div>
           )}
 
@@ -399,6 +438,22 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
             />
           )}
 
+          {question.type === "essay" && (
+            <textarea
+              value={userAnswer}
+              onChange={e => setUserAnswer(e.target.value)}
+              disabled={!!feedback || isRunning}
+              placeholder="개념, 이유, 예시를 포함해서 답안을 작성하세요..."
+              rows={7}
+              className="w-full px-5 py-4 rounded-2xl border-2 font-semibold text-base focus:outline-none transition-colors resize-none leading-relaxed"
+              style={{
+                borderColor: feedback === "correct" ? "#10B981" : feedback === "wrong" ? "#EF4444" : "var(--border)",
+                background: feedback === "correct" ? "#ECFDF5" : feedback === "wrong" ? "#FEF2F2" : "var(--input-background)",
+                color: feedback === "correct" ? "#065F46" : feedback === "wrong" ? "#991B1B" : "var(--foreground)",
+              }}
+            />
+          )}
+
           {submissionError && (
             <div className="mt-3 px-4 py-3 rounded-xl text-sm font-semibold" style={{ background: "#FEF2F2", color: "#991B1B" }}>
               {submissionError}
@@ -448,7 +503,9 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                 : <XCircle size={22} className="text-red-500 shrink-0 mt-0.5" />}
               <div>
                 <div className="font-bold mb-1" style={{ color: feedback === "correct" ? "#065F46" : "#991B1B" }}>
-                  {feedback === "correct" ? `정답! +${TYPE_XP[question.type]} XP 🎉` : "틀렸어요. 해설을 확인하세요."}
+                  {feedback === "correct"
+                    ? (question.type === "essay" ? `AI 채점 통과! +${TYPE_XP[question.type]} XP 🎉` : `정답! +${TYPE_XP[question.type]} XP 🎉`)
+                    : (question.type === "essay" ? "AI 채점 기준을 다시 확인하세요." : "틀렸어요. 해설을 확인하세요.")}
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: feedback === "correct" ? "#047857" : "#B91C1C" }}>
                   {feedbackExplanation || "채점이 완료되었습니다."}
@@ -555,7 +612,7 @@ export function LessonPage({ user, selectedLang, difficulty, selectedTopic, onCo
                   color: canCheck ? "#fff" : "#6B5B95",
                 }}
               >
-                {isRunning ? "채점 중…" : "정답 확인"}
+                {isRunning ? "채점 중…" : question.type === "essay" ? "AI 채점 받기" : "정답 확인"}
               </button>
             )}
           </div>

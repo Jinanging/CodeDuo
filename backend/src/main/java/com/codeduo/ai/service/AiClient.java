@@ -13,6 +13,7 @@ import java.util.List;
 public interface AiClient {
     String reviewCode(String sourceCode);
     String hintCode(Problem problem, Submission submission);
+    String hintProblem(Problem problem);
     EssayGradeResult gradeEssay(String rubric, String answer);
     InterviewQuestion createInterviewQuestion(String studyContext, List<String> previousQuestions, int questionNumber);
     InterviewEvaluation evaluateInterviewAnswer(InterviewQuestion question, String answer);
