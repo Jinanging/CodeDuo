@@ -29,7 +29,7 @@ export function dedupWrongs(list: WrongAnswer[]): WrongAnswer[] {
 
 // ── 백엔드 문제(BackendProblem) → 프론트 Question 매핑 ──
 export const PROBLEM_TYPE_MAP: Record<string, QuestionType> = {
-  MULTIPLE_CHOICE: "mcq", SHORT_ANSWER: "short-answer", FILL_BLANK: "fill-blank", CODE: "code", ESSAY: "short-answer",
+  MULTIPLE_CHOICE: "mcq", SHORT_ANSWER: "short-answer", FILL_BLANK: "fill-blank", CODE: "code", ESSAY: "essay",
 };
 export const DIFF_NUM: Record<Difficulty, number> = { beginner: 1, intermediate: 2, advanced: 3 };
 export const NUM_DIFF: Record<number, Difficulty> = { 1: "beginner", 2: "intermediate", 3: "advanced" };

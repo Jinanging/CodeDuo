@@ -87,6 +87,33 @@ public class GeminiAiClient implements AiClient {
     }
 
     @Override
+    public String hintProblem(Problem problem) {
+        return generate("""
+                너는 초보자를 돕는 코딩 튜터다.
+                사용자가 문제를 풀기 전에 볼 수 있는 힌트를 제공한다.
+
+                규칙:
+                - 한국어로 답한다.
+                - 정답, 모범 답안, 완성 문장을 직접 제공하지 않는다.
+                - 문제에서 먼저 떠올릴 핵심 개념 1개와 확인 질문 2개를 제시한다.
+                - 서술형/주관식은 답안에 포함하면 좋은 관점만 알려주고 채점 기준 전체를 공개하지 않는다.
+                - 350자 이내로 답한다.
+
+                문제 제목: %s
+                문제 설명: %s
+                언어: %s
+                문제 유형: %s
+                태그: %s
+                """.formatted(
+                safe(problem.getTitle()),
+                limit(problem.getDescription(), 3000),
+                problem.getLanguage(),
+                problem.getType(),
+                safe(problem.getTagsJson())
+        ));
+    }
+
+    @Override
     public EssayGradeResult gradeEssay(String rubric, String answer) {
         String feedback = generate("""
                 너는 프로그래밍 학습 서비스의 서술형 채점자다.

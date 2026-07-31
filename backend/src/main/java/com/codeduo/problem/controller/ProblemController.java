@@ -1,8 +1,11 @@
 package com.codeduo.problem.controller;
 
 import com.codeduo.global.response.ApiResponse;
+import com.codeduo.global.security.CurrentUser;
 import com.codeduo.problem.dto.ProblemResponse;
 import com.codeduo.problem.service.ProblemService;
+import com.codeduo.submission.dto.AiHintResponse;
+import com.codeduo.user.entity.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -33,5 +36,10 @@ public class ProblemController {
     @GetMapping("/api/problems/{problemId}")
     public ApiResponse<ProblemResponse> problem(@PathVariable Long problemId) {
         return ApiResponse.ok("문제를 조회했습니다.", problemService.getProblem(problemId));
+    }
+
+    @PostMapping("/api/problems/{problemId}/ai-hint")
+    public ApiResponse<AiHintResponse> aiHint(@CurrentUser User user, @PathVariable Long problemId) {
+        return ApiResponse.ok("AI 힌트를 생성했습니다.", problemService.createAiHint(user, problemId));
     }
 }

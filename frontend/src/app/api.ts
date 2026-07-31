@@ -199,6 +199,11 @@ export async function getAiHint(submissionId: number): Promise<AiHintResponse> {
   return req<AiHintResponse>(`/api/submissions/${submissionId}/ai-hint`, { method: "POST" });
 }
 
+/** 정적 힌트가 없는 문제에 대한 프리미엄 AI 힌트 생성. */
+export async function getProblemAiHint(problemId: number): Promise<AiHintResponse> {
+  return req<AiHintResponse>(`/api/problems/${problemId}/ai-hint`, { method: "POST" });
+}
+
 /** 언어(python/java/c/cpp) + 난이도(1=초급,2=중급,3=고급)로 문제 목록 조회. */
 export async function getProblems(language: string, difficulty?: number): Promise<BackendProblem[]> {
   const base = `/api/problems?language=${encodeURIComponent(language)}`;

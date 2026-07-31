@@ -26,6 +26,11 @@ public class MockAiClient implements AiClient {
     }
 
     @Override
+    public String hintProblem(Problem problem) {
+        return "문제에서 묻는 핵심 개념을 먼저 한 문장으로 정리해보세요. 그 개념이 왜 필요한지, 어떤 상황에서 쓰이는지 짧은 예시와 함께 생각하면 답안 방향을 잡기 쉽습니다.";
+    }
+
+    @Override
     public EssayGradeResult gradeEssay(String rubric, String answer) {
         boolean correct = answer != null && answer.strip().length() >= 10;
         return new EssayGradeResult(correct ? 90 : 40, correct, correct ? "핵심 개념을 충분히 설명했습니다." : "설명이 짧습니다. 개념과 예시를 함께 작성해보세요.");
